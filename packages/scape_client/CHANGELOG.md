@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.4.0
+
+- `GameSession.say`, `whisper` and `editList` send chat and list changes.
+- `bubbles` lists the chat lines to draw over heads. A line stays for
+  `bubbleSeconds`, 5, by the session's clock.
+- `whispers`, `friends` and `ignored` hold what the server has sent. Notices
+  and whispers keep the newest 100.
+
 ## 0.3.0
 
 - `GameSession.connect` opens a WebSocket to a server. The session closes the

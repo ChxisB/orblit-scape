@@ -8,14 +8,27 @@ import 'package:scape_core/scape_core.dart';
 /// of the time it draws.
 const Duration interpolationDelay = Duration(milliseconds: 700);
 
+/// How long a line of chat stays over a head.
+const double bubbleSeconds = 5;
+
+/// The most notices and whispers kept. The oldest go first.
+const int _keepLines = 100;
+
 /// One actor as the client draws it.
 typedef Actor = ({int networkId, double x, double y, int plane, bool mine});
+
+/// A line of public chat to draw over the actor [networkId] is.
+typedef Bubble = ({int networkId, String text});
+
+/// A private message from the player called [from].
+typedef Heard = ({String from, String text});
 
 /// The client's side of one login: what it sends, what it has been told and
 /// the actors it can see. It holds no rules and draws what it is sent.
 final class GameSession {
   GameSession({required Transport transport, double Function()? clock})
     : _transport = transport,
+      _now = clock ?? _stopwatchClock(),
       _world = World() {
     final networkId = _world.registerComponent(
       'NetworkId',
@@ -32,7 +45,7 @@ final class GameSession {
       networkId: networkId,
       transport: transport,
       interpolationDelay: interpolationDelay,
-      clock: clock,
+      clock: _now,
       onMessage: _onMessage,
       onGoodbye: (reason) => refusal = reason,
     );
@@ -46,11 +59,19 @@ final class GameSession {
   }) async =>
       GameSession(transport: await SocketTransport.connect(url), clock: clock);
 
+  static double Function() _stopwatchClock() {
+    final stopwatch = Stopwatch()..start();
+    return () => stopwatch.elapsedMicroseconds / 1e6;
+  }
+
   final Transport _transport;
+  final double Function() _now;
   final World _world;
   late final ComponentType _position;
   late final NetClient _client;
   final List<String> _notices = [];
+  final List<Heard> _whispers = [];
+  final Map<int, ({String text, double until})> _bubbles = {};
 
   /// The name the server knows the player by, once logged in.
   String? name;
@@ -61,7 +82,23 @@ final class GameSession {
   /// Why the server sent the player away, if it did.
   String? refusal;
 
+  /// Friends, with whether each is logged in. Empty until the server sends it.
+  List<Friend> friends = const [];
+
+  /// Names the player ignores.
+  List<String> ignored = const [];
+
   List<String> get notices => List.unmodifiable(_notices);
+
+  /// Private messages received, oldest first.
+  List<Heard> get whispers => List.unmodifiable(_whispers);
+
+  /// The chat lines to draw now, one per speaker, the newest of each. A speaker
+  /// is one entry for as long as the session lasts, which is small.
+  List<Bubble> get bubbles => [
+    for (final MapEntry(:key, :value) in _bubbles.entries)
+      if (value.until > _now()) (networkId: key, text: value.text),
+  ];
 
   bool get isLoggedIn => name != null;
 
@@ -69,6 +106,20 @@ final class GameSession {
 
   void walkTo(TileCoord tile) =>
       _client.sendMessage(encodeClientMessage(Walk(tile)));
+
+  /// Says [text] to the players nearby. The text must satisfy [isValidText].
+  void say(String text) => _client.sendMessage(encodeClientMessage(Chat(text)));
+
+  /// Sends [text] privately to the player called [to]. Both must be valid.
+  void whisper(String to, String text) =>
+      _client.sendMessage(encodeClientMessage(Whisper(to: to, text: text)));
+
+  /// Puts [name] on [list], or takes it off. The name must satisfy
+  /// [isValidName].
+  void editList(ListKind list, String name, {required bool add}) =>
+      _client.sendMessage(
+        encodeClientMessage(EditList(list: list, add: add, name: name)),
+      );
 
   /// Blends the world towards where the server was a moment ago. Call once a
   /// frame.
@@ -99,11 +150,23 @@ final class GameSession {
         case Avatar(:final networkId):
           avatar = networkId;
         case Notice(:final text):
-          _notices.add(text);
+          _keep(_notices, text);
+        case Said(:final speaker, :final text):
+          _bubbles[speaker] = (text: text, until: _now() + bubbleSeconds);
+        case Whispered(:final from, :final text):
+          _keep(_whispers, (from: from, text: text));
+        case SocialLists(:final friends, :final ignored):
+          this.friends = friends;
+          this.ignored = ignored;
         case PrivateState():
           break;
       }
     }
+  }
+
+  void _keep<T>(List<T> lines, T line) {
+    lines.add(line);
+    if (lines.length > _keepLines) lines.removeAt(0);
   }
 
   Future<void> dispose() async {
