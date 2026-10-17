@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.11.0
+
+- `Combat` runs melee. A click on a creature walks the player up and
+  swings at the weapon's speed, and follows the creature if it moves.
+  A creature that is hit, or an aggressive one that reaches its prey,
+  swings back at its own speed.
+- A creature that loses stays down until its respawn time and a player
+  is near. A player who loses stands at the spawn tile with full health
+  and everything they carried.
+- Killing a creature grants fighting and health experience once.
+  `Combat.addKillHandler` tells a feature of each kill.
+- `Health` is replicated on every fighter. A health level raises the
+  most hit points. Hit points come back one at a time after the fight.
+- `Npcs.kill` removes a creature until it respawns. `Interactions` takes
+  `npcs` and `addNpcAction`.
+- `ScapeServer` takes `combat`.
+
 ## 0.10.0
 
 - `Npcs` places creatures and moves them on the NPC phase. A wanderer

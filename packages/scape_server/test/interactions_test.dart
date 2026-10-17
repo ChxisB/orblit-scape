@@ -61,6 +61,7 @@ void main() {
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: defaultNpcs,
+      combat: defaultCombat,
     );
   });
 

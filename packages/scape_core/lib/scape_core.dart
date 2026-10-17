@@ -1,6 +1,8 @@
 /// Tile coordinates, flags, paths and the rules a server and a client share.
 library;
 
+export 'src/combat.dart'
+    show CombatBonus, CombatRules, NpcFight, Rating, healthInts, healthName;
 export 'src/container.dart'
     show
         Accepts,
@@ -31,6 +33,7 @@ export 'src/messages.dart'
         Decoded,
         EditList,
         Friend,
+        Hit,
         Intent,
         Interact,
         ListKind,
@@ -111,4 +114,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.12.0';
+const scapeCoreVersion = '0.13.0';

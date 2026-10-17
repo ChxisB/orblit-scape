@@ -4,6 +4,7 @@ import 'package:scape_core/scape_core.dart';
 
 import 'engine/registry.dart';
 import 'engine/services.dart';
+import 'features/combat/combat.dart';
 import 'features/gathering/gathering.dart';
 import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
@@ -16,6 +17,7 @@ import 'features/social/social.dart';
 
 /// What the rest of the server may reach into after the features register.
 typedef Features = ({
+  Combat combat,
   GroundItems ground,
   Interactions interactions,
   Items items,
@@ -36,6 +38,7 @@ Features registerFeatures(
   required ObjectSet objects,
   required NodeSet nodes,
   required NpcSet npcs,
+  required CombatRules combat,
   required Random random,
 }) {
   final movement = Movement.register(registry, services, spawn: spawn);
@@ -66,6 +69,7 @@ Features registerFeatures(
     services,
     movement: movement,
     objects: placed,
+    npcs: creatures,
     ground: ground,
     items: bags,
   );
@@ -81,7 +85,21 @@ Features registerFeatures(
     actorOf: movement.actorOf,
     random: random,
   );
+  final fights = Combat.register(
+    registry,
+    services,
+    interactions: interactions,
+    rules: combat,
+    skills: levels,
+    items: items,
+    bags: bags,
+    movement: movement,
+    npcs: creatures,
+    random: random,
+    spawn: spawn,
+  );
   return (
+    combat: fights,
     ground: ground,
     interactions: interactions,
     items: bags,

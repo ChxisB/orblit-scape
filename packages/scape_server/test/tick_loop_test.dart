@@ -45,6 +45,7 @@ void main() {
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: defaultNpcs,
+      combat: defaultCombat,
     );
     pacer.server = server;
     addTearDown(server.dispose);

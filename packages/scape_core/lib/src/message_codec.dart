@@ -19,6 +19,7 @@ const int _avatar = 4;
 const int _said = 5;
 const int _whispered = 6;
 const int _socialLists = 7;
+const int _hit = 8;
 
 /// The most bytes each message may take, by tag. A longer one is refused
 /// before anything is read from it.
@@ -36,6 +37,7 @@ final Map<int, int> _serverCaps = {
   _privateState: 1 + maxDeltaBytes,
   _notice: 2 + maxTextBytes,
   _avatar: 5,
+  _hit: 7,
   _said: 6 + maxTextBytes,
   _whispered: 3 + maxNameChars + maxTextBytes,
   _socialLists:
@@ -72,6 +74,7 @@ final Map<int, _Reader<ServerMessage>> _serverReaders = {
   _said: _readSaid,
   _whispered: _readWhispered,
   _socialLists: _readSocialLists,
+  _hit: _readHit,
 };
 
 Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
@@ -91,6 +94,7 @@ Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
   Said() => _encodeSaid(message),
   Whispered(:final from, :final text) => _withTwoTexts(_whispered, from, text),
   SocialLists() => _encodeSocialLists(message),
+  Hit() => _encodeHit(message),
 };
 
 Decoded<ClientMessage> decodeClientMessage(Uint8List bytes) =>
@@ -261,6 +265,23 @@ Said? _readSaid(Uint8List bytes) {
   return Said(
     speaker: ByteData.sublistView(bytes).getUint32(1, Endian.little),
     text: utf8.decode(Uint8List.sublistView(bytes, 6)),
+  );
+}
+
+Uint8List _encodeHit(Hit message) {
+  final bytes = Uint8List(7)..[0] = _hit;
+  ByteData.sublistView(bytes)
+    ..setUint32(1, message.target, Endian.little)
+    ..setUint16(5, message.damage, Endian.little);
+  return bytes;
+}
+
+Hit? _readHit(Uint8List bytes) {
+  if (bytes.length != 7) return null;
+  final data = ByteData.sublistView(bytes);
+  return Hit(
+    target: data.getUint32(1, Endian.little),
+    damage: data.getUint16(5, Endian.little),
   );
 }
 

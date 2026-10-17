@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:orblit_core/orblit_core.dart';
 import 'package:scape_core/scape_core.dart';
 
+import '../../engine/action.dart';
 import '../../engine/phase.dart';
 import '../../engine/registry.dart';
 import '../../engine/services.dart';
@@ -16,20 +17,13 @@ const double wanderChance = 0.1;
 
 /// A creature standing in the world.
 final class PlacedNpc {
-  PlacedNpc._({
-    required this.entity,
-    required this.networkId,
-    required this.def,
-    required this.home,
-    required this.radius,
-  }) : leash = switch (def.behaviour) {
-         Aggressive(:final leash) => max(leash, radius),
-         Idle() || Wander() => radius,
-       },
-       _mover = Mover(home, walker: Walker.npc);
+  PlacedNpc._({required this.def, required this.home, required this.radius})
+    : leash = switch (def.behaviour) {
+        Aggressive(:final leash) => max(leash, radius),
+        Idle() || Wander() => radius,
+      },
+      _mover = Mover(home, walker: Walker.npc);
 
-  final int entity;
-  final int networkId;
   final NpcDef def;
 
   /// Where it was placed, and where it goes back to.
@@ -42,8 +36,31 @@ final class PlacedNpc {
   final int leash;
 
   final Mover _mover;
+  int _entity = 0;
+  int _networkId = 0;
   bool _asleep = false;
   bool _hunting = false;
+  bool _engaged = false;
+  int? _respawnAt;
+
+  /// The entity standing in the world now. A creature that dies and returns
+  /// is a new entity.
+  int get entity => _entity;
+
+  int get networkId => _networkId;
+
+  /// Whether it is dead and waiting to stand again.
+  bool get isDead => _respawnAt != null;
+
+  /// Whether it is following a player.
+  bool get isHunting => _hunting;
+
+  /// Whether it is in a fight, which keeps it where it stands.
+  bool get isEngaged => _engaged;
+
+  void engage() => _engaged = true;
+
+  void release() => _engaged = false;
 
   /// The tile it stands on.
   TileCoord get tile => _mover.position;
@@ -55,6 +72,7 @@ final class PlacedNpc {
 /// region nobody visited never holds a creature mid walk.
 final class Npcs {
   Npcs._(
+    this._actions,
     this._services,
     this._defs,
     this._playerTiles,
@@ -80,6 +98,7 @@ final class Npcs {
     );
     registry.replicate(npc);
     final feature = Npcs._(
+      registry.actions,
       services,
       npcs,
       playerTiles,
@@ -95,6 +114,7 @@ final class Npcs {
     return feature;
   }
 
+  final ActionQueue _actions;
   final Services _services;
   final NpcSet _defs;
   final PlayerTiles _playerTiles;
@@ -102,9 +122,34 @@ final class Npcs {
   final ComponentType _position;
   final ComponentType _npc;
   final List<PlacedNpc> _all = [];
+  final Map<int, PlacedNpc> _standing = {};
+  final List<void Function(PlacedNpc)> _standHandlers = [];
 
-  /// How many creatures are in the world.
+  /// How many creatures are placed, dead ones included.
   int get count => _all.length;
+
+  /// The creatures standing in the world now.
+  Iterable<PlacedNpc> get standing => _standing.values;
+
+  /// The creature standing as the entity [networkId] names, or null.
+  PlacedNpc? find(int networkId) => _standing[networkId];
+
+  /// Calls [handler] each time a creature enters the world, at its spawn and
+  /// when it returns from the dead.
+  void addStandHandler(void Function(PlacedNpc) handler) =>
+      _standHandlers.add(handler);
+
+  /// Takes [npc] out of the world until its respawn time has passed and a
+  /// player is near. Does nothing for a creature already dead.
+  void kill(PlacedNpc npc) {
+    if (npc.isDead) return;
+    _services.hosting.despawn(npc.entity);
+    _standing.remove(npc.networkId);
+    npc
+      .._respawnAt = _actions.tick + (npc.def.fight?.respawnTicks ?? 1)
+      .._engaged = false
+      .._hunting = false;
+  }
 
   /// Puts a creature in the world and returns it. Throws [ArgumentError] for
   /// a creature that does not exist and for a tile a creature may not stand
@@ -116,6 +161,17 @@ final class Npcs {
     if (_services.map.flagsAt(spawn.tile).has(barred)) {
       throw ArgumentError.value(spawn.tile, 'tile', 'is not open to creatures');
     }
+    final placed = PlacedNpc._(
+      def: def,
+      home: spawn.tile,
+      radius: spawn.radius,
+    );
+    _stand(placed);
+    _all.add(placed);
+    return placed;
+  }
+
+  void _stand(PlacedNpc npc) {
     final world = _services.world;
     final entity = world.createEntity();
     world
@@ -123,23 +179,24 @@ final class Npcs {
       ..add(entity, _npc);
     ByteData.sublistView(
       world.bytesOf(entity, _npc)!,
-    ).setInt32(0, def.id, Endian.little);
-    final placed = PlacedNpc._(
-      entity: entity,
-      networkId: _services.hosting.spawn(entity),
-      def: def,
-      home: spawn.tile,
-      radius: spawn.radius,
-    );
-    _write(placed);
-    _all.add(placed);
-    return placed;
+    ).setInt32(0, npc.def.id, Endian.little);
+    npc
+      .._entity = entity
+      .._networkId = _services.hosting.spawn(entity)
+      .._respawnAt = null;
+    _standing[npc.networkId] = npc;
+    _write(npc);
+    for (final handler in _standHandlers) {
+      handler(npc);
+    }
   }
 
   void _step() {
     final players = _playerTiles().toList();
     for (final npc in _all) {
-      if (!_isActive(npc)) {
+      if (npc.isDead) {
+        _maybeReturn(npc);
+      } else if (!_isActive(npc)) {
         npc._asleep = true;
       } else if (npc._asleep) {
         _wake(npc);
@@ -151,6 +208,14 @@ final class Npcs {
 
   bool _isActive(PlacedNpc npc) =>
       _services.active.isActiveAt(npc.home.x.toDouble(), npc.home.y.toDouble());
+
+  void _maybeReturn(PlacedNpc npc) {
+    if (npc._respawnAt! > _actions.tick || !_isActive(npc)) return;
+    npc._mover
+      ..clearPath()
+      ..position = npc.home;
+    _stand(npc);
+  }
 
   void _wake(PlacedNpc npc) {
     npc
@@ -170,6 +235,8 @@ final class Npcs {
     final prey = _preyOf(npc, players);
     if (prey != null) {
       _chase(npc, prey);
+    } else if (npc._engaged) {
+      npc._mover.clearPath();
     } else if (npc._hunting) {
       npc._hunting = false;
       _walkTo(npc, npc.home);

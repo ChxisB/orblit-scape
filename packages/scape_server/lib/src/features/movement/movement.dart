@@ -59,6 +59,9 @@ final class Movement {
   /// in the world.
   int? actorOf(String player) => _players[player]?.entity;
 
+  /// The key of each player in the world.
+  Iterable<String> get players => _players.keys;
+
   /// The tile each player in the world stands on.
   Iterable<TileCoord> get tiles => [
     for (final player in _players.values) player.mover.position,

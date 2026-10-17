@@ -39,9 +39,14 @@ final class TestClient {
       kind: ComponentKind.int32,
       arity: npcInts,
     );
+    health = world.registerComponent(
+      healthName,
+      kind: ComponentKind.int32,
+      arity: healthInts,
+    );
     client = NetClient(
       world: world,
-      set: ReplicationSet([position, ground, object, npc]),
+      set: ReplicationSet([position, ground, object, npc, health]),
       networkId: networkId,
       transport: link.client,
       onMessage: (body) => received.add(decodeServerMessage(body)),
@@ -56,6 +61,7 @@ final class TestClient {
   late final ComponentType ground;
   late final ComponentType object;
   late final ComponentType npc;
+  late final ComponentType health;
   late final NetClient client;
   final List<Decoded<ServerMessage>> received = [];
   final List<String> goodbyes = [];
@@ -101,6 +107,19 @@ final class TestClient {
           world.bytesOf(client.entityFor(networkId)!, npc)!,
         ).getInt32(0, Endian.little),
   };
+
+  /// The hit points of the entity with [networkId] as this client sees them,
+  /// or null when it has none.
+  ({int now, int max})? healthOf(int networkId) {
+    final entity = client.entityFor(networkId);
+    final bytes = entity == null ? null : world.bytesOf(entity, health);
+    if (bytes == null) return null;
+    final data = ByteData.sublistView(bytes);
+    return (
+      now: data.getInt32(0, Endian.little),
+      max: data.getInt32(4, Endian.little),
+    );
+  }
 
   /// The tile the entity with [networkId] stands on, as this client sees it.
   TileCoord? tileOf(int networkId) {

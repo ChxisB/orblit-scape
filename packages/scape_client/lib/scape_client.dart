@@ -9,12 +9,14 @@ export 'src/session.dart'
         Bubble,
         GameSession,
         GroundSprite,
+        Health,
         Heard,
         NpcSprite,
         ObjectSprite,
+        Splat,
         bubbleSeconds,
         interpolationDelay;
 export 'src/tile_pick.dart' show pickTile, standingPoint;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeClientVersion = '0.8.0';
+const scapeClientVersion = '0.9.0';

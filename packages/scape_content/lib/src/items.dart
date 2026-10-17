@@ -35,6 +35,7 @@ final ItemSet defaultItems = ItemSet(
       value: 30,
       equipSlot: 'weapon',
       needs: (skill: 'woodcutting', level: 1),
+      combat: CombatBonus(attack: 3, strength: 4, speed: 5),
     ),
     ItemDef(
       id: ItemId.bronzePickaxe,
@@ -42,6 +43,7 @@ final ItemSet defaultItems = ItemSet(
       value: 30,
       equipSlot: 'weapon',
       needs: (skill: 'mining', level: 1),
+      combat: CombatBonus(attack: 2, strength: 3, speed: 5),
     ),
     ItemDef(
       id: ItemId.bronzeSword,
@@ -49,12 +51,14 @@ final ItemSet defaultItems = ItemSet(
       value: 40,
       equipSlot: 'weapon',
       needs: (skill: 'fighting', level: 1),
+      combat: CombatBonus(attack: 8, strength: 6, speed: 4),
     ),
     ItemDef(
       id: ItemId.woodenShield,
       name: 'Wooden shield',
       value: 25,
       equipSlot: 'shield',
+      combat: CombatBonus(defence: 6),
     ),
     ItemDef(
       id: ItemId.bronzeHelmet,
@@ -62,6 +66,7 @@ final ItemSet defaultItems = ItemSet(
       value: 35,
       equipSlot: 'head',
       needs: (skill: 'fighting', level: 1),
+      combat: CombatBonus(defence: 4),
     ),
     ItemDef(id: ItemId.fishingNet, name: 'Fishing net', value: 8),
   ],

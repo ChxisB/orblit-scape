@@ -44,6 +44,13 @@ typedef NpcSprite = ({int networkId, int def, double x, double y, int plane});
 /// A line of public chat to draw over the actor [networkId] is.
 typedef Bubble = ({int networkId, String text});
 
+/// A swing that landed on the actor [target] names. A [damage] of zero is a
+/// miss.
+typedef Splat = ({int target, int damage});
+
+/// The hit points an actor has and the most it can have.
+typedef Health = ({int now, int max});
+
 /// A private message from the player called [from].
 typedef Heard = ({String from, String text});
 
@@ -88,9 +95,14 @@ final class GameSession {
       kind: ComponentKind.int32,
       arity: npcInts,
     );
+    _health = _world.registerComponent(
+      healthName,
+      kind: ComponentKind.int32,
+      arity: healthInts,
+    );
     _client = NetClient(
       world: _world,
-      set: ReplicationSet([_position, _ground, _object, _npc]),
+      set: ReplicationSet([_position, _ground, _object, _npc, _health]),
       networkId: networkId,
       transport: transport,
       interpolationDelay: interpolationDelay,
@@ -130,9 +142,11 @@ final class GameSession {
   late final ComponentType _ground;
   late final ComponentType _object;
   late final ComponentType _npc;
+  late final ComponentType _health;
   late final NetClient _client;
   final List<String> _notices = [];
   final List<Heard> _whispers = [];
+  final List<Splat> _splats = [];
   final Map<int, ({String text, double until})> _bubbles = {};
 
   /// The name the server knows the player by, once logged in.
@@ -151,6 +165,22 @@ final class GameSession {
   List<String> ignored = const [];
 
   List<String> get notices => List.unmodifiable(_notices);
+
+  /// Swings that landed or missed, oldest first.
+  List<Splat> get splats => List.unmodifiable(_splats);
+
+  /// The hit points of the actor [networkId] names, or null for one that is
+  /// not in view or does not fight.
+  Health? healthOf(int networkId) {
+    final entity = _client.entityFor(networkId);
+    final bytes = entity == null ? null : _world.bytesOf(entity, _health);
+    if (bytes == null) return null;
+    final data = ByteData.sublistView(bytes);
+    return (
+      now: data.getInt32(0, Endian.little),
+      max: data.getInt32(4, Endian.little),
+    );
+  }
 
   /// Private messages received, oldest first.
   List<Heard> get whispers => List.unmodifiable(_whispers);
@@ -193,6 +223,10 @@ final class GameSession {
   /// Picks up the item lying on the ground that [networkId] names.
   void takeItem(int networkId) =>
       _interact(Interact(kind: InteractKind.ground, id: networkId, option: 0));
+
+  /// Attacks the creature that [networkId] names.
+  void attack(int networkId) =>
+      _interact(Interact(kind: InteractKind.npc, id: networkId, option: 0));
 
   /// Uses the inventory item in [slot] on the object [networkId].
   void useItemOnObject(int slot, int networkId) => _interact(
@@ -325,6 +359,8 @@ final class GameSession {
           _keep(_notices, text);
         case Said(:final speaker, :final text):
           _bubbles[speaker] = (text: text, until: _now() + bubbleSeconds);
+        case Hit(:final target, :final damage):
+          _keep(_splats, (target: target, damage: damage));
         case Whispered(:final from, :final text):
           _keep(_whispers, (from: from, text: text));
         case SocialLists(:final friends, :final ignored):

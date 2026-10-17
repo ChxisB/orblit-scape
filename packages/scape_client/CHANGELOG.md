@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.9.0
+
+- `GameSession.attack` sends a click on a creature. `splats` lists the
+  swings that landed or missed, and `healthOf` reads the hit points of
+  any fighter in view.
+
 ## 0.8.0
 
 - `GameSession.npcs` lists the creatures in view with their kind. They

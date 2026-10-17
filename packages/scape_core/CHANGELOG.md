@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.13.0
+
+- `CombatRules` holds the numbers a fight is worked out from: the hit
+  chance, the most a hit does, health, swing speed and experience.
+  `CombatBonus` is what a worn item adds. `NpcFight` is how a creature
+  fights, and `NpcDef.fight` is null for one that cannot be attacked.
+- `ItemDef.combat` gives a worn item its bonus. A weapon names its swing
+  speed.
+- `Hit` is a server message with the target and the damage, 0 for a
+  miss. `InteractKind.npc` attacks a creature.
+- `healthName` names the replicated hit points.
+
 ## 0.12.0
 
 - `NpcDef`, `NpcSet` and `NpcSpawn` say what a creature is and where it

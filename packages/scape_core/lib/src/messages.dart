@@ -165,6 +165,22 @@ final class Notice extends ServerMessage {
   final String text;
 }
 
+/// A swing landed on, or missed, the entity [target] names. A [damage] of
+/// zero is a miss. The client draws it as a splat over the target.
+final class Hit extends ServerMessage {
+  Hit({required this.target, required this.damage}) {
+    if (target < 0 || target > 0xFFFFFFFF) {
+      throw ArgumentError.value(target, 'target', 'does not fit a u32');
+    }
+    if (damage < 0 || damage > 0xFFFF) {
+      throw ArgumentError.value(damage, 'damage', 'does not fit a u16');
+    }
+  }
+
+  final int target;
+  final int damage;
+}
+
 /// A line of public chat, as the listener hears it. The client draws it over
 /// the entity [speaker] names.
 final class Said extends ServerMessage {

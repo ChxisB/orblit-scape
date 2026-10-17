@@ -6,10 +6,15 @@ import '../../engine/services.dart';
 import '../items/ground.dart';
 import '../items/items.dart';
 import '../movement/movement.dart';
+import '../npcs/npcs.dart';
 import '../objects/objects.dart';
 
 /// What a feature does when a player picks an option of an object.
 typedef ObjectAction = void Function(String player, PlacedObject object);
+
+/// What a feature does when [player] has walked up to the creature they
+/// clicked.
+typedef NpcAction = void Function(String player, PlacedNpc npc);
 
 /// What a feature does when [player] uses the item in [slot] on an object.
 typedef UseOnObject =
@@ -37,10 +42,12 @@ final class Interactions {
     this._services, {
     required Movement movement,
     required WorldObjects objects,
+    required Npcs npcs,
     required GroundItems ground,
     required Items items,
   }) : _movement = movement,
        _objects = objects,
+       _npcs = npcs,
        _ground = ground,
        _items = items;
 
@@ -51,6 +58,7 @@ final class Interactions {
     Services services, {
     required Movement movement,
     required WorldObjects objects,
+    required Npcs npcs,
     required GroundItems ground,
     required Items items,
   }) {
@@ -59,6 +67,7 @@ final class Interactions {
       services,
       movement: movement,
       objects: objects,
+      npcs: npcs,
       ground: ground,
       items: items,
     );
@@ -75,6 +84,7 @@ final class Interactions {
   final Services _services;
   final Movement _movement;
   final WorldObjects _objects;
+  final Npcs _npcs;
   final GroundItems _ground;
   final Items _items;
   final ActionKind _interact = ActionKind(
@@ -84,6 +94,7 @@ final class Interactions {
   final Map<String, ObjectAction> _objectActions = {};
   final Map<(int, int), UseOnObject> _useOnObject = {};
   final Map<(int, int), UseOnItem> _useOnItem = {};
+  NpcAction? _npcAction;
 
   /// Runs [action] when a player picks an option of an object whose
   /// definition names [name].
@@ -92,6 +103,15 @@ final class Interactions {
       throw ArgumentError.value(name, 'name', 'is already registered');
     }
     _objectActions[name] = action;
+  }
+
+  /// Runs [action] when a player has walked up to a creature they clicked.
+  /// One feature owns the click, so a second call throws.
+  void addNpcAction(NpcAction action) {
+    if (_npcAction != null) {
+      throw StateError('A creature click already has an action.');
+    }
+    _npcAction = action;
   }
 
   /// Runs [action] when [item] is used on an object whose definition is
@@ -128,6 +148,8 @@ final class Interactions {
         _clickUseOnObject(player, intent);
       case InteractKind.useOnItem:
         _submit(player, (_) => _runUseOnItem(player, intent));
+      case InteractKind.npc:
+        _clickNpc(player, intent);
     }
   }
 
@@ -138,6 +160,17 @@ final class Interactions {
       player,
       Beside(object.footprint),
       () => _runOption(player, object, click.option),
+    );
+  }
+
+  void _clickNpc(String player, Interact click) {
+    final npc = _npcs.find(click.id);
+    final action = _npcAction;
+    if (npc == null || action == null) return;
+    _start(
+      player,
+      Beside(Footprint.single(npc.tile)),
+      () => action(player, npc),
     );
   }
 

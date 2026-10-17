@@ -28,6 +28,10 @@ abstract final class InteractKind {
   /// An inventory item used on another. The id is the slot of the item
   /// used on, the option the slot of the item used.
   static const int useOnItem = 3;
+
+  /// A creature. The id is its network id. The option is unused, and the
+  /// click is an attack.
+  static const int npc = 4;
 }
 
 /// One entry in the menu of an object. [action] names what a feature runs.

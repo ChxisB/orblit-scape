@@ -1,3 +1,4 @@
+import 'combat.dart';
 import 'tile_coord.dart';
 
 /// The name of the replicated component on a creature standing in the world.
@@ -45,6 +46,7 @@ final class NpcDef {
     required this.id,
     required this.name,
     this.behaviour = const Idle(),
+    this.fight,
   }) {
     if (id < 1 || id > maxNpcId) {
       throw ArgumentError.value(id, 'id', 'is outside 1 to $maxNpcId');
@@ -55,6 +57,9 @@ final class NpcDef {
   final int id;
   final String name;
   final Behaviour behaviour;
+
+  /// How it fights, or null for a creature that cannot be attacked.
+  final NpcFight? fight;
 }
 
 /// The creatures a game has.

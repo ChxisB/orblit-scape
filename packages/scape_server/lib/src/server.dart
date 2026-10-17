@@ -15,6 +15,7 @@ import 'features.dart';
 import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
+import 'features/combat/combat.dart';
 import 'features/npcs/npcs.dart';
 import 'features/objects/objects.dart';
 import 'features/skills/skills.dart';
@@ -78,6 +79,7 @@ final class ScapeServer {
     required ObjectSet objects,
     required NodeSet nodes,
     required NpcSet npcs,
+    required CombatRules combat,
     Random? random,
   }) {
     final networkId = world.registerComponent(
@@ -103,12 +105,14 @@ final class ScapeServer {
       objects: objects,
       nodes: nodes,
       npcs: npcs,
+      combat: combat,
       random: random ?? Random(),
     );
     social = features.social;
     this.skills = features.skills;
     this.items = features.items;
     this.npcs = features.npcs;
+    this.combat = features.combat;
     ground = features.ground;
     this.objects = features.objects;
     interactions = features.interactions;
@@ -162,6 +166,7 @@ final class ScapeServer {
   late final Skills skills;
   late final Items items;
   late final Npcs npcs;
+  late final Combat combat;
   late final GroundItems ground;
   late final WorldObjects objects;
   late final Interactions interactions;

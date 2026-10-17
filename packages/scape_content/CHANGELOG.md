@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0
+
+- `defaultCombat` holds the rules of the first game.
+- The chicken and the goblin can be fought. The guard cannot.
+- The sword, axe, pickaxe, shield and helmet add to a fight.
+
 ## 0.6.0
 
 - `defaultNpcs` gives the chicken, goblin and guard their behaviour.

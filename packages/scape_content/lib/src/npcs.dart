@@ -11,11 +11,23 @@ abstract final class NpcId {
 /// stands where it is put.
 final NpcSet defaultNpcs = NpcSet(
   npcs: [
-    NpcDef(id: NpcId.chicken, name: 'Chicken', behaviour: const Wander()),
+    NpcDef(
+      id: NpcId.chicken,
+      name: 'Chicken',
+      behaviour: const Wander(),
+      fight: NpcFight(health: 3),
+    ),
     NpcDef(
       id: NpcId.goblin,
       name: 'Goblin',
       behaviour: Aggressive(sight: 5, leash: 12),
+      fight: NpcFight(
+        health: 8,
+        attack: 3,
+        strength: 3,
+        defence: 2,
+        respawnTicks: 40,
+      ),
     ),
     NpcDef(id: NpcId.guard, name: 'Guard'),
   ],

@@ -1,3 +1,4 @@
+import 'combat.dart';
 import 'skills.dart';
 
 /// The most one stack holds. It fits a signed 32-bit integer, so a stack adds
@@ -43,6 +44,7 @@ final class ItemDef {
     this.value = 0,
     this.equipSlot,
     this.needs,
+    this.combat,
   }) {
     if (id < 1 || id > maxItemId) {
       throw ArgumentError.value(id, 'id', 'is outside 1 to $maxItemId');
@@ -54,6 +56,16 @@ final class ItemDef {
     }
     if (needs != null && (needs!.level < 1 || needs!.level > maxLevel)) {
       throw ArgumentError.value(needs, 'needs', 'has a level outside range');
+    }
+    if (combat != null && equipSlot == null) {
+      throw ArgumentError.value(combat, 'combat', 'is on an item not worn');
+    }
+    if (combat?.speed != null && equipSlot != 'weapon') {
+      throw ArgumentError.value(
+        combat,
+        'combat',
+        'gives speed to a non weapon',
+      );
     }
   }
 
@@ -70,6 +82,9 @@ final class ItemDef {
   final String? equipSlot;
 
   final Needs? needs;
+
+  /// What it adds to a fight while worn, or null for nothing.
+  final CombatBonus? combat;
 }
 
 /// The items a game has. A skill an item names must exist, so a typo fails
