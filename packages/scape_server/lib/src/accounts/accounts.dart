@@ -19,8 +19,13 @@ const int _recordVersion = 1;
 /// they are all taken, the next login hears `busy` at once, so a flood of
 /// logins costs a refusal each and not a hash each.
 // shortcut: a wrong login costs the same as a right one and nothing counts
-// failures per name, so a guesser is slowed only by the hash. Add a lockout
-// when the server is public.
+// failures per name or address, so a guesser is slowed only by the hash, and
+// a client that keeps the places taken makes other logins hear busy. A
+// repeated wrong login for a name also keeps that name's own login busy.
+// Add a lockout and a limit for each address when the server is public.
+// shortcut: the record names no cost, so version 1 means Argon2id with the
+// numbers in Argon2idHasher. A change to them adds a record version that
+// carries its own, and a successful login can then rewrite the old one.
 final class Accounts {
   Accounts({
     required SaveQueue queue,
@@ -50,7 +55,10 @@ final class Accounts {
     }
     return _limited(() async {
       final key = accountKeyOf(player);
-      if (await _queue.exists(key)) return LoginRefusal.accountExists;
+      // A character with no account is still somebody's, so it is taken.
+      if (await _queue.exists(key) || await _queue.exists(saveKeyOf(player))) {
+        return LoginRefusal.accountExists;
+      }
       final salt = Uint8List.fromList([
         for (var i = 0; i < _saltBytes; i++) _random.nextInt(256),
       ]);
@@ -61,8 +69,9 @@ final class Accounts {
   }
 
   /// Checks [password] against the account of [player], or says why not. An
-  /// account that does not exist is a bad login too, so a guesser cannot
-  /// tell names that are taken from names that are free.
+  /// account that does not exist is a bad login too. A miss answers faster
+  /// than a hit, because it skips the hash, and creating an account tells
+  /// whether a name is free, so names are not private.
   Future<LoginRefusal?> verify(String player, String password) =>
       _limited(() async {
         final record = await _queue.read(accountKeyOf(player));

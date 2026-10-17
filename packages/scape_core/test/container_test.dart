@@ -676,6 +676,15 @@ void main() {
       expect(c.at(1), ItemStack(coins, 5));
     });
 
+    test('leaves out a stack of a non-stackable item that holds many', () {
+      final c = inventory();
+      final lost = c.restore([ItemStack(logs, 3), ItemStack(logs, 1)]);
+
+      expect(lost, 1);
+      expect(c.at(0), isNull);
+      expect(c.at(1), ItemStack(logs, 1));
+    });
+
     test('leaves out a stack its slot no longer accepts', () {
       final c = bag(ContainerId.equipment);
       final lost = c.restore([

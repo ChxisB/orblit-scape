@@ -154,6 +154,23 @@ void main() {
     expect((await enter(second, 'Ana')).admitted, isTrue);
   });
 
+  test('a character with a save and no account cannot be claimed', () async {
+    await store.write(
+      saveKeyOf('ana'),
+      SaveRecord(
+        bytes: Uint8List.fromList([0]),
+        reason: const Autosave(),
+        at: DateTime.utc(2026),
+      ),
+    );
+    final server = start();
+
+    final ana = await enter(server, 'Ana', create: true);
+
+    expect(ana.goodbyes, [LoginRefusal.accountExists.name]);
+    expect(await store.exists(accountKeyOf('ana')), isFalse);
+  });
+
   test('logins past the limit hear busy and cost no hash', () async {
     final server = start();
     for (final name in ['Ana', 'Bo', 'Cy', 'Di', 'Ed']) {

@@ -14,8 +14,11 @@
   the spawn.
 - Accounts are optional. Give `Storage` a `hasher` and a login names an
   account and its password. `Argon2idHasher` hashes in its own isolate.
-  At most four checks run at once and the rest hear `busy`.
+  At most four checks run at once and the rest hear `busy`. A name that
+  has a save and no account cannot be made into an account.
 - A player who drops while fighting stays in the world for 60 seconds.
+- `bin/scape_server.dart` takes the saves folder as a third argument and
+  stops on SIGINT or SIGTERM after the saves are written.
 - `Skills.experienceOf` and `restore`, `Social.listsOf` and `restore`,
   `Combat.isFighting` and `Combat.refit`, and `ScapeServer.movement`.
 - `scape_server` takes a third argument, the folder that holds saves, and

@@ -30,11 +30,15 @@ final class Saves {
   final bool Function(String player) _hasSession;
   final void Function(String line) _log;
 
-  /// The state each player who is logging in will join with.
+  /// The state each player who is logging in will join with. A player who is
+  /// admitted and never seated leaves theirs here until they log in again.
   final Map<String, PlayerState> _pending = {};
 
   /// How many saves have been queued for each key. A read that began before a
   /// save was queued may have found an older one, so it counts them.
+  // shortcut: one small entry for each name saved in this run, never pruned.
+  // Fine to a few hundred thousand names, then drop the keys of players who
+  // have left and have nothing in flight.
   final Map<String, int> _queued = {};
 
   /// Reads the save of [player] so [arrived] can put it on them. Throws
@@ -53,12 +57,12 @@ final class Saves {
       before = _queued[key] ?? 0;
       record = await _queue.read(key);
     } while (before != (_queued[key] ?? 0));
-    final state = record == null ? null : PlayerState.decode(record.bytes);
-    // A player whose session is still held resumes with what the world has.
-    if (state == null || _hasSession(player)) {
+    // A player whose session is still held resumes with what the world has,
+    // so a damaged save does not stand in the way of that.
+    if (record == null || _hasSession(player)) {
       _pending.remove(player);
     } else {
-      _pending[player] = state;
+      _pending[player] = PlayerState.decode(record.bytes);
     }
   }
 

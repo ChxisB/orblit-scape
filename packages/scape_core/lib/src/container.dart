@@ -262,8 +262,9 @@ final class Container {
   /// Puts a saved list of slots back into an empty container, and marks each
   /// slot it filled changed so the owner is sent it. A stack whose item is no
   /// longer in the game, that this slot no longer accepts, or that lies past
-  /// the last slot is left out. Returns how many were left out, so the caller
-  /// can say so. Throws [StateError] when the container is not empty.
+  /// the last slot is left out, and so is a stack of a non-stackable item that
+  /// holds more than one. Returns how many were left out, so the caller can
+  /// say so. Throws [StateError] when the container is not empty.
   // F5: the count of lost stacks is the caller's cue to log them.
   int restore(List<ItemStack?> saved) {
     if (_slots.any((stack) => stack != null)) {
@@ -272,8 +273,10 @@ final class Container {
     var lost = 0;
     for (final (slot, stack) in saved.indexed) {
       if (stack == null) continue;
-      if (_has(slot) &&
-          _items.find(stack.item) != null &&
+      final def = _items.find(stack.item);
+      if (def != null &&
+          _has(slot) &&
+          (def.stackable || stack.count == 1) &&
           _allows(slot, stack)) {
         _set(slot, stack);
       } else {

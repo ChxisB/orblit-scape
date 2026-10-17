@@ -98,6 +98,9 @@ void _checkSkills(Map<String, int> skills) {
   }
 }
 
+// shortcut: a container whose size changes makes every older save fail to
+// decode, since the size is part of the check. Bump playerStateVersion and read
+// the old shape when a game first resizes one.
 void _checkContainers(Map<ContainerId, List<ItemStack?>> containers) {
   for (final MapEntry(:key, :value) in containers.entries) {
     if (value.length != containerSize(key)) {

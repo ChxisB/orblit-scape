@@ -9,7 +9,8 @@
   anything damaged and for a version from a later server.
 - `Container.slots` copies the stacks out. `Container.restore` puts them
   back into an empty container and returns how many it had to leave out,
-  because the game no longer has the item or the slot no longer takes it.
+  because the game no longer has the item, the slot no longer takes it, or
+  a non-stackable item holds more than one.
 - `containerSize` gives the number of slots of a container id.
 - `Login` carries a password and whether to create the account. The
   login layout changed, so a 0.15.0 client cannot log in to a 0.16.0

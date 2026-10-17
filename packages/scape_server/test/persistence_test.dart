@@ -196,6 +196,45 @@ void main() {
       },
     );
 
+    test('that resumes a session is not stopped by a damaged save', () async {
+      final store = MemorySaveStore();
+      final rig = start(store);
+      final first = await rig.join('Ana');
+      await first.link.close();
+      await rig.tick(2);
+      await store.write(
+        saveKeyOf('ana'),
+        SaveRecord(
+          bytes: Uint8List.fromList([1, 2, 3]),
+          reason: const Autosave(),
+          at: DateTime.utc(2026),
+        ),
+      );
+
+      final again = await rig.join('Ana');
+
+      // A resume is not a join, so it gets no LoginOk.
+      expect(again.goodbyes, isEmpty);
+      expect(rig.server.host.sessionState('ana'), SessionState.live);
+    });
+
+    test('that cannot be decided is logged with its name', () async {
+      final store = MemorySaveStore();
+      await store.write(
+        saveKeyOf('ana'),
+        SaveRecord(
+          bytes: Uint8List.fromList([1, 2, 3]),
+          reason: const Autosave(),
+          at: DateTime.utc(2026),
+        ),
+      );
+      final rig = start(store);
+
+      await rig.join('Ana');
+
+      expect(rig.logged.single, contains('Login of ana failed'));
+    });
+
     test('that resumes a lingering session keeps what the world has', () async {
       final store = MemorySaveStore();
       final rig = start(store);

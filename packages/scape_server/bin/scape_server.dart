@@ -47,15 +47,20 @@ Future<void> main(List<String> args) async {
     port: args.isEmpty ? 7600 : int.parse(args.first),
     address: args.length > 1 ? args[1] : '127.0.0.1',
   );
-  final interrupt = ProcessSignal.sigint.watch().listen(
-    (_) => server.loop.stop(),
-  );
+  // A service manager stops a server with SIGTERM, and a stop that skips the
+  // save loses what players did since their last autosave.
+  final stops = [
+    for (final signal in [ProcessSignal.sigint, ProcessSignal.sigterm])
+      signal.watch().listen((_) => server.loop.stop()),
+  ];
   stdout.writeln(
     'scape_server: ${sockets.url}, a tick every ${tickPeriod.inMilliseconds} ms',
   );
   await server.loop.run();
   // A watched signal keeps the process alive, so stop watching to let it end.
-  await interrupt.cancel();
+  for (final stop in stops) {
+    await stop.cancel();
+  }
   await sockets.close();
   await server.dispose();
 }

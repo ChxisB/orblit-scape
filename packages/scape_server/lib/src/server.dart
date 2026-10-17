@@ -157,6 +157,7 @@ final class ScapeServer {
     wire = Wire(
       link: bridge,
       inbox: inbox,
+      log: log,
       gate: saves == null ? null : _entranceOf(storage!, saves).check,
     );
     final set = ReplicationSet(registry.replicated);

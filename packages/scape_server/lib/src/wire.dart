@@ -22,13 +22,19 @@ typedef LoginGate = Future<LoginRefusal?> Function(String key, Login login);
 /// Turns what clients send into logins and intents, and counts what it
 /// refuses.
 final class Wire {
-  Wire({required WireLink link, required Inbox inbox, LoginGate? gate})
-    : _link = link,
-      _inbox = inbox,
-      _gate = gate;
+  Wire({
+    required WireLink link,
+    required Inbox inbox,
+    required void Function(String line) log,
+    LoginGate? gate,
+  }) : _link = link,
+       _inbox = inbox,
+       _log = log,
+       _gate = gate;
 
   final WireLink _link;
   final Inbox _inbox;
+  final void Function(String line) _log;
   final LoginGate? _gate;
   final Map<BadMessage, int> _refused = {};
 
@@ -75,8 +81,9 @@ final class Wire {
     try {
       final why = await gate(key, login);
       return why == null ? Admit(key) : Refuse(why.name);
-    } on Object {
+    } on Object catch (error) {
       unavailable++;
+      _log('Login of $key failed: $error');
       return Refuse(LoginRefusal.unavailable.name);
     } finally {
       _deciding.remove(key);
