@@ -1,4 +1,5 @@
 import 'package:orblit_core/orblit_core.dart';
+import 'package:orblit_net/orblit_net.dart' show ActiveCells;
 import 'package:scape_core/scape_core.dart';
 
 /// What features need from the host to put an actor in the world and talk
@@ -14,9 +15,18 @@ abstract interface class Hosting {
 
 /// The parts of the server a feature may use while it registers.
 final class Services {
-  Services({required this.world, required this.map, required this.hosting});
+  Services({
+    required this.world,
+    required this.map,
+    required this.hosting,
+    required this.active,
+  });
 
   final World world;
   final TileMap map;
   final Hosting hosting;
+
+  /// The cells worth simulating this tick, which are those near a player.
+  /// A system that costs something per actor asks it first.
+  final ActiveCells active;
 }

@@ -162,7 +162,7 @@ void main() {
     await join('Bo');
     await ana.link.close();
 
-    await tick(700);
+    await tick(11);
 
     expect(server.host.entityFor(avatar), isNull);
   });

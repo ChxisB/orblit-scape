@@ -15,7 +15,9 @@ TileMap _openWorld() {
   return map;
 }
 
-Future<void> main() async {
+/// `scape_server [port] [address]`. It listens on the local machine only
+/// unless an address says otherwise.
+Future<void> main(List<String> args) async {
   final clock = TickClock(period: tickPeriod);
   final server = ScapeServer(
     clock: clock,
@@ -24,8 +26,15 @@ Future<void> main() async {
     map: _openWorld(),
     spawn: TileCoord(32, 32, 0),
   );
+  final sockets = await server.listen(
+    port: args.isEmpty ? 7600 : int.parse(args.first),
+    address: args.length > 1 ? args[1] : '127.0.0.1',
+  );
   ProcessSignal.sigint.watch().listen((_) => server.loop.stop());
-  stdout.writeln('scape_server: a tick every ${tickPeriod.inMilliseconds} ms');
+  stdout.writeln(
+    'scape_server: ${sockets.url}, a tick every ${tickPeriod.inMilliseconds} ms',
+  );
   await server.loop.run();
+  await sockets.close();
   await server.dispose();
 }

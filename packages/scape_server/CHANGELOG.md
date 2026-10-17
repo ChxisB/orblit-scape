@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.4.0
+
+- A client is sent the players in its own 16 tile cell and the ring of cells
+  round it. A player who walks out of the ring is removed from its view.
+- `Services.active` and `ScapeServer.active` say which cells are near a
+  player. A cell stays active for 10 ticks after the last player leaves it.
+  Nothing uses it until there are NPCs.
+- `ScapeServer.listen` accepts WebSocket connections. The binary takes a port
+  and an address, and listens on `127.0.0.1:7600` by default.
+- A dropped player's avatar stays for 10 ticks, 6 seconds, instead of 600.
+
 ## 0.3.0
 
 - Players walk. A login puts an avatar on the spawn tile and tells the client
