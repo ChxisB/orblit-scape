@@ -19,6 +19,7 @@ import 'features/combat/combat.dart';
 import 'features/movement/movement.dart';
 import 'features/npcs/npcs.dart';
 import 'features/objects/objects.dart';
+import 'features/prayer/prayers.dart';
 import 'features/quests/quests.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
@@ -94,6 +95,8 @@ final class ScapeServer {
     RecipeSet? recipes,
     ShopRules? shops,
     Story? story,
+    SpellSet? spells,
+    PrayerSet? prayers,
     Storage? storage,
     Random? random,
   }) {
@@ -123,6 +126,8 @@ final class ScapeServer {
       recipes: recipes,
       shops: shops,
       story: story,
+      spells: spells,
+      prayers: prayers,
       random: random ?? Random(),
       log: log,
       settled: (a, b) => _saves?.saveTogether(a, b),
@@ -137,6 +142,7 @@ final class ScapeServer {
     this.objects = features.objects;
     interactions = features.interactions;
     quests = features.quests;
+    this.prayers = features.prayers;
     final saves = storage == null
         ? null
         : Saves(
@@ -228,6 +234,7 @@ final class ScapeServer {
   late final WorldObjects objects;
   late final Interactions interactions;
   late final Quests? quests;
+  late final Prayers? prayers;
   late final Wire wire;
   late final Saves? _saves;
   late final NetHost host;

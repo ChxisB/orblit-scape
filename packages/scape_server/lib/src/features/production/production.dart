@@ -172,9 +172,7 @@ final class Production {
     if (product case Lights(:final object, :final ticks)) {
       _light(player, object, ticks);
     }
-    for (final level in _skills.grant(player, recipe.skill, recipe.xp)) {
-      _notice(player, 'You reached level $level in ${recipe.skill}.');
-    }
+    _skills.award(player, recipe.skill, recipe.xp);
     return true;
   }
 

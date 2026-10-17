@@ -11,9 +11,11 @@ import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
 import 'features/loot/loot.dart';
+import 'features/magic/magic.dart';
 import 'features/movement/movement.dart';
 import 'features/npcs/npcs.dart';
 import 'features/objects/objects.dart';
+import 'features/prayer/prayers.dart';
 import 'features/production/production.dart';
 import 'features/quests/quests.dart';
 import 'features/shops/shops.dart';
@@ -32,6 +34,7 @@ typedef Features = ({
   Movement movement,
   Npcs npcs,
   WorldObjects objects,
+  Prayers? prayers,
   Quests? quests,
   Skills skills,
   Social social,
@@ -56,6 +59,8 @@ Features registerFeatures(
   RecipeSet? recipes,
   ShopRules? shops,
   Story? story,
+  SpellSet? spells,
+  PrayerSet? prayers,
 }) {
   final movement = Movement.register(registry, services, spawn: spawn);
   final social = Social.register(
@@ -116,6 +121,9 @@ Features registerFeatures(
       random: random,
     );
   }
+  final prayer = prayers == null
+      ? null
+      : Prayers.register(registry, services, prayers: prayers, skills: levels);
   final fights = Combat.register(
     registry,
     services,
@@ -128,7 +136,20 @@ Features registerFeatures(
     npcs: creatures,
     random: random,
     spawn: spawn,
+    boost: prayer?.percentOf,
   );
+  if (spells != null) {
+    Magic.register(
+      registry,
+      services,
+      spells: spells,
+      skills: levels,
+      bags: bags,
+      combat: fights,
+      movement: movement,
+      npcs: creatures,
+    );
+  }
   registerLoot(
     combat: fights,
     ground: ground,
@@ -193,6 +214,7 @@ Features registerFeatures(
     movement: movement,
     npcs: creatures,
     objects: placed,
+    prayers: prayer,
     quests: quests,
     skills: levels,
     social: social,

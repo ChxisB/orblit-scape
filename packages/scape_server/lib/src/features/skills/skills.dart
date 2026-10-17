@@ -75,6 +75,13 @@ final class Skills {
     ];
   }
 
+  /// Grants [xp] as [grant] does and tells [player] each level they reach.
+  void award(String player, String skill, int xp) {
+    for (final level in grant(player, skill, xp)) {
+      _hosting.tell(player, Notice('You reached level $level in $skill.'));
+    }
+  }
+
   /// The experience of [player] in each skill where it is above zero, by skill
   /// id. Empty for a player who is not in the world.
   Map<String, int> experienceOf(String player) {

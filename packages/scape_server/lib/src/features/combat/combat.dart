@@ -14,8 +14,35 @@ import '../movement/movement.dart';
 import '../npcs/npcs.dart';
 import '../skills/skills.dart';
 
-/// What a fight reads of the gear a player wears.
-typedef _Gear = ({int attack, int strength, int defence, int speed});
+/// What a fight reads of the gear a player wears. [range] is null for a
+/// weapon that is not shot, and [loaded] is false for a bow with no matching
+/// ammo in the ammo slot.
+typedef _Gear = ({
+  int attack,
+  int strength,
+  int defence,
+  int speed,
+  CombatStyle style,
+  int? range,
+  bool loaded,
+});
+
+/// The percent a prayer adds to [stat] of [player], zero for none.
+typedef Boost = int Function(String player, CombatStat stat);
+
+/// A shot or a spell on its way: it lands on [lands] unless the creature it
+/// was aimed at has died or been replaced by then.
+typedef _Flight = ({
+  String player,
+  PlacedNpc npc,
+  _Fighter target,
+  int damage,
+  int lands,
+});
+
+int _noBoost(String player, CombatStat stat) => 0;
+
+final int _ammoSlot = equipmentSlots.indexOf('ammo');
 
 /// What a feature does when [killer] defeats [npc]. It runs once per death.
 typedef KillHandler = void Function(String killer, PlacedNpc npc);
@@ -36,12 +63,13 @@ final class _Fighter {
   int lastFight = _longAgo;
 }
 
-/// Melee between players and creatures. A player's click on a creature walks
-/// them up to it and starts an attack that repeats at their weapon's speed and
-/// follows the creature if it moves. A creature that is hit, or an aggressive
-/// one that reaches its prey, swings back at its own speed. The loser leaves:
-/// a creature goes until its respawn time, and a player stands at the spawn
-/// tile again with all they carried.
+/// Fights between players and creatures. A player's click on a creature walks
+/// them up to it, or within range of it for a bow, and starts an attack that
+/// repeats at their weapon's speed and follows the creature if it moves. A shot
+/// or a spell flies for a few ticks and lands if its target still stands. A
+/// creature that is hit, or an aggressive one that reaches its prey, swings
+/// back at its own speed. The loser leaves: a creature goes until its respawn
+/// time, and a player stands at the spawn tile again with all they carried.
 final class Combat {
   Combat._(
     this._registry,
@@ -55,6 +83,7 @@ final class Combat {
     required Random random,
     required TileCoord spawn,
     required ComponentType health,
+    required Boost boost,
   }) : _rules = rules,
        _skills = skills,
        _items = items,
@@ -63,7 +92,8 @@ final class Combat {
        _npcs = npcs,
        _random = random,
        _spawn = spawn,
-       _health = health;
+       _health = health,
+       _boost = boost;
 
   /// Adds combat to [registry] and returns the feature, so loot can listen
   /// for a kill.
@@ -79,6 +109,7 @@ final class Combat {
     required Npcs npcs,
     required Random random,
     required TileCoord spawn,
+    Boost? boost,
   }) {
     // These throw at startup when the rules name a skill that is not there.
     skills
@@ -102,8 +133,13 @@ final class Combat {
       random: random,
       spawn: spawn,
       health: health,
+      boost: boost ?? _noBoost,
     );
-    interactions.addNpcAction(NpcOption.attack, feature._begin);
+    interactions.addNpcAction(
+      NpcOption.attack,
+      feature._begin,
+      reach: feature._reachOf,
+    );
     npcs.addStandHandler(feature._stood);
     registry
       ..addKind(feature._attack)
@@ -125,10 +161,12 @@ final class Combat {
   final Random _random;
   final TileCoord _spawn;
   final ComponentType _health;
+  final Boost _boost;
   final Map<String, _Fighter> _players = {};
   final Map<PlacedNpc, _Fighter> _creatures = {};
   final Map<PlacedNpc, String> _opponent = {};
   final List<KillHandler> _killHandlers = [];
+  final List<_Flight> _flights = [];
 
   /// Checked every tick, so the attack follows a creature that moves.
   final ActionKind _attack = ActionKind('attack', delay: 1);
@@ -194,6 +232,49 @@ final class Combat {
       ..setInt32(4, fighter.max, Endian.little);
   }
 
+  /// Whether [player] may swing, shoot or cast now.
+  bool isReady(String player) {
+    final fighter = _players[player];
+    return fighter != null && fighter.readyAt <= _tick;
+  }
+
+  /// Casts [spell] at [npc] with a magic skill of [level]. A damage spell
+  /// flies and a stun holds the creature at once. The caller has checked the
+  /// range, the level and the cost.
+  void cast(String player, PlacedNpc npc, SpellDef spell, int level) {
+    final fight = npc.def.fight;
+    final fighter = _players[player];
+    if (fight == null || fighter == null || npc.isDead) return;
+    switch (spell.effect) {
+      case SpellDamage(:final most):
+        final damage = _rules.damage(
+          _random,
+          most: most,
+          attack: (level: level, bonus: 0),
+          defence: (level: fight.defence, bonus: 0),
+          edge: _rules.edge(CombatStyle.magic, fight.style),
+        );
+        _shoot(player, npc, damage, CombatStyle.magic);
+      case SpellStun(:final ticks):
+        final target = _creatures[npc]!; // a creature that fights has a fighter
+        target.readyAt = max(target.readyAt, _tick + ticks);
+        _provoke(player, npc, target);
+      case SpellTeleport():
+        return; // there is no creature to hit
+    }
+    fighter
+      ..readyAt = _tick + spell.speed
+      ..lastFight = _tick;
+  }
+
+  /// Where [player] stands to attack [npc]: beside it, or within the range of
+  /// the weapon they shoot.
+  Reach _reachOf(String player, PlacedNpc npc) {
+    final target = Footprint.single(npc.tile);
+    final range = _gearOf(player).range;
+    return range == null ? Beside(target) : Within(target, range: range);
+  }
+
   void _begin(String player, PlacedNpc npc) {
     if (npc.def.fight == null) {
       _notice(player, 'You cannot attack that.');
@@ -209,18 +290,23 @@ final class Combat {
   }
 
   /// One tick of [player]'s attack: close in when the creature has moved off,
-  /// swing when the weapon is ready, and come back next tick.
+  /// swing or shoot when the weapon is ready, and come back next tick. A bow
+  /// with no ammo ends the attack.
   void _round(String player, PlacedNpc npc) {
     final fighter = _players[player];
     final tile = _movement.tileOf(player);
     if (fighter == null || tile == null || npc.isDead) return;
-    final reach = Beside(Footprint.single(npc.tile));
+    final reach = _reachOf(player, npc);
     if (!reachSatisfied(_services.map, reach, tile)) {
       _follow(player, tile, reach, npc);
       return;
     }
     _movement.follow(player, const []);
-    if (fighter.readyAt <= _tick) _strike(player, fighter, npc);
+    if (fighter.readyAt <= _tick) {
+      final gear = _gearOf(player);
+      if (!gear.loaded) return _notice(player, 'You have no ammo.');
+      _strike(player, fighter, npc, gear);
+    }
     if (!npc.isDead) _queue(player, npc);
   }
 
@@ -234,27 +320,88 @@ final class Combat {
     _queue(player, npc);
   }
 
-  void _strike(String player, _Fighter fighter, PlacedNpc npc) {
+  void _strike(String player, _Fighter fighter, PlacedNpc npc, _Gear gear) {
     final fight = npc.def.fight!; // _begin refused a creature without one
-    final target = _creatures[npc]!; // a creature that fights has a fighter
-    final gear = _gearOf(player);
-    final level = _skills.levelOf(player, _rules.fightingSkill);
     final damage = _rules.swing(
       _random,
-      attack: (level: level, bonus: gear.attack),
-      strength: (level: level, bonus: gear.strength),
+      attack: (level: _boosted(player, CombatStat.attack), bonus: gear.attack),
+      strength: (
+        level: _boosted(player, CombatStat.strength),
+        bonus: gear.strength,
+      ),
       defence: (level: fight.defence, bonus: 0),
+      edge: _rules.edge(gear.style, fight.style),
     );
     fighter
       ..readyAt = _tick + gear.speed
       ..lastFight = _tick;
-    target.lastFight = _tick;
+    if (gear.range == null) {
+      _land(player, npc, damage);
+    } else {
+      _bags.container(player, ContainerId.equipment)!.take(_ammoSlot, 1);
+      _shoot(player, npc, damage, gear.style);
+    }
+  }
+
+  /// The fighting level of [player] with the prayer bonus on [stat].
+  int _boosted(String player, CombatStat stat) {
+    final level = _skills.levelOf(player, _rules.fightingSkill);
+    return level + level * _boost(player, stat) ~/ 100;
+  }
+
+  void _shoot(String player, PlacedNpc npc, int damage, CombatStyle style) {
+    final from = _movement.standing(player)!; // _round read their tile
+    final ticks = _rules.flightTicks(_distance(from.tile, npc.tile));
+    _services.hosting.tell(
+      player,
+      Projectile(
+        from: from.networkId,
+        to: npc.networkId,
+        ticks: ticks,
+        style: style,
+      ),
+    );
+    _flights.add((
+      player: player,
+      npc: npc,
+      target: _creatures[npc]!, // a creature that fights has a fighter
+      damage: damage,
+      lands: _tick + ticks,
+    ));
+  }
+
+  int _distance(TileCoord a, TileCoord b) =>
+      max((a.x - b.x).abs(), (a.y - b.y).abs());
+
+  /// Lands a hit of [damage] from [player] on [npc] that still stands.
+  void _land(String player, PlacedNpc npc, int damage) {
+    final target = _creatures[npc]!; // the callers checked it still stands
+    _provoke(player, npc, target);
     _services.hosting.tell(player, Hit(target: npc.networkId, damage: damage));
-    _opponent.putIfAbsent(npc, () => player);
-    npc.engage();
     target.health = max(0, target.health - damage);
     _write(npc.entity, target);
     if (target.health == 0) _defeat(player, npc);
+  }
+
+  /// Makes [player] the opponent of [npc], which then swings back if it is
+  /// beside them.
+  void _provoke(String player, PlacedNpc npc, _Fighter target) {
+    target.lastFight = _tick;
+    _opponent.putIfAbsent(npc, () => player);
+    npc.engage();
+  }
+
+  void _landFlights() {
+    final due = [
+      for (final flight in _flights)
+        if (flight.lands <= _tick) flight,
+    ];
+    _flights.removeWhere((flight) => flight.lands <= _tick);
+    for (final (:player, :npc, :target, :damage, lands: _) in due) {
+      if (_creatures[npc] == target && _players.containsKey(player)) {
+        _land(player, npc, damage);
+      }
+    }
   }
 
   void _defeat(String player, PlacedNpc npc) {
@@ -293,26 +440,45 @@ final class Combat {
     _write(_movement.actorOf(player)!, fighter);
   }
 
-  _Gear _gearOf(String player) {
+  /// What each equipment slot of [player] adds to a fight, null for a slot
+  /// that is empty or adds nothing.
+  List<CombatBonus?> _wornBonuses(String player) {
     final worn = _bags.container(player, ContainerId.equipment);
-    final bonuses = <CombatBonus>[
-      if (worn != null)
-        for (var slot = 0; slot < worn.size; slot++)
-          ?_items.find(worn.at(slot)?.item ?? 0)?.combat,
+    if (worn == null) return List.filled(equipmentSlots.length, null);
+    return [
+      for (var slot = 0; slot < worn.size; slot++)
+        _items.find(worn.at(slot)?.item ?? 0)?.combat,
     ];
+  }
+
+  /// The gear of [player]. Ammo counts only when the weapon shoots it.
+  _Gear _gearOf(String player) {
+    final slots = _wornBonuses(player);
+    final ammo = slots[_ammoSlot];
+    final worn = [
+      for (final (slot, bonus) in slots.indexed)
+        if (slot != _ammoSlot) ?bonus,
+    ];
+    final weapon = worn.where((bonus) => bonus.speed != null).firstOrNull;
+    final style = weapon?.style ?? CombatStyle.melee;
+    final shoots = style == CombatStyle.ranged;
+    final loaded = !shoots || ammo?.ammo == weapon?.ammo;
+    final used = [...worn, if (shoots && loaded) ?ammo];
     return (
-      attack: bonuses.fold(0, (sum, bonus) => sum + bonus.attack),
-      strength: bonuses.fold(0, (sum, bonus) => sum + bonus.strength),
-      defence: bonuses.fold(0, (sum, bonus) => sum + bonus.defence),
-      speed:
-          bonuses.map((bonus) => bonus.speed).nonNulls.firstOrNull ??
-          _rules.unarmedSpeed,
+      attack: used.fold(0, (sum, bonus) => sum + bonus.attack),
+      strength: used.fold(0, (sum, bonus) => sum + bonus.strength),
+      defence: used.fold(0, (sum, bonus) => sum + bonus.defence),
+      speed: weapon?.speed ?? _rules.unarmedSpeed,
+      style: style,
+      range: weapon?.range,
+      loaded: loaded,
     );
   }
 
-  /// The combat phase: creatures swing, then everyone heals a point on a
-  /// regeneration tick.
+  /// The combat phase: shots land, creatures swing, then everyone heals a
+  /// point on a regeneration tick.
   void _turn() {
+    _landFlights();
     _adoptPrey();
     for (final MapEntry(key: npc, value: player)
         in _opponent.entries.toList()) {
@@ -366,9 +532,10 @@ final class Combat {
       attack: (level: fight.attack, bonus: 0),
       strength: (level: fight.strength, bonus: 0),
       defence: (
-        level: _skills.levelOf(player, _rules.fightingSkill),
+        level: _boosted(player, CombatStat.defence),
         bonus: gear.defence,
       ),
+      edge: _rules.edge(fight.style, gear.style),
     );
     fighter
       ..readyAt = _tick + fight.speed

@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.17.0
+
+- Ranged combat, magic and prayer. A bow shoots from up to its range with a
+  clear line, spends one arrow of its own kind a shot, and the hit lands when
+  the flight ends. A target that died or respawned in flight takes nothing.
+  Creatures with a style hit back with the same edge.
+- `Cast` casts a spell at a creature in range. It costs the spell's items and
+  gives magic experience. It never walks, so a target out of range is
+  refused. Daze keeps a creature from swinging, and home teleport ends the
+  fight.
+- `TogglePrayer` switches a prayer on or off. Points drain while it is on, a
+  prayer is off at zero points, and one prayer holds each stat. A prayer
+  raises the fighting level a swing is rolled with.
+- `Magic` and `Prayers` are features. Both are off unless the server is
+  given `spells` and `prayers`. `Skills.award` grants experience and tells
+  the player of a level.
+- `Interactions.addNpcAction` takes an optional `reach` for options that do
+  not walk next to the creature.
+
 ## 0.16.0
 
 - Trading between players. A click on a player walks up to them and asks

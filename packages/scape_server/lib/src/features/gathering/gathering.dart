@@ -118,9 +118,7 @@ final class Gathering {
 
   void _succeed(String player, NodeDef node, PlacedObject object) {
     _bags.container(player, ContainerId.inventory)!.add(node.product, 1);
-    for (final level in _skills.grant(player, node.skill, node.xp)) {
-      _notice(player, 'You reached level $level in ${node.skill}.');
-    }
+    _skills.award(player, node.skill, node.xp);
     if (_random.nextDouble() < node.depleteChance) {
       _objects.setState(object, nodeDepleted);
       _fillsAt[object] = _registry.actions.tick + node.respawnTicks;

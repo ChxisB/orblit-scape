@@ -16,6 +16,9 @@ typedef ObjectAction = void Function(String player, PlacedObject object);
 /// clicked and picked an option.
 typedef NpcAction = void Function(String player, PlacedNpc npc);
 
+/// Where [player] has to stand to pick an option on [npc].
+typedef NpcReach = Reach Function(String player, PlacedNpc npc);
+
 /// What a feature does when [player] has walked up to the player [other]
 /// they clicked.
 typedef PlayerAction = void Function(String player, String other);
@@ -98,7 +101,7 @@ final class Interactions {
   final Map<String, ObjectAction> _objectActions = {};
   final Map<(int, int), UseOnObject> _useOnObject = {};
   final Map<(int, int), UseOnItem> _useOnItem = {};
-  final Map<int, NpcAction> _npcActions = {};
+  final Map<int, ({NpcAction action, NpcReach? reach})> _npcActions = {};
   PlayerAction? _playerAction;
 
   /// Runs [action] when a player picks an option of an object whose
@@ -112,12 +115,13 @@ final class Interactions {
 
   /// Runs [action] when a player has walked up to a creature and picked
   /// [option], one of the [NpcOption] values. One feature owns each option,
-  /// so a second call for it throws.
-  void addNpcAction(int option, NpcAction action) {
+  /// so a second call for it throws. The player walks up beside the creature
+  /// unless [reach] says where else to stand.
+  void addNpcAction(int option, NpcAction action, {NpcReach? reach}) {
     if (_npcActions.containsKey(option)) {
       throw StateError('That creature option already has an action.');
     }
-    _npcActions[option] = action;
+    _npcActions[option] = (action: action, reach: reach);
   }
 
   /// Runs [action] when a player has walked up to another player and
@@ -182,12 +186,12 @@ final class Interactions {
 
   void _clickNpc(String player, Interact click) {
     final npc = _npcs.find(click.id);
-    final action = _npcActions[click.option];
-    if (npc == null || action == null) return;
+    final option = _npcActions[click.option];
+    if (npc == null || option == null) return;
     _start(
       player,
-      Beside(Footprint.single(npc.tile)),
-      () => action(player, npc),
+      option.reach?.call(player, npc) ?? Beside(Footprint.single(npc.tile)),
+      () => option.action(player, npc),
     );
   }
 
