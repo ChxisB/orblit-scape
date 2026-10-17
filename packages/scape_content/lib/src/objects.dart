@@ -9,12 +9,15 @@ abstract final class ObjectId {
   static const int rock = 5;
   static const int fishingSpot = 6;
   static const int bankBooth = 7;
+  static const int fire = 8;
+  static const int anvil = 9;
 }
 
 /// A door opens and shuts, and stairs lead to the next plane. Where stairs
 /// lead is set where each one is placed. A tree, a rock and a fishing spot
 /// can be gathered from while in state 0 and are bare in state 1. A bank
-/// booth opens the player's bank.
+/// booth opens the player's bank. A fire and an anvil offer nothing to pick.
+/// Recipes use them as stations.
 final ObjectSet defaultObjects = ObjectSet(
   objects: [
     ObjectDef(
@@ -61,5 +64,7 @@ final ObjectSet defaultObjects = ObjectSet(
       solid: true,
       options: [ObjectOption(label: 'Bank', action: 'bank')],
     ),
+    ObjectDef(id: ObjectId.fire, name: 'Fire'),
+    ObjectDef(id: ObjectId.anvil, name: 'Anvil', solid: true),
   ],
 );

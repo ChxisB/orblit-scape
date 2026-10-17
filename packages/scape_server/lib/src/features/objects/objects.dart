@@ -74,6 +74,11 @@ final class WorldObjects {
   /// The object standing on [tile], or null.
   PlacedObject? at(TileCoord tile) => _byTile[tile];
 
+  /// Whether the object [id] could stand with its south-west tile on
+  /// [origin]. Throws [ArgumentError] for an object that does not exist.
+  bool canPlace(int id, TileCoord origin) =>
+      _isFree(_objects.require(id).footprintAt(origin));
+
   /// Stands the object [id] with its south-west tile on [origin] and returns
   /// it. Throws [ArgumentError] for an object that does not exist and for a
   /// tile that is blocked, water or taken.
@@ -81,7 +86,9 @@ final class WorldObjects {
   PlacedObject place(int id, TileCoord origin, {TileCoord? destination}) {
     final def = _objects.require(id);
     final footprint = def.footprintAt(origin);
-    _checkFree(footprint);
+    if (!_isFree(footprint)) {
+      throw ArgumentError.value(origin, 'origin', 'is not free ground');
+    }
     final world = _services.world;
     final entity = world.createEntity();
     world
@@ -100,8 +107,19 @@ final class WorldObjects {
       _byTile[tile] = placed;
     }
     _write(placed);
-    _setBlocking(placed);
+    _setBlocking(placed, placed.def.blocksIn(placed.state));
     return placed;
+  }
+
+  /// Takes [object] out of the world and frees its tiles. Does nothing for
+  /// an object already gone.
+  void remove(PlacedObject object) {
+    if (_placed.remove(object.networkId) == null) return;
+    _services.hosting.despawn(object.entity);
+    for (final tile in object.footprint.tiles) {
+      _byTile.remove(tile);
+    }
+    if (object.def.blocksIn(object.state)) _setBlocking(object, false);
   }
 
   /// Puts [object] in [state], which its clients are told and which changes
@@ -112,18 +130,14 @@ final class WorldObjects {
     }
     object._state = state;
     _write(object);
-    _setBlocking(object);
+    _setBlocking(object, object.def.blocksIn(state));
   }
 
-  void _checkFree(Footprint footprint) {
-    for (final tile in footprint.tiles) {
-      final flags = _services.map.flagsAt(tile);
-      if (flags.has(TileFlags.blocked | TileFlags.water) ||
-          _byTile[tile] != null) {
-        throw ArgumentError.value(tile, 'origin', 'is not free ground');
-      }
-    }
-  }
+  bool _isFree(Footprint footprint) => footprint.tiles.every((tile) {
+    final flags = _services.map.flagsAt(tile);
+    return !flags.has(TileFlags.blocked | TileFlags.water) &&
+        _byTile[tile] == null;
+  });
 
   void _write(PlacedObject object) {
     ByteData.sublistView(_services.world.bytesOf(object.entity, _object)!)
@@ -131,9 +145,8 @@ final class WorldObjects {
       ..setInt32(4, object.state, Endian.little);
   }
 
-  void _setBlocking(PlacedObject object) {
+  void _setBlocking(PlacedObject object, bool blocks) {
     final map = _services.map;
-    final blocks = object.def.blocksIn(object.state);
     for (final tile in object.footprint.tiles) {
       final flags = map.flagsAt(tile);
       map.setFlags(

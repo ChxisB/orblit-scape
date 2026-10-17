@@ -80,6 +80,7 @@ final class ScapeServer {
     required NodeSet nodes,
     required NpcSet npcs,
     required CombatRules combat,
+    RecipeSet? recipes,
     ShopRules? shops,
     Random? random,
   }) {
@@ -107,6 +108,7 @@ final class ScapeServer {
       nodes: nodes,
       npcs: npcs,
       combat: combat,
+      recipes: recipes,
       shops: shops,
       random: random ?? Random(),
     );

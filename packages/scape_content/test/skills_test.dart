@@ -2,7 +2,7 @@ import 'package:scape_content/scape_content.dart';
 import 'package:test/test.dart';
 
 void main() {
-  test('the first game has seven skills, each capped at level 50', () {
+  test('the first game has nine skills, each capped at level 50', () {
     expect(
       [for (final s in defaultSkills.skills) s.id],
       [
@@ -11,6 +11,8 @@ void main() {
         'fishing',
         'cooking',
         'smithing',
+        'firemaking',
+        'fletching',
         'fighting',
         'health',
       ],

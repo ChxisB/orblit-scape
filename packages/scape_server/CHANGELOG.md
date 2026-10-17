@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.13.0
+
+- `Production` runs recipes. Using an item on another item, or on a
+  station, makes the recipe's product every few ticks until the inputs
+  run out, the make is refused or the player does something else. A
+  lit fire goes out after its ticks, even in a cell nobody is near.
+- `WorldObjects` can tell whether an object fits (`canPlace`) and can
+  take one away (`remove`). `place` refuses a tile that is not free.
+- `ScapeServer` takes `recipes`.
+
 ## 0.12.0
 
 - A kill pays the creature's loot table. The drops lie where it died and

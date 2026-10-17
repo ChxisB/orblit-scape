@@ -19,6 +19,11 @@ void main() {
       ItemId.fishingNet: 'Fishing net',
       ItemId.bones: 'Bones',
       ItemId.feathers: 'Feathers',
+      ItemId.burntFish: 'Burnt fish',
+      ItemId.knife: 'Knife',
+      ItemId.tinderbox: 'Tinderbox',
+      ItemId.arrowShafts: 'Arrow shafts',
+      ItemId.hammer: 'Hammer',
     };
 
     expect(defaultItems.items, hasLength(named.length));
@@ -27,13 +32,13 @@ void main() {
     }
   });
 
-  test('only coins and feathers stack', () {
+  test('only coins, feathers and arrow shafts stack', () {
     final stackable = [
       for (final item in defaultItems.items)
         if (item.stackable) item.id,
     ];
 
-    expect(stackable, [ItemId.coins, ItemId.feathers]);
+    expect(stackable, [ItemId.coins, ItemId.feathers, ItemId.arrowShafts]);
   });
 
   test('worn items name a slot and tools need a level', () {

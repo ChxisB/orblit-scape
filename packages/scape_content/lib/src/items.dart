@@ -19,6 +19,11 @@ abstract final class ItemId {
   static const int fishingNet = 12;
   static const int bones = 13;
   static const int feathers = 14;
+  static const int burntFish = 15;
+  static const int knife = 16;
+  static const int tinderbox = 17;
+  static const int arrowShafts = 18;
+  static const int hammer = 19;
 }
 
 /// The items of the first game.
@@ -73,5 +78,15 @@ final ItemSet defaultItems = ItemSet(
     ItemDef(id: ItemId.fishingNet, name: 'Fishing net', value: 8),
     ItemDef(id: ItemId.bones, name: 'Bones', value: 1),
     ItemDef(id: ItemId.feathers, name: 'Feathers', stackable: true, value: 2),
+    ItemDef(id: ItemId.burntFish, name: 'Burnt fish', value: 1),
+    ItemDef(id: ItemId.knife, name: 'Knife', value: 6),
+    ItemDef(id: ItemId.tinderbox, name: 'Tinderbox', value: 4),
+    ItemDef(
+      id: ItemId.arrowShafts,
+      name: 'Arrow shafts',
+      stackable: true,
+      value: 1,
+    ),
+    ItemDef(id: ItemId.hammer, name: 'Hammer', value: 8),
   ],
 );

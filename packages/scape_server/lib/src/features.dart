@@ -14,6 +14,7 @@ import 'features/loot/loot.dart';
 import 'features/movement/movement.dart';
 import 'features/npcs/npcs.dart';
 import 'features/objects/objects.dart';
+import 'features/production/production.dart';
 import 'features/shops/shops.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
@@ -44,6 +45,7 @@ Features registerFeatures(
   required NpcSet npcs,
   required CombatRules combat,
   required Random random,
+  RecipeSet? recipes,
   ShopRules? shops,
 }) {
   final movement = Movement.register(registry, services, spawn: spawn);
@@ -90,6 +92,21 @@ Features registerFeatures(
     actorOf: movement.actorOf,
     random: random,
   );
+  if (recipes != null) {
+    Production.register(
+      registry,
+      services,
+      interactions: interactions,
+      recipes: recipes,
+      items: items,
+      objects: placed,
+      skills: levels,
+      bags: bags,
+      actorOf: movement.actorOf,
+      tileOf: movement.tileOf,
+      random: random,
+    );
+  }
   final fights = Combat.register(
     registry,
     services,

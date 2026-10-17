@@ -106,6 +106,18 @@ export 'src/items.dart'
         itemsDeltaTag,
         maxItemId,
         maxStack;
+export 'src/recipes.dart'
+    show
+        Failure,
+        Gives,
+        Lights,
+        OnItem,
+        OnObject,
+        Product,
+        Recipe,
+        RecipeSet,
+        RecipeStart,
+        maxMakeTicks;
 export 'src/shops.dart'
     show ShopDef, ShopLine, ShopRules, maxShopLines, maxShopStock;
 export 'src/skills.dart'
@@ -127,4 +139,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.14.0';
+const scapeCoreVersion = '0.15.0';

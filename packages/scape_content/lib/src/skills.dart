@@ -10,6 +10,8 @@ final SkillSet defaultSkills = SkillSet(
     SkillDef(id: 'fishing', name: 'Fishing', levelCap: 50),
     SkillDef(id: 'cooking', name: 'Cooking', levelCap: 50),
     SkillDef(id: 'smithing', name: 'Smithing', levelCap: 50),
+    SkillDef(id: 'firemaking', name: 'Firemaking', levelCap: 50),
+    SkillDef(id: 'fletching', name: 'Fletching', levelCap: 50),
     SkillDef(id: 'fighting', name: 'Fighting', levelCap: 50),
     SkillDef(id: 'health', name: 'Health', levelCap: 50),
   ],

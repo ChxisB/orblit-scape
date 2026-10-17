@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.9.0
+
+- Four recipes: cook the fish, light the logs, carve the logs and forge
+  the sword. A fire and an anvil are objects.
+- Burnt fish, a knife, a tinderbox, arrow shafts and a hammer are items.
+  The shopkeeper sells the tools.
+- Firemaking and fletching are skills, so there are nine.
+
 ## 0.8.0
 
 - A bank booth object opens the player's bank.

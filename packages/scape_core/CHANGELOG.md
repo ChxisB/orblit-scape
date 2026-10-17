@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.15.0
+
+- `Recipe` says what a player makes: the inputs it uses, the tool it
+  needs in hand, the skill and level it asks for, the experience it
+  pays and what it gives. A make can fail with a chance that falls to
+  zero at a safe level. `Lights` puts a fire down for a number of ticks.
+- `RecipeSet` checks every recipe names items, an object and a skill
+  that exist, and that no two recipes share a start.
+
 ## 0.14.0
 
 - `LootTable` pays out on a roll: fixed drops, a weighted pick that may
