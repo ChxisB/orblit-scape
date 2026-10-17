@@ -21,8 +21,6 @@ const String _cancelled = 'The trade was cancelled.';
 /// together and must be saved together.
 typedef Settled = void Function(String a, String b);
 
-void _unsaved(String a, String b) {}
-
 /// A trade between two players: what each offers, whether it is at the
 /// confirm step, and who has accepted the step. An offer is a claim on what
 /// the player holds. Nothing moves until the swap.
@@ -36,6 +34,12 @@ final class _Session {
   bool confirming = false;
 
   String other(String player) => player == a ? b : a;
+
+  /// How many of [item] [player] offers.
+  int offered(String player, int item) => _offers[player]![item] ?? 0;
+
+  /// How many different items [player] offers.
+  int linesOf(String player) => _offers[player]!.length;
 
   bool hasAccepted(String player) => _accepted.contains(player);
 
@@ -90,12 +94,14 @@ final class Trades {
     required ItemSet items,
     required Windows windows,
     required void Function(String line) log,
+    required Settled settled,
   }) : _movement = movement,
        _social = social,
        _bags = bags,
        _items = items,
        _windows = windows,
-       _log = log;
+       _log = log,
+       _settled = settled;
 
   /// Adds trading to [registry]. A click on a player asks to trade.
   factory Trades.register(
@@ -108,6 +114,7 @@ final class Trades {
     required ItemSet items,
     required Windows windows,
     required void Function(String line) log,
+    required Settled settled,
   }) {
     final feature = Trades._(
       registry,
@@ -118,6 +125,7 @@ final class Trades {
       items: items,
       windows: windows,
       log: log,
+      settled: settled,
     );
     interactions.setPlayerAction(feature._request);
     registry
@@ -135,20 +143,19 @@ final class Trades {
   final ItemSet _items;
   final Windows _windows;
   final void Function(String line) _log;
-
-  /// Called after a swap with the two players, so the server can save them
-  /// together. The server sets it once, when saves exist.
-  Settled settled = _unsaved;
+  final Settled _settled;
 
   final Map<String, _Session> _sessions = {};
   final Map<String, ({String to, int until})> _requests = {};
 
-  /// Whether [player] is in a trade.
-  bool isTrading(String player) => _sessions.containsKey(player);
-
   void _request(String player, String other) {
     if (_busy(player)) return _tell(player, 'You are busy.');
     if (_busy(other)) return _tell(player, 'That player is busy.');
+    // An ignored sender is told what any sender is told, so ignoring does
+    // not give itself away.
+    if (_social.isIgnoring(other, player)) {
+      return _tell(player, 'Sending a trade request to $other.');
+    }
     if (_requests[other]?.to == player) {
       _requests
         ..remove(other)
@@ -156,9 +163,7 @@ final class Trades {
       return _open(player, other);
     }
     _tell(player, 'Sending a trade request to $other.');
-    // An ignored sender is told what any sender is told, so ignoring does
-    // not give itself away.
-    if (_social.isIgnoring(other, player)) return;
+    if (_requests[player]?.to == other) return;
     _requests[player] = (
       to: other,
       until: _registry.actions.tick + _requestTicks,
@@ -222,6 +227,12 @@ final class Trades {
   void _offer(_Session session, String player, int item, int count) {
     final held = _inventory(player)?.countOf(item) ?? 0;
     if (count > held) return _tell(player, 'You do not have that many.');
+    // A repeat of the offer would only set both accepts back.
+    if (count == session.offered(player, item)) return;
+    if (session.offered(player, item) == 0 &&
+        session.linesOf(player) >= maxTradeLines) {
+      return _tell(player, 'You cannot offer that many different items.');
+    }
     session.offer(player, item, count);
     _show(session);
   }
@@ -240,10 +251,13 @@ final class Trades {
     if (blocked.any((reason) => reason != null)) {
       return _refuse(session, blocked);
     }
+    if (out.every((stacks) => stacks.isEmpty)) {
+      return _end(session, 'Nothing was traded.');
+    }
     for (final (i, bag) in bags.indexed) {
       bag!.exchange(take: out[i], give: into[i]);
     }
-    settled(session.a, session.b);
+    _settled(session.a, session.b);
     _log(
       'Trade: ${session.a} gave ${_describe(out[0])}, '
       '${session.b} gave ${_describe(out[1])}',
@@ -253,10 +267,11 @@ final class Trades {
 
   /// What stops [bag] from giving [out] and taking [into], or null.
   String? _blocker(Container bag, List<ItemStack> out, List<ItemStack> into) {
-    if (out.any((stack) => bag.countOf(stack.item) < stack.count)) {
-      return 'everything offered';
-    }
-    return bag.canExchange(take: out, give: into) ? null : 'room for that';
+    return switch (bag.tryExchange(take: out, give: into)) {
+      Outcome.done => null,
+      Outcome.wontFit => 'room for that',
+      _ => 'everything offered',
+    };
   }
 
   void _refuse(_Session session, List<String?> reasons) {

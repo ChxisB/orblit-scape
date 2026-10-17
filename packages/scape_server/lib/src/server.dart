@@ -125,6 +125,7 @@ final class ScapeServer {
       story: story,
       random: random ?? Random(),
       log: log,
+      settled: (a, b) => _saves?.saveTogether(a, b),
     );
     social = features.social;
     this.skills = features.skills;
@@ -155,7 +156,6 @@ final class ScapeServer {
           );
     _saves = saves;
     if (saves != null) {
-      features.trades.settled = saves.saveTogether;
       registry.addSystem(
         Phase.outbound,
         () => saves.autosave(registry.actions.tick),

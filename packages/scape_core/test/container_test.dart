@@ -537,7 +537,7 @@ void main() {
     });
   });
 
-  group('canExchange', () {
+  group('tryExchange', () {
     test('answers as exchange would and changes nothing', () {
       final c = Container(items: testItems(), size: 2)
         ..add(coins, 10)
@@ -545,11 +545,11 @@ void main() {
       c.markClean();
 
       expect(
-        c.canExchange(take: [ItemStack(logs, 1)], give: [ItemStack(logs, 1)]),
-        isTrue,
+        c.tryExchange(take: [ItemStack(logs, 1)], give: [ItemStack(logs, 1)]),
+        Outcome.done,
       );
-      expect(c.canExchange(give: [ItemStack(logs, 1)]), isFalse);
-      expect(c.canExchange(take: [ItemStack(coins, 11)]), isFalse);
+      expect(c.tryExchange(give: [ItemStack(logs, 1)]), Outcome.wontFit);
+      expect(c.tryExchange(take: [ItemStack(coins, 11)]), Outcome.nothingThere);
       expect(c.countOf(logs), 1);
       expect(c.countOf(coins), 10);
       expect(c.dirty, isEmpty);

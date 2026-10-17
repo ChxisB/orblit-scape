@@ -96,13 +96,15 @@ final Map<int, _Reader<ClientMessage>> _clientReaders = {
   _chat: _textMessage(Chat.new),
   _whisper: _readWhisper,
   _editList: _readEditList,
-  _buy: (b) => _readTrade(b, Buy.new),
-  _sell: (b) => _readTrade(b, Sell.new),
+  _buy: (b) => _readPair(b, (item, count) => Buy(item: item, count: count)),
+  _sell: (b) => _readPair(b, (item, count) => Sell(item: item, count: count)),
   _deposit: _readDeposit,
-  _withdraw: _readWithdraw,
+  _withdraw: (b) =>
+      _readPair(b, (slot, count) => Withdraw(slot: slot, count: count)),
   _continue: (b) => b.length == 1 ? const Continue() : null,
   _choose: (b) => b.length == 2 ? Choose(b[1]) : null,
-  _tradeOffer: _readTradeOffer,
+  _tradeOffer: (b) =>
+      _readPair(b, (item, count) => TradeOffer(item: item, count: count)),
   _tradeAccept: (b) => b.length == 1 ? const TradeAccept() : null,
   _tradeDecline: (b) => b.length == 1 ? const TradeDecline() : null,
 };
@@ -436,29 +438,18 @@ Uint8List _encodePair(int tag, int small, int count) {
   return bytes;
 }
 
-T? _readTrade<T extends Trade>(
-  Uint8List bytes,
-  T Function({required int item, required int count}) make,
-) {
+/// Reads what [_encodePair] wrote.
+T? _readPair<T>(Uint8List bytes, T Function(int small, int count) make) {
   if (bytes.length != 7) return null;
   final data = ByteData.sublistView(bytes);
   return make(
-    item: data.getUint16(1, Endian.little),
-    count: data.getUint32(3, Endian.little),
+    data.getUint16(1, Endian.little),
+    data.getUint32(3, Endian.little),
   );
 }
 
 Uint8List _encodeWithdraw(Withdraw message) =>
     _encodePair(_withdraw, message.slot, message.count);
-
-Withdraw? _readWithdraw(Uint8List bytes) {
-  if (bytes.length != 7) return null;
-  final data = ByteData.sublistView(bytes);
-  return Withdraw(
-    slot: data.getUint16(1, Endian.little),
-    count: data.getUint32(3, Endian.little),
-  );
-}
 
 Uint8List _encodeDeposit(Deposit message) => Uint8List.fromList([
   ..._encodePair(_deposit, message.slot, message.count),
@@ -503,15 +494,6 @@ ShopView? _readShopView(Uint8List bytes) {
           count: data.getUint32(at + 2, Endian.little),
         ),
     ],
-  );
-}
-
-TradeOffer? _readTradeOffer(Uint8List bytes) {
-  if (bytes.length != 7) return null;
-  final data = ByteData.sublistView(bytes);
-  return TradeOffer(
-    item: data.getUint16(1, Endian.little),
-    count: data.getUint32(3, Endian.little),
   );
 }
 

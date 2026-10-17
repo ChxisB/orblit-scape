@@ -8,6 +8,9 @@ import 'keys.dart';
 import 'player_states.dart';
 import 'trade_journal.dart';
 
+/// A trade journal read back: its key, when it was written, and the states.
+typedef _Journal = ({String key, DateTime at, Map<String, Uint8List> states});
+
 /// Keeps players between visits.
 ///
 /// A save is captured on the tick and handed to the [SaveQueue], which writes
@@ -44,6 +47,9 @@ final class Saves {
   // have left and have nothing in flight.
   final Map<String, int> _queued = {};
 
+  /// Journal clears still waiting on the store. A stop waits for them.
+  final Set<Future<void>> _clearing = {};
+
   Future<void>? _recovered;
 
   /// Reads the save of [player] so [arrived] can put it on them. Throws
@@ -77,10 +83,12 @@ final class Saves {
   /// Saves two players whose items changed together, so a crash cannot
   /// leave one save with the items and the other with them as well. The
   /// states go down first as a journal. A restart that finds a journal
-  /// brings any save older than it up to it, in [_recover].
+  /// brings any save older than it up to it, in [_recover]. The journal is
+  /// emptied once both saves are on the store.
   // shortcut: a finished journal is overwritten with nothing, never deleted,
-  // because a SaveStore has no delete. The first login after a start reads
-  // each one. Add a delete to SaveStore when the count gets large.
+  // because a SaveStore has no delete. Each start reads every one, so the
+  // first login slows as pairs accumulate. Add a delete to SaveStore when
+  // the count gets large.
   void saveTogether(String a, String b) {
     final bytes = {
       for (final player in [a, b])
@@ -92,7 +100,28 @@ final class Saves {
     for (final MapEntry(key: player, value: state) in bytes.entries) {
       _write(saveKeyOf(player), state, Custom('trade'));
     }
-    if (whole) _write(journal, Uint8List(0), Custom('trade done'));
+    if (whole) {
+      _clearWhenSaved(journal, [for (final p in bytes.keys) saveKeyOf(p)]);
+    }
+  }
+
+  /// Empties [journal] once it and the saves named by [saves] are on the
+  /// store. A journal that is not emptied is replayed by the next start.
+  void _clearWhenSaved(String journal, List<String> saves) {
+    late final Future<void> run;
+    run = _clear(journal, saves).whenComplete(() => _clearing.remove(run));
+    _clearing.add(run);
+  }
+
+  // shortcut: flush waits for the queue to go idle, so under steady load a
+  // clear waits as long. The journals stay until then. Give the queue a wait
+  // for named keys if that shows up in a profile.
+  Future<void> _clear(String journal, List<String> saves) async {
+    final stuck = await _queue.flush();
+    // The keys are the same for a later trade of the pair, so a later write
+    // that failed holds this clear back too.
+    if (stuck.contains(journal) || saves.any(stuck.contains)) return;
+    _write(journal, Uint8List(0), Custom('trade done'));
   }
 
   /// Finishes the trades a crash cut short. Runs once, before the first login
@@ -108,32 +137,58 @@ final class Saves {
   }
 
   Future<void> _replayJournals() async {
+    final found = <_Journal>[];
     for (final key in await _queue.keys()) {
       if (!key.startsWith('t-')) continue;
       final record = await _queue.read(key);
-      if (record != null && record.bytes.isNotEmpty) {
-        await _replay(key, record);
+      if (record == null || record.bytes.isEmpty) continue;
+      final states = _readJournal(key, record.bytes);
+      if (states != null) found.add((key: key, at: record.at, states: states));
+    }
+    found.sort((x, y) => x.at.compareTo(y.at));
+    // A player in two journals takes the state of the newer one.
+    final newest = <String, ({DateTime at, Uint8List state})>{};
+    for (final journal in found) {
+      for (final MapEntry(key: player, value: state)
+          in journal.states.entries) {
+        newest[player] = (at: journal.at, state: state);
       }
+    }
+    for (final MapEntry(key: player, value: entry) in newest.entries) {
+      await _bringUp(player, entry.at, entry.state);
+    }
+    for (final journal in found) {
+      _clearWhenSaved(journal.key, [
+        for (final player in journal.states.keys) saveKeyOf(player),
+      ]);
     }
   }
 
-  Future<void> _replay(String key, SaveRecord journal) async {
-    final Map<String, Uint8List> states;
+  /// The states in a journal, or null when it is damaged. A journal is read
+  /// with the checks a login applies, so a bad one never goes over a save.
+  Map<String, Uint8List>? _readJournal(String key, Uint8List bytes) {
     try {
-      states = decodeJournal(journal.bytes);
+      final states = decodeJournal(bytes);
+      for (final state in states.values) {
+        _states.check(PlayerState.decode(state));
+      }
+      return states;
     } on FormatException catch (e) {
       // shortcut: a damaged journal is skipped, so a cut-short trade it
       // describes stays cut short. Raise it to an operator alert later.
       _log('Trade journal $key is damaged and was left: ${e.message}');
-      return;
+      return null;
     }
-    for (final MapEntry(key: player, value: state) in states.entries) {
-      final saved = await _queue.read(saveKeyOf(player));
-      if (saved != null && saved.at.isAfter(journal.at)) continue;
-      _write(saveKeyOf(player), state, Custom('trade recovered'));
-      _log('$player was brought up to a trade a crash cut short');
-    }
-    _write(key, Uint8List(0), Custom('trade done'));
+  }
+
+  Future<void> _bringUp(String player, DateTime at, Uint8List state) async {
+    final saved = await _queue.read(saveKeyOf(player));
+    // shortcut: this compares the clock that stamped the journal with the one
+    // that stamped the save. A clock set back across a crash can skip a
+    // recovery. Number the journals if that matters.
+    if (saved != null && saved.at.isAfter(at)) return;
+    _write(saveKeyOf(player), state, Custom('trade recovered'));
+    _log('$player was brought up to a trade a crash cut short');
   }
 
   /// A player has joined. Puts the state [prepare] read onto them.
@@ -163,6 +218,8 @@ final class Saves {
 
   /// Saves everyone in the world and waits for the store.
   Future<void> shutdown() async {
+    // A clear queued after the close would never reach a worker's store.
+    await Future.wait(_clearing.toList());
     for (final player in _states.players.toList()) {
       _save(player, const Shutdown());
     }

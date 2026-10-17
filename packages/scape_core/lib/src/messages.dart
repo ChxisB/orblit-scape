@@ -145,9 +145,7 @@ final class EditList extends Intent {
 /// An item and a count, which a trade with a shop names.
 sealed class Trade extends Intent {
   Trade({required this.item, required this.count}) {
-    if (item < 1 || item > maxItemId) {
-      throw ArgumentError.value(item, 'item', 'is outside 1 to $maxItemId');
-    }
+    _checkItem(item);
     _checkCount(count);
   }
 
@@ -195,9 +193,7 @@ final class Withdraw extends Intent {
 /// both players' accepts back.
 final class TradeOffer extends Intent {
   TradeOffer({required this.item, required this.count}) {
-    if (item < 1 || item > maxItemId) {
-      throw ArgumentError.value(item, 'item', 'is outside 1 to $maxItemId');
-    }
+    _checkItem(item);
     _inRange(count, 'count', maxStack);
   }
 
@@ -489,6 +485,12 @@ final class Unreadable<T> extends Decoded<T> {
   const Unreadable(this.why);
 
   final BadMessage why;
+}
+
+void _checkItem(int item) {
+  if (item < 1 || item > maxItemId) {
+    throw ArgumentError.value(item, 'item', 'is outside 1 to $maxItemId');
+  }
 }
 
 void _checkCount(int count) {

@@ -251,9 +251,9 @@ final class Container {
     return outcome;
   }
 
-  /// Whether [exchange] with the same arguments would be done. Nothing
-  /// changes, and nothing is marked dirty.
-  bool canExchange({
+  /// What [exchange] with the same arguments would answer. Nothing changes,
+  /// and nothing is marked dirty.
+  Outcome tryExchange({
     List<ItemStack> take = const [],
     List<ItemStack> give = const [],
   }) {
@@ -263,7 +263,7 @@ final class Container {
       accepts: _accepts,
       tabSize: tabSize,
     )..restore(_slots);
-    return probe.exchange(take: take, give: give) == Outcome.done;
+    return probe.exchange(take: take, give: give);
   }
 
   /// Sets slots to what the server says they hold. For a client's copy, so

@@ -52,6 +52,7 @@ Features registerFeatures(
   required CombatRules combat,
   required Random random,
   required void Function(String line) log,
+  required Settled settled,
   RecipeSet? recipes,
   ShopRules? shops,
   Story? story,
@@ -167,6 +168,7 @@ Features registerFeatures(
     items: items,
     windows: windows,
     log: log,
+    settled: settled,
   );
   final quests = _registerStory(
     registry,

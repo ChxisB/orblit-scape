@@ -61,9 +61,39 @@ final class CrashingStore implements SaveStore {
   Future<List<String>> keys() => inner.keys();
 }
 
+/// A store that records its writes and fails the keys in [failing].
+final class SpyStore implements SaveStore {
+  SpyStore(this.inner);
+
+  final SaveStore inner;
+  final List<({String key, bool empty})> writes = [];
+  final Set<String> failing = {};
+
+  @override
+  Future<void> write(String key, SaveRecord record) async {
+    if (failing.contains(key)) throw StateError('write of $key failed');
+    writes.add((key: key, empty: record.bytes.isEmpty));
+    await inner.write(key, record);
+  }
+
+  @override
+  Future<SaveRecord?> read(String key) => inner.read(key);
+
+  @override
+  Future<bool> exists(String key) => inner.exists(key);
+
+  @override
+  Future<List<String>> keys() => inner.keys();
+}
+
 /// One server and the clients on it.
 final class Rig {
-  Rig({SaveStore? store, DateTime Function()? clock, this.map}) {
+  Rig({
+    SaveStore? store,
+    DateTime Function()? clock,
+    this.map,
+    ItemSet? items,
+  }) {
     server = ScapeServer(
       clock: TickClock(period: tickPeriod, now: FakeTime().read),
       pacer: NoPacer(),
@@ -71,7 +101,7 @@ final class Rig {
       map: map ?? openWorld(),
       spawn: spawnTile,
       skills: defaultSkills,
-      items: defaultItems,
+      items: items ?? defaultItems,
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: defaultNpcs,
@@ -151,10 +181,19 @@ final class Rig {
 void main() {
   final rigs = <Rig>[];
 
-  Rig start({SaveStore? store, DateTime Function()? clock}) {
-    final rig = Rig(store: store, clock: clock);
+  Rig start({SaveStore? store, DateTime Function()? clock, ItemSet? items}) {
+    final rig = Rig(store: store, clock: clock, items: items);
     rigs.add(rig);
     return rig;
+  }
+
+  /// Both players accept the offer step and then the confirm step.
+  Future<void> acceptTwice(Rig rig, TestClient a, TestClient b) async {
+    for (var step = 0; step < 2; step++) {
+      await a.send(const TradeAccept());
+      await b.send(const TradeAccept());
+      await rig.tick();
+    }
   }
 
   tearDown(() async {
@@ -210,6 +249,35 @@ void main() {
       expect(ana.views, isEmpty);
     });
 
+    test('is not told twice to the player it names', () async {
+      final rig = start();
+      final (ana, bo) = await rig.pair('Ana', 'Bo');
+
+      await ana.click(rig.idOf('bo'));
+      await rig.tick(2);
+      await ana.click(rig.idOf('bo'));
+      await rig.tick(2);
+
+      expect(
+        bo.notices.where((text) => text == 'ana wants to trade with you.'),
+        hasLength(1),
+      );
+    });
+
+    test('does not open for a player who ignores the sender by now', () async {
+      final rig = start();
+      final (ana, bo) = await rig.pair('Ana', 'Bo');
+      await ana.click(rig.idOf('bo'));
+      await rig.tick(2);
+      await ana.send(EditList(list: ListKind.ignored, add: true, name: 'bo'));
+
+      await bo.click(rig.idOf('ana'));
+      await rig.tick(2);
+
+      expect(ana.views, isEmpty);
+      expect(bo.views, isEmpty);
+    });
+
     test('is refused for a player already in a trade', () async {
       final rig = start();
       final (ana, bo) = await rig.pair('Ana', 'Bo');
@@ -249,11 +317,7 @@ void main() {
       await ana.offer(ItemId.logs, 3);
       await bo.offer(ItemId.feathers, 2);
 
-      for (var step = 0; step < 2; step++) {
-        await ana.send(const TradeAccept());
-        await bo.send(const TradeAccept());
-        await rig.tick();
-      }
+      await acceptTwice(rig, ana, bo);
 
       expect(rig.bag('ana').countOf(ItemId.logs), 0);
       expect(rig.bag('ana').countOf(ItemId.feathers), 2);
@@ -272,13 +336,11 @@ void main() {
       final store = MemorySaveStore();
       final rig = start(store: store);
       final (ana, bo) = await rig.pair('Ana', 'Bo');
+      rig.bag('ana').add(ItemId.logs, 1);
       await rig.open(ana, bo, 'ana', 'bo');
+      await ana.offer(ItemId.logs, 1);
 
-      for (var step = 0; step < 2; step++) {
-        await ana.send(const TradeAccept());
-        await bo.send(const TradeAccept());
-        await rig.tick();
-      }
+      await acceptTwice(rig, ana, bo);
       await rig.stop();
 
       expect((await store.read(tradeKeyOf('ana', 'bo')))!.bytes, isEmpty);
@@ -313,6 +375,73 @@ void main() {
       expect(ana.views.last.youAccepted, isFalse);
     });
 
+    test('keeps an accept when an offer is repeated', () async {
+      final rig = start();
+      final (ana, bo) = await rig.pair('Ana', 'Bo');
+      rig.bag('ana').add(ItemId.logs, 3);
+      await rig.open(ana, bo, 'ana', 'bo');
+      await ana.offer(ItemId.logs, 1);
+      await bo.send(const TradeAccept());
+      await rig.tick();
+
+      await ana.offer(ItemId.logs, 1);
+      await ana.offer(ItemId.feathers, 0);
+      await rig.tick();
+
+      expect(ana.views.last.theyAccepted, isTrue);
+    });
+
+    test('ends with nothing saved when nothing was offered', () async {
+      final store = SpyStore(MemorySaveStore());
+      final rig = start(store: store);
+      final (ana, bo) = await rig.pair('Ana', 'Bo');
+      await rig.open(ana, bo, 'ana', 'bo');
+
+      await acceptTwice(rig, ana, bo);
+
+      expect(ana.notices, contains('Nothing was traded.'));
+      expect(ana.closes, 1);
+      expect(rig.logged, isEmpty);
+      expect(store.writes.where((w) => w.key.startsWith('t-')), isEmpty);
+    });
+
+    test('offers at most a bag of different items', () async {
+      final extra = [
+        for (var id = 1000; id < 1030; id++)
+          ItemDef(id: id, name: 'Thing $id', value: 1),
+      ];
+      final rig = start(
+        items: ItemSet(
+          skills: defaultSkills,
+          items: [...defaultItems.items, ...extra],
+        ),
+      );
+      final (ana, bo) = await rig.pair('Ana', 'Bo');
+      for (var id = 1000; id < 1000 + maxTradeLines; id++) {
+        rig.bag('ana').add(id, 1);
+      }
+      await rig.open(ana, bo, 'ana', 'bo');
+      for (var id = 1000; id < 1000 + maxTradeLines; id++) {
+        await ana.offer(id, 1);
+        await rig.tick();
+      }
+      // A player may swap what they hold after offering it, so lines can
+      // outgrow the bag.
+      rig
+          .bag('ana')
+          .exchange(take: [ItemStack(1000, 1)], give: [ItemStack(1029, 1)]);
+      await rig.tick();
+
+      await ana.offer(1029, 1);
+      await rig.tick();
+
+      expect(ana.views.last.mine, hasLength(maxTradeLines));
+      expect(
+        ana.notices,
+        contains('You cannot offer that many different items.'),
+      );
+    });
+
     test('refuses to offer more than the player holds', () async {
       final rig = start();
       final (ana, bo) = await rig.pair('Ana', 'Bo');
@@ -336,11 +465,7 @@ void main() {
       await rig.open(ana, bo, 'ana', 'bo');
       await ana.offer(ItemId.logs, 3);
 
-      for (var step = 0; step < 2; step++) {
-        await ana.send(const TradeAccept());
-        await bo.send(const TradeAccept());
-        await rig.tick();
-      }
+      await acceptTwice(rig, ana, bo);
 
       expect(rig.bag('ana').countOf(ItemId.logs), 3);
       expect(rig.bag('bo').countOf(ItemId.logs), 0);
@@ -538,6 +663,63 @@ void main() {
 
       expect(ana.admitted, isTrue);
       expect(rig.logged.single, contains('is damaged and was left'));
+    });
+
+    test('takes each player from the newest journal that names them', () async {
+      final (store, older, bo) = await saved(100);
+      final grown = start(store: store);
+      await grown.join('Ana');
+      grown.server.skills.grant('ana', 'mining', 800);
+      await grown.stop();
+      final newest = (await store.read(saveKeyOf('ana')))!.bytes;
+      // The newer journal is stored first, so a replay in key order would
+      // let the older one win.
+      await store.write(
+        tradeKeyOf('ana', 'cy'),
+        SaveRecord(
+          bytes: encodeJournal({'ana': newest, 'cy': bo}),
+          reason: Custom('trade'),
+          at: DateTime.utc(2101),
+        ),
+      );
+      await journal(store, {'ana': older, 'bo': bo}, DateTime.utc(2100));
+
+      final rig = start(store: store);
+      await rig.join('Ana');
+
+      expect(rig.server.skills.xpOf('ana', 'mining'), 900);
+    });
+
+    test('with a state that is not a save is left alone', () async {
+      final (store, _, bo) = await saved(100);
+      await journal(store, {
+        'ana': Uint8List.fromList([1, 2, 3]),
+        'bo': bo,
+      }, DateTime.utc(2100));
+
+      final rig = start(store: store);
+      final ana = await rig.join('Ana');
+
+      expect(ana.admitted, isTrue);
+      expect(rig.server.skills.xpOf('ana', 'mining'), 100);
+      expect(rig.logged.single, contains('is damaged and was left'));
+    });
+
+    test('stays when a save it covers could not be written', () async {
+      final store = SpyStore(MemorySaveStore());
+      final rig = start(store: store);
+      final (ana, bo) = await rig.pair('Ana', 'Bo');
+      rig.bag('ana').add(ItemId.logs, 1);
+      await rig.open(ana, bo, 'ana', 'bo');
+      await ana.offer(ItemId.logs, 1);
+      store.failing.add(saveKeyOf('bo'));
+
+      await acceptTwice(rig, ana, bo);
+      await rig.tick(2);
+      await rig.stop();
+
+      final journalKey = tradeKeyOf('ana', 'bo');
+      expect((await store.read(journalKey))!.bytes, isNotEmpty);
     });
 
     test('names two players and nobody else', () {

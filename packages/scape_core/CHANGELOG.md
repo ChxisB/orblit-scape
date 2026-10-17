@@ -6,7 +6,7 @@
   player. `TradeOffer` sets how many of an item a player puts up, and zero
   takes it back. `TradeAccept` and `TradeDecline` answer. `TradeView` is
   what each side sees: both offers, the step, and who has accepted.
-- `Container.canExchange` asks whether an `exchange` would be done and
+- `Container.tryExchange` answers what an `exchange` would answer and
   changes nothing.
 
 ## 0.17.0

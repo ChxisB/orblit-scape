@@ -11,11 +11,15 @@
   leaves, opens another window or walks off their tile. A player who
   ignores another is never told of their request.
 - A swap saves both players together. A journal of both states goes down
-  first, then the two saves, then the journal is emptied. A start that
-  finds a journal brings any save older than it up to it, so a crash
-  cannot copy or lose an item. A damaged journal is logged and left.
-  Journals are emptied, never deleted, because a store cannot delete.
-- `Features` holds `trades`. `registerFeatures` takes `log`.
+  first, then the two saves, then the journal is emptied once both saves
+  are on the store. A start that finds journals brings any save older
+  than the newest journal that names the player up to it, so a crash
+  cannot copy or lose an item. A journal that is damaged, or holds a
+  state a login would refuse, is logged and left. Journals are emptied,
+  never deleted, because a store cannot delete.
+- A trade offers at most a bag of different items. A repeated offer does
+  not take accepts back. A trade with nothing offered saves nothing.
+- `Features` holds `trades`. `registerFeatures` takes `log` and `settled`.
 
 ## 0.15.0
 

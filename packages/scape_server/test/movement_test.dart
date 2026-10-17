@@ -176,6 +176,17 @@ void main() {
     expect(server.host.entityFor(avatar), isNull);
   });
 
+  test('an avatar names its player only while the player is in', () async {
+    final (ana, avatar) = await join('Ana');
+    await join('Bo');
+    expect(server.movement.playerWith(avatar), 'ana');
+    await ana.link.close();
+
+    await tick(11);
+
+    expect(server.movement.playerWith(avatar), isNull);
+  });
+
   test('a spawn tile that is not open ground is refused', () {
     map.setFlags(spawnTile, TileFlags.blocked);
     expect(

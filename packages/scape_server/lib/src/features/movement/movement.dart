@@ -50,18 +50,14 @@ final class Movement {
   final TileCoord _spawn;
   final ComponentType _position;
   final Map<String, _Player> _players = {};
+  final Map<int, String> _byNetworkId = {};
   final ActionKind _walk = ActionKind('walk', cancels: const CancelsAll());
 
   /// The tile [player] stands on, or null when they are not in the world.
   TileCoord? tileOf(String player) => _players[player]?.mover.position;
 
   /// The player whose avatar has [networkId], or null.
-  String? playerWith(int networkId) {
-    for (final MapEntry(:key, :value) in _players.entries) {
-      if (value.networkId == networkId) return key;
-    }
-    return null;
-  }
+  String? playerWith(int networkId) => _byNetworkId[networkId];
 
   /// The key actions of [player] are queued under, or null when they are not
   /// in the world.
@@ -106,13 +102,16 @@ final class Movement {
     world.add(entity, _position);
     final networkId = _services.hosting.spawn(entity, owner: key);
     _players[key] = _Player(entity, networkId, Mover(_spawn));
+    _byNetworkId[networkId] = key;
     _write(entity, _spawn);
     _services.hosting.tell(key, Avatar(networkId));
   }
 
   void _gone(String key) {
     final player = _players.remove(key);
-    if (player != null) _services.hosting.despawn(player.entity);
+    if (player == null) return;
+    _byNetworkId.remove(player.networkId);
+    _services.hosting.despawn(player.entity);
   }
 
   void _onIntent(String key, Intent intent) {
