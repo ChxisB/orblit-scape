@@ -1,9 +1,12 @@
+import 'dart:typed_data';
+
 import 'package:orblit_net/orblit_net.dart' show GoneReason;
 import 'package:orblit_save/orblit_save.dart';
 import 'package:scape_core/scape_core.dart';
 
 import 'keys.dart';
 import 'player_states.dart';
+import 'trade_journal.dart';
 
 /// Keeps players between visits.
 ///
@@ -41,6 +44,8 @@ final class Saves {
   // have left and have nothing in flight.
   final Map<String, int> _queued = {};
 
+  Future<void>? _recovered;
+
   /// Reads the save of [player] so [arrived] can put it on them. Throws
   /// [FormatException] when the save is damaged, so a login is refused and a
   /// blank is never written over a real save.
@@ -50,6 +55,7 @@ final class Saves {
   /// Nothing after the last read waits, so no save can be queued before the
   /// host seats the player.
   Future<void> prepare(String player) async {
+    await _recover();
     final key = saveKeyOf(player);
     SaveRecord? record;
     int before;
@@ -66,6 +72,68 @@ final class Saves {
       _states.check(state);
       _pending[player] = state;
     }
+  }
+
+  /// Saves two players whose items changed together, so a crash cannot
+  /// leave one save with the items and the other with them as well. The
+  /// states go down first as a journal. A restart that finds a journal
+  /// brings any save older than it up to it, in [_recover].
+  // shortcut: a finished journal is overwritten with nothing, never deleted,
+  // because a SaveStore has no delete. The first login after a start reads
+  // each one. Add a delete to SaveStore when the count gets large.
+  void saveTogether(String a, String b) {
+    final bytes = {
+      for (final player in [a, b])
+        if (_states.capture(player) case final state?) player: state.encode(),
+    };
+    final journal = tradeKeyOf(a, b);
+    final whole = bytes.length == 2;
+    if (whole) _write(journal, encodeJournal(bytes), Custom('trade'));
+    for (final MapEntry(key: player, value: state) in bytes.entries) {
+      _write(saveKeyOf(player), state, Custom('trade'));
+    }
+    if (whole) _write(journal, Uint8List(0), Custom('trade done'));
+  }
+
+  /// Finishes the trades a crash cut short. Runs once, before the first login
+  /// is read, and again after a failure.
+  Future<void> _recover() async {
+    final run = _recovered ??= _replayJournals();
+    try {
+      await run;
+    } on Object {
+      _recovered = null;
+      rethrow;
+    }
+  }
+
+  Future<void> _replayJournals() async {
+    for (final key in await _queue.keys()) {
+      if (!key.startsWith('t-')) continue;
+      final record = await _queue.read(key);
+      if (record != null && record.bytes.isNotEmpty) {
+        await _replay(key, record);
+      }
+    }
+  }
+
+  Future<void> _replay(String key, SaveRecord journal) async {
+    final Map<String, Uint8List> states;
+    try {
+      states = decodeJournal(journal.bytes);
+    } on FormatException catch (e) {
+      // shortcut: a damaged journal is skipped, so a cut-short trade it
+      // describes stays cut short. Raise it to an operator alert later.
+      _log('Trade journal $key is damaged and was left: ${e.message}');
+      return;
+    }
+    for (final MapEntry(key: player, value: state) in states.entries) {
+      final saved = await _queue.read(saveKeyOf(player));
+      if (saved != null && saved.at.isAfter(journal.at)) continue;
+      _write(saveKeyOf(player), state, Custom('trade recovered'));
+      _log('$player was brought up to a trade a crash cut short');
+    }
+    _write(key, Uint8List(0), Custom('trade done'));
   }
 
   /// A player has joined. Puts the state [prepare] read onto them.
@@ -105,8 +173,11 @@ final class Saves {
   void _save(String player, SaveReason reason) {
     final state = _states.capture(player);
     if (state == null) return;
-    final key = saveKeyOf(player);
+    _write(saveKeyOf(player), state.encode(), reason);
+  }
+
+  void _write(String key, Uint8List bytes, SaveReason reason) {
     _queued[key] = (_queued[key] ?? 0) + 1;
-    _queue.save(key, state.encode(), reason);
+    _queue.save(key, bytes, reason);
   }
 }

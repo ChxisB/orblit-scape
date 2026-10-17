@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.16.0
+
+- Trading between players. A click on a player walks up to them and asks
+  for a trade. When the other player asks back, a trade window opens for
+  both. Each puts up items, both accept, both accept again at a confirm
+  step, and the swap is one change. Any change to an offer takes both
+  accepts back. A bag with no room, or one that no longer holds what it
+  offered, stops the swap and tells both. A trade ends when a player
+  leaves, opens another window or walks off their tile. A player who
+  ignores another is never told of their request.
+- A swap saves both players together. A journal of both states goes down
+  first, then the two saves, then the journal is emptied. A start that
+  finds a journal brings any save older than it up to it, so a crash
+  cannot copy or lose an item. A damaged journal is logged and left.
+  Journals are emptied, never deleted, because a store cannot delete.
+- `Features` holds `trades`. `registerFeatures` takes `log`.
+
 ## 0.15.0
 
 - Quests and conversations. `ScapeServer` takes `story`. `Quests` holds

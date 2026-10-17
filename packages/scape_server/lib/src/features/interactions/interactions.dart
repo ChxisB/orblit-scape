@@ -16,6 +16,10 @@ typedef ObjectAction = void Function(String player, PlacedObject object);
 /// clicked and picked an option.
 typedef NpcAction = void Function(String player, PlacedNpc npc);
 
+/// What a feature does when [player] has walked up to the player [other]
+/// they clicked.
+typedef PlayerAction = void Function(String player, String other);
+
 /// What a feature does when [player] uses the item in [slot] on an object.
 typedef UseOnObject =
     void Function(String player, int slot, PlacedObject object);
@@ -95,6 +99,7 @@ final class Interactions {
   final Map<(int, int), UseOnObject> _useOnObject = {};
   final Map<(int, int), UseOnItem> _useOnItem = {};
   final Map<int, NpcAction> _npcActions = {};
+  PlayerAction? _playerAction;
 
   /// Runs [action] when a player picks an option of an object whose
   /// definition names [name].
@@ -113,6 +118,15 @@ final class Interactions {
       throw StateError('That creature option already has an action.');
     }
     _npcActions[option] = action;
+  }
+
+  /// Runs [action] when a player has walked up to another player and
+  /// clicked them. One feature owns the click, so a second call throws.
+  void setPlayerAction(PlayerAction action) {
+    if (_playerAction != null) {
+      throw StateError('A click on a player already has an action.');
+    }
+    _playerAction = action;
   }
 
   /// Runs [action] when [item] is used on an object whose definition is
@@ -151,6 +165,8 @@ final class Interactions {
         _submit(player, (_) => _runUseOnItem(player, intent));
       case InteractKind.npc:
         _clickNpc(player, intent);
+      case InteractKind.player:
+        _clickPlayer(player, intent);
     }
   }
 
@@ -173,6 +189,16 @@ final class Interactions {
       Beside(Footprint.single(npc.tile)),
       () => action(player, npc),
     );
+  }
+
+  void _clickPlayer(String player, Interact click) {
+    final other = _movement.playerWith(click.id);
+    final tile = other == null ? null : _movement.tileOf(other);
+    final action = _playerAction;
+    if (other == null || other == player || tile == null || action == null) {
+      return;
+    }
+    _start(player, Beside(Footprint.single(tile)), () => action(player, other));
   }
 
   void _clickGround(String player, Interact click) {

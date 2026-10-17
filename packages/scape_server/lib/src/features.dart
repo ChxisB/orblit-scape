@@ -20,6 +20,7 @@ import 'features/shops/shops.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
 import 'features/talk/talk.dart';
+import 'features/trades/trades.dart';
 import 'features/windows/windows.dart';
 
 /// What the rest of the server may reach into after the features register.
@@ -34,6 +35,7 @@ typedef Features = ({
   Quests? quests,
   Skills skills,
   Social social,
+  Trades trades,
 });
 
 /// The one place features join the server. Each feature adds its action kinds,
@@ -49,6 +51,7 @@ Features registerFeatures(
   required NpcSet npcs,
   required CombatRules combat,
   required Random random,
+  required void Function(String line) log,
   RecipeSet? recipes,
   ShopRules? shops,
   Story? story,
@@ -154,6 +157,17 @@ Features registerFeatures(
   } else if (npcs.npcs.any((npc) => npc.shop != null)) {
     throw ArgumentError.value(shops, 'shops', 'is needed for a creature shop');
   }
+  final trades = Trades.register(
+    registry,
+    services,
+    interactions: interactions,
+    movement: movement,
+    social: social,
+    bags: bags,
+    items: items,
+    windows: windows,
+    log: log,
+  );
   final quests = _registerStory(
     registry,
     services,
@@ -180,6 +194,7 @@ Features registerFeatures(
     quests: quests,
     skills: levels,
     social: social,
+    trades: trades,
   );
 }
 

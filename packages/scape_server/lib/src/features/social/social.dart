@@ -106,7 +106,7 @@ final class Social {
   }
 
   bool _hears(String listener, String speaker, TileCoord at) {
-    if (_ignores(listener, speaker)) return false;
+    if (isIgnoring(listener, speaker)) return false;
     final tile = _standing(listener)?.tile;
     return tile != null &&
         tile.plane == at.plane &&
@@ -119,7 +119,7 @@ final class Social {
     final target = nameKey(to);
     // An ignored sender gets the answer an offline name gets, so ignoring
     // does not tell them they were ignored.
-    if (!_online.contains(target) || _ignores(target, player)) {
+    if (!_online.contains(target) || isIgnoring(target, player)) {
       _hosting.tell(player, Notice('That player is not online.'));
       return;
     }
@@ -153,7 +153,8 @@ final class Social {
     return true;
   }
 
-  bool _ignores(String player, String other) =>
+  /// Whether [player] has [other] on their ignore list.
+  bool isIgnoring(String player, String other) =>
       _lists[player]?.ignored.contains(other) ?? false;
 
   void _sendLists(String player) {

@@ -55,6 +55,14 @@ final class Movement {
   /// The tile [player] stands on, or null when they are not in the world.
   TileCoord? tileOf(String player) => _players[player]?.mover.position;
 
+  /// The player whose avatar has [networkId], or null.
+  String? playerWith(int networkId) {
+    for (final MapEntry(:key, :value) in _players.entries) {
+      if (value.networkId == networkId) return key;
+    }
+    return null;
+  }
+
   /// The key actions of [player] are queued under, or null when they are not
   /// in the world.
   int? actorOf(String player) => _players[player]?.entity;

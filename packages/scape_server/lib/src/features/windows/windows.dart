@@ -5,12 +5,13 @@ import '../../engine/registry.dart';
 import '../../engine/services.dart';
 import '../movement/movement.dart';
 
-/// What a window shows: a shop, a bank or a conversation.
-enum WindowKind { shop, bank, talk }
+/// What a window shows: a shop, a bank, a conversation or a trade.
+enum WindowKind { shop, bank, talk, trade }
 
 /// The window a player has open: what it is, which of its kind ([ref] is the
-/// creature id of the shopkeeper or of whoever they talk to, and zero for a
-/// bank), and where the player has to stand to keep using it.
+/// creature id of the shopkeeper or of whoever they talk to, the network id
+/// of the trade partner, and zero for a bank), and where the player has to
+/// stand to keep using it.
 typedef OpenWindow = ({WindowKind kind, int ref, Reach reach});
 
 /// The window each player has open. A player has one at a time.
