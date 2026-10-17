@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.3.0
+
+- `findPath` and `findPathToReach`: the shortest walk over the flags, a
+  diagonal counting as one step, inside a box round the start and the
+  target. A target that cannot be reached gives the nearest reachable tile
+  and says so.
+- `Mover` holds a queue of steps. It walks a tile a tick and runs two, and a
+  step the map no longer allows ends the walk.
+- Reach rules: `OnTile`, `Beside` a footprint and `Within` a range of one,
+  with `hasClearLine` for the range.
+- The enum for who is stepping is `Walker`.
+
 ## 0.2.0
 
 - Tiles: `TileCoord`, `RegionKey` and `TileFlags`. A region is 64 by 64

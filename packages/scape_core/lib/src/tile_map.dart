@@ -3,7 +3,7 @@ import 'tile_coord.dart';
 import 'tile_flags.dart';
 
 /// Who is stepping. Creatures keep out of tiles flagged [TileFlags.noNpc].
-enum Mover { player, npc }
+enum Walker { player, npc }
 
 /// The flags of every loaded region, and the rules for one step over them.
 final class TileMap {
@@ -33,33 +33,39 @@ final class TileMap {
     region.setLocal(tile.localIndex, flags);
   }
 
-  /// Whether [mover] may step from [from] to the tile beside it, [to].
+  /// Whether a [walker] may step from [from] to the tile beside it, [to].
   ///
   /// A diagonal needs both tiles at its corners open and no wall on any of
   /// the four edges round them. A step to the same tile, past the next tile
   /// or to another plane is never allowed.
-  bool canStep(TileCoord from, TileCoord to, {Mover mover = Mover.player}) {
+  bool canStep(TileCoord from, TileCoord to, {Walker walker = Walker.player}) {
     final dx = to.x - from.x;
     final dy = to.y - from.y;
     if (from.plane != to.plane || dx.abs() > 1 || dy.abs() > 1) return false;
     if (dx == 0 && dy == 0) return false;
-    if (dx == 0 || dy == 0) return _canStepStraight(from, to, mover);
+    if (dx == 0 || dy == 0) return _canStepStraight(from, to, walker);
     final alongX = TileCoord(to.x, from.y, from.plane);
     final alongY = TileCoord(from.x, to.y, from.plane);
-    return _canStepStraight(from, alongX, mover) &&
-        _canStepStraight(alongX, to, mover) &&
-        _canStepStraight(from, alongY, mover) &&
-        _canStepStraight(alongY, to, mover);
+    return _canStepStraight(from, alongX, walker) &&
+        _canStepStraight(alongX, to, walker) &&
+        _canStepStraight(from, alongY, walker) &&
+        _canStepStraight(alongY, to, walker);
   }
 
-  bool _canStepStraight(TileCoord from, TileCoord to, Mover mover) {
-    final dx = to.x - from.x;
-    final dy = to.y - from.y;
+  bool _canStepStraight(TileCoord from, TileCoord to, Walker walker) {
     final entering = flagsAt(to);
     if (entering.has(TileFlags.blocked | TileFlags.water)) return false;
-    if (mover == Mover.npc && entering.has(TileFlags.noNpc)) return false;
-    return !flagsAt(from).has(_wallToward(dx, dy)) &&
-        !entering.has(_wallToward(-dx, -dy));
+    if (walker == Walker.npc && entering.has(TileFlags.noNpc)) return false;
+    return edgeOpen(from, to);
+  }
+
+  /// Whether no wall stands on the edge between [a] and [b], which must be
+  /// beside each other in a straight line. A wall counts from either tile.
+  bool edgeOpen(TileCoord a, TileCoord b) {
+    final dx = b.x - a.x;
+    final dy = b.y - a.y;
+    return !flagsAt(a).has(_wallToward(dx, dy)) &&
+        !flagsAt(b).has(_wallToward(-dx, -dy));
   }
 
   static TileFlags _wallToward(int dx, int dy) {

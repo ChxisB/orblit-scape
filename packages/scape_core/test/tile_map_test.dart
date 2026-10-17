@@ -110,7 +110,7 @@ void main() {
     test('keeps a tile only an NPC may not enter open to a player', () {
       final map = openWorld()..setFlags(at(11, 10), TileFlags.noNpc);
       expect(map.canStep(at(10, 10), at(11, 10)), isTrue);
-      expect(map.canStep(at(10, 10), at(11, 10), mover: Mover.npc), isFalse);
+      expect(map.canStep(at(10, 10), at(11, 10), walker: Walker.npc), isFalse);
     });
 
     test('treats a tile in a region that is not loaded as blocked', () {
