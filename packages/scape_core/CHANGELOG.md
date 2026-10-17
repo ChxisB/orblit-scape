@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.4.0
+
+- Messages a client and a server send each other, named once: `Login`,
+  `Walk`, `Interact` and `Chat` one way, `LoginOk`, `PrivateState` and
+  `Notice` the other. A login refusal is a `LoginRefusal`, sent as the text
+  of a goodbye.
+- Each message has a size cap. `decodeClientMessage` and
+  `decodeServerMessage` return `Understood` or `Unreadable` with a reason and
+  never throw. A test feeds them 20,000 random messages.
+
 ## 0.3.0
 
 - `findPath` and `findPathToReach`: the shortest walk over the flags, a

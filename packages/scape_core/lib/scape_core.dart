@@ -4,6 +4,36 @@ library;
 export 'src/flag_region.dart' show FlagRegion;
 export 'src/flag_region_file.dart'
     show decodeFlagRegion, encodeFlagRegion, flagRegionVersion;
+export 'src/message_codec.dart'
+    show
+        clientMessageLimit,
+        decodeClientMessage,
+        decodeServerMessage,
+        encodeClientMessage,
+        encodeServerMessage;
+export 'src/messages.dart'
+    show
+        BadMessage,
+        Chat,
+        ClientMessage,
+        Decoded,
+        Intent,
+        Interact,
+        Login,
+        LoginOk,
+        LoginRefusal,
+        Notice,
+        PrivateState,
+        ServerMessage,
+        Understood,
+        Unreadable,
+        Walk,
+        isValidName,
+        isValidText,
+        maxDeltaBytes,
+        maxNameChars,
+        maxTextBytes,
+        nameKey;
 export 'src/mover.dart' show MoveSpeed, Mover;
 export 'src/path.dart'
     show PathResult, defaultPathMargin, findPath, findPathToReach;
@@ -16,4 +46,4 @@ export 'src/tile_flags.dart' show TileFlags;
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.3.0';
+const scapeCoreVersion = '0.4.0';
