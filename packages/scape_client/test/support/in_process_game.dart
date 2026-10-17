@@ -59,6 +59,8 @@ final class InProcessGame {
       story: defaultStory,
       combat: defaultCombat,
       shops: defaultShops,
+      spells: defaultSpells,
+      prayers: defaultPrayers,
     );
   }
 

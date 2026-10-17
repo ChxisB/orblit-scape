@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.14.0
+
+- `GameSession.cast` and `togglePrayer` send the intents. `shots` holds the
+  flights the server announced and `prayer` holds the points and the prayers
+  that are on.
+
 ## 0.13.0
 
 - `GameSession.requestTrade` asks another player to trade. `playerTrade` holds

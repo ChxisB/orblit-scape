@@ -48,6 +48,10 @@ typedef Bubble = ({int networkId, String text});
 /// miss.
 typedef Splat = ({int target, int damage});
 
+/// A shot or spell in the air from the actor [from] to the actor [to]. It
+/// lands after [ticks] ticks.
+typedef Shot = ({int from, int to, int ticks, CombatStyle style});
+
 /// The hit points an actor has and the most it can have.
 typedef Health = ({int now, int max});
 
@@ -147,6 +151,7 @@ final class GameSession {
   final List<String> _notices = [];
   final List<Heard> _whispers = [];
   final List<Splat> _splats = [];
+  final List<Shot> _shots = [];
   final Map<int, ({String text, double until})> _bubbles = {};
 
   /// The name the server knows the player by, once logged in.
@@ -173,6 +178,10 @@ final class GameSession {
   /// conversation.
   TradeView? playerTrade;
 
+  /// The player's prayer points and which prayers are on, as the server last
+  /// sent them, or null before it has.
+  PrayerView? prayer;
+
   /// Whether the player's bank is open. [itemAt] reads what is in it.
   bool bankOpen = false;
 
@@ -187,6 +196,9 @@ final class GameSession {
 
   /// Swings that landed or missed, oldest first.
   List<Splat> get splats => List.unmodifiable(_splats);
+
+  /// Shots and spells that were sent, oldest first.
+  List<Shot> get shots => List.unmodifiable(_shots);
 
   /// The hit points of the actor [networkId] names, or null for one that is
   /// not in view or does not fight.
@@ -252,6 +264,15 @@ final class GameSession {
   void attack(int networkId) => _interact(
     Interact(kind: InteractKind.npc, id: networkId, option: NpcOption.attack),
   );
+
+  /// Casts the spell [spell] at the creature that [networkId] names.
+  void cast(int spell, int networkId) => _client.sendMessage(
+    encodeClientMessage(Cast(spell: spell, target: networkId)),
+  );
+
+  /// Switches the prayer [prayer] on or off.
+  void togglePrayer(int prayer) =>
+      _client.sendMessage(encodeClientMessage(TogglePrayer(prayer)));
 
   /// Opens the shop of the creature that [networkId] names.
   void trade(int networkId) => _interact(
@@ -441,6 +462,10 @@ final class GameSession {
           _bubbles[speaker] = (text: text, until: _now() + bubbleSeconds);
         case Hit(:final target, :final damage):
           _keep(_splats, (target: target, damage: damage));
+        case Projectile(:final from, :final to, :final ticks, :final style):
+          _keep(_shots, (from: from, to: to, ticks: ticks, style: style));
+        case PrayerView():
+          prayer = message;
         case Whispered(:final from, :final text):
           _keep(_whispers, (from: from, text: text));
         case SocialLists(:final friends, :final ignored):
