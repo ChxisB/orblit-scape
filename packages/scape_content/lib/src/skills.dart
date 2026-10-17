@@ -14,5 +14,7 @@ final SkillSet defaultSkills = SkillSet(
     SkillDef(id: 'fletching', name: 'Fletching', levelCap: 50),
     SkillDef(id: 'fighting', name: 'Fighting', levelCap: 50),
     SkillDef(id: 'health', name: 'Health', levelCap: 50),
+    SkillDef(id: 'magic', name: 'Magic', levelCap: 50),
+    SkillDef(id: 'prayer', name: 'Prayer', levelCap: 50),
   ],
 );

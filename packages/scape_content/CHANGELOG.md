@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0
+
+- Magic and prayer are skills, so there are eleven.
+- A shortbow, bronze arrows and runes are items. The shopkeeper sells
+  them.
+- `defaultSpells` has Strike, Daze and Home teleport. `defaultPrayers`
+  has Thick skin, Burst of strength and Clarity of thought.
+
 ## 0.10.0
 
 - `defaultStory` has two quests, The Dark Lantern and Goblin Count, and

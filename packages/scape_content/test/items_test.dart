@@ -24,6 +24,9 @@ void main() {
       ItemId.tinderbox: 'Tinderbox',
       ItemId.arrowShafts: 'Arrow shafts',
       ItemId.hammer: 'Hammer',
+      ItemId.shortbow: 'Shortbow',
+      ItemId.bronzeArrows: 'Bronze arrows',
+      ItemId.runes: 'Runes',
     };
 
     expect(defaultItems.items, hasLength(named.length));
@@ -32,13 +35,19 @@ void main() {
     }
   });
 
-  test('only coins, feathers and arrow shafts stack', () {
+  test('only coins, feathers, shafts, arrows and runes stack', () {
     final stackable = [
       for (final item in defaultItems.items)
         if (item.stackable) item.id,
     ];
 
-    expect(stackable, [ItemId.coins, ItemId.feathers, ItemId.arrowShafts]);
+    expect(stackable, [
+      ItemId.coins,
+      ItemId.feathers,
+      ItemId.arrowShafts,
+      ItemId.bronzeArrows,
+      ItemId.runes,
+    ]);
   });
 
   test('worn items name a slot and tools need a level', () {

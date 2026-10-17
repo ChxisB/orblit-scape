@@ -24,6 +24,9 @@ abstract final class ItemId {
   static const int tinderbox = 17;
   static const int arrowShafts = 18;
   static const int hammer = 19;
+  static const int shortbow = 20;
+  static const int bronzeArrows = 21;
+  static const int runes = 22;
 }
 
 /// The items of the first game.
@@ -88,5 +91,28 @@ final ItemSet defaultItems = ItemSet(
       value: 1,
     ),
     ItemDef(id: ItemId.hammer, name: 'Hammer', value: 8),
+    ItemDef(
+      id: ItemId.shortbow,
+      name: 'Shortbow',
+      value: 40,
+      equipSlot: 'weapon',
+      combat: CombatBonus(
+        attack: 6,
+        strength: 2,
+        speed: 5,
+        style: CombatStyle.ranged,
+        range: 7,
+        ammo: 'arrow',
+      ),
+    ),
+    ItemDef(
+      id: ItemId.bronzeArrows,
+      name: 'Bronze arrows',
+      stackable: true,
+      value: 1,
+      equipSlot: 'ammo',
+      combat: CombatBonus(strength: 4, ammo: 'arrow'),
+    ),
+    ItemDef(id: ItemId.runes, name: 'Runes', stackable: true, value: 2),
   ],
 );
