@@ -537,6 +537,25 @@ void main() {
     });
   });
 
+  group('canExchange', () {
+    test('answers as exchange would and changes nothing', () {
+      final c = Container(items: testItems(), size: 2)
+        ..add(coins, 10)
+        ..add(logs, 1);
+      c.markClean();
+
+      expect(
+        c.canExchange(take: [ItemStack(logs, 1)], give: [ItemStack(logs, 1)]),
+        isTrue,
+      );
+      expect(c.canExchange(give: [ItemStack(logs, 1)]), isFalse);
+      expect(c.canExchange(take: [ItemStack(coins, 11)]), isFalse);
+      expect(c.countOf(logs), 1);
+      expect(c.countOf(coins), 10);
+      expect(c.dirty, isEmpty);
+    });
+  });
+
   group('exchange', () {
     test('takes and gives as one change', () {
       final c = inventory()..add(coins, 50);

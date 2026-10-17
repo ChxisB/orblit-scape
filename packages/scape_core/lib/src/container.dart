@@ -251,6 +251,21 @@ final class Container {
     return outcome;
   }
 
+  /// Whether [exchange] with the same arguments would be done. Nothing
+  /// changes, and nothing is marked dirty.
+  bool canExchange({
+    List<ItemStack> take = const [],
+    List<ItemStack> give = const [],
+  }) {
+    final probe = Container(
+      items: _items,
+      size: size,
+      accepts: _accepts,
+      tabSize: tabSize,
+    )..restore(_slots);
+    return probe.exchange(take: take, give: give) == Outcome.done;
+  }
+
   /// Sets slots to what the server says they hold. For a client's copy, so
   /// it ignores [accepts] and does not mark anything dirty.
   void mirror(List<SlotChange> changes) {

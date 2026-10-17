@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.18.0
+
+- Trading between players. `InteractKind.player` is a click on another
+  player. `TradeOffer` sets how many of an item a player puts up, and zero
+  takes it back. `TradeAccept` and `TradeDecline` answer. `TradeView` is
+  what each side sees: both offers, the step, and who has accepted.
+- `Container.canExchange` asks whether an `exchange` would be done and
+  changes nothing.
+
 ## 0.17.0
 
 - `Story` holds a game's quests, dialogues, named steps and rewards, and

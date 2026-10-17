@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'items.dart';
 import 'messages.dart';
 import 'shops.dart';
 import 'tile_coord.dart';
@@ -18,6 +19,9 @@ const int _deposit = 9;
 const int _withdraw = 10;
 const int _continue = 11;
 const int _choose = 12;
+const int _tradeOffer = 13;
+const int _tradeAccept = 14;
+const int _tradeDecline = 15;
 
 const int _loginOk = 1;
 const int _privateState = 2;
@@ -32,6 +36,7 @@ const int _bankOpen = 10;
 const int _windowClosed = 11;
 const int _conversationLine = 12;
 const int _conversationChoices = 13;
+const int _tradeView = 14;
 
 /// The most bytes each message may take, by tag. A longer one is refused
 /// before anything is read from it.
@@ -48,6 +53,9 @@ final Map<int, int> _clientCaps = {
   _withdraw: 7,
   _continue: 1,
   _choose: 2,
+  _tradeOffer: 7,
+  _tradeAccept: 1,
+  _tradeDecline: 1,
 };
 
 final Map<int, int> _serverCaps = {
@@ -61,6 +69,7 @@ final Map<int, int> _serverCaps = {
   _windowClosed: 1,
   _conversationLine: 3 + 2 * maxTextBytes,
   _conversationChoices: 2 + maxChoices * (1 + maxTextBytes),
+  _tradeView: 5 + maxNameChars + 2 * maxTradeLines * 6,
   _said: 6 + maxTextBytes,
   _whispered: 3 + maxNameChars + maxTextBytes,
   _socialLists:
@@ -93,6 +102,9 @@ final Map<int, _Reader<ClientMessage>> _clientReaders = {
   _withdraw: _readWithdraw,
   _continue: (b) => b.length == 1 ? const Continue() : null,
   _choose: (b) => b.length == 2 ? Choose(b[1]) : null,
+  _tradeOffer: _readTradeOffer,
+  _tradeAccept: (b) => b.length == 1 ? const TradeAccept() : null,
+  _tradeDecline: (b) => b.length == 1 ? const TradeDecline() : null,
 };
 
 final Map<int, _Reader<ServerMessage>> _serverReaders = {
@@ -109,6 +121,7 @@ final Map<int, _Reader<ServerMessage>> _serverReaders = {
   _windowClosed: (b) => b.length == 1 ? const WindowClosed() : null,
   _conversationLine: _readConversationLine,
   _conversationChoices: _readConversationChoices,
+  _tradeView: _readTradeView,
 };
 
 Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
@@ -124,6 +137,13 @@ Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
   Withdraw() => _encodeWithdraw(message),
   Continue() => Uint8List.fromList([_continue]),
   Choose(:final index) => Uint8List.fromList([_choose, index]),
+  TradeOffer(:final item, :final count) => _encodePair(
+    _tradeOffer,
+    item,
+    count,
+  ),
+  TradeAccept() => Uint8List.fromList([_tradeAccept]),
+  TradeDecline() => Uint8List.fromList([_tradeDecline]),
 };
 
 Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
@@ -144,6 +164,7 @@ Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
     text,
   ),
   ConversationChoices(:final options) => _encodeChoices(options),
+  TradeView() => _encodeTradeView(message),
 };
 
 Decoded<ClientMessage> decodeClientMessage(Uint8List bytes) =>
@@ -482,6 +503,69 @@ ShopView? _readShopView(Uint8List bytes) {
           count: data.getUint32(at + 2, Endian.little),
         ),
     ],
+  );
+}
+
+TradeOffer? _readTradeOffer(Uint8List bytes) {
+  if (bytes.length != 7) return null;
+  final data = ByteData.sublistView(bytes);
+  return TradeOffer(
+    item: data.getUint16(1, Endian.little),
+    count: data.getUint32(3, Endian.little),
+  );
+}
+
+/// Tag, the partner's name with a length byte, a flags byte (1 confirming,
+/// 2 you accepted, 4 they accepted), the number of lines on each side, then
+/// six bytes for each line: your lines first.
+Uint8List _encodeTradeView(TradeView message) {
+  final name = utf8.encode(message.partner);
+  final lines = [...message.mine, ...message.theirs];
+  final bytes = Uint8List(5 + name.length + lines.length * 6)
+    ..[0] = _tradeView
+    ..[1] = name.length
+    ..setRange(2, 2 + name.length, name);
+  final flags =
+      (message.confirming ? 1 : 0) |
+      (message.youAccepted ? 2 : 0) |
+      (message.theyAccepted ? 4 : 0);
+  final at = 2 + name.length;
+  bytes
+    ..[at] = flags
+    ..[at + 1] = message.mine.length
+    ..[at + 2] = message.theirs.length;
+  final data = ByteData.sublistView(bytes);
+  for (final (i, stack) in lines.indexed) {
+    data
+      ..setUint16(at + 3 + i * 6, stack.item, Endian.little)
+      ..setUint32(at + 5 + i * 6, stack.count, Endian.little);
+  }
+  return bytes;
+}
+
+TradeView? _readTradeView(Uint8List bytes) {
+  if (bytes.length < 2) return null;
+  final at = 2 + bytes[1];
+  if (bytes.length < at + 3) return null;
+  final mine = bytes[at + 1];
+  final theirs = bytes[at + 2];
+  if (bytes.length != at + 3 + (mine + theirs) * 6) return null;
+  final data = ByteData.sublistView(bytes);
+  final stacks = [
+    for (var i = 0; i < mine + theirs; i++)
+      ItemStack(
+        data.getUint16(at + 3 + i * 6, Endian.little),
+        data.getUint32(at + 5 + i * 6, Endian.little),
+      ),
+  ];
+  final flags = bytes[at];
+  return TradeView(
+    partner: utf8.decode(Uint8List.sublistView(bytes, 2, at)),
+    mine: stacks.sublist(0, mine),
+    theirs: stacks.sublist(mine),
+    confirming: flags & 1 != 0,
+    youAccepted: flags & 2 != 0,
+    theyAccepted: flags & 4 != 0,
   );
 }
 

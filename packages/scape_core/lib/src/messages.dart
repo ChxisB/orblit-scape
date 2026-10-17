@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'container.dart';
 import 'items.dart';
 import 'shops.dart';
 import 'tile_coord.dart';
@@ -30,6 +31,10 @@ const int maxDeltaBytes = 4096;
 
 /// The most options one choice in a conversation may offer.
 const int maxChoices = 8;
+
+/// The most different items one side of a trade may offer. An inventory has
+/// one slot for each.
+const int maxTradeLines = inventorySize;
 
 bool isValidName(String name) => _name.hasMatch(name);
 
@@ -183,6 +188,32 @@ final class Withdraw extends Intent {
 
   final int slot;
   final int count;
+}
+
+/// Offer [count] of [item] in the trade the player has open, in place of
+/// what they offered of it. A count of zero takes it back. Any change sets
+/// both players' accepts back.
+final class TradeOffer extends Intent {
+  TradeOffer({required this.item, required this.count}) {
+    if (item < 1 || item > maxItemId) {
+      throw ArgumentError.value(item, 'item', 'is outside 1 to $maxItemId');
+    }
+    _inRange(count, 'count', maxStack);
+  }
+
+  final int item;
+  final int count;
+}
+
+/// Agree to the trade as it stands. The first agreement of both players
+/// moves the trade to its confirm step. The second one makes the swap.
+final class TradeAccept extends Intent {
+  const TradeAccept();
+}
+
+/// Leave the trade the player has open. Nothing changes hands.
+final class TradeDecline extends Intent {
+  const TradeDecline();
 }
 
 /// Go on from the line a conversation shows.
@@ -346,9 +377,38 @@ final class BankOpen extends ServerMessage {
   const BankOpen();
 }
 
-/// A shop or bank window is no longer open.
+/// A shop, bank, trade or conversation window is no longer open.
 final class WindowClosed extends ServerMessage {
   const WindowClosed();
+}
+
+/// The trade the player has open with [partner]: what each side offers,
+/// whether this is the confirm step, and who has accepted this step. It is
+/// sent each time any of that changes.
+final class TradeView extends ServerMessage {
+  TradeView({
+    required this.partner,
+    required List<ItemStack> mine,
+    required List<ItemStack> theirs,
+    required this.confirming,
+    required this.youAccepted,
+    required this.theyAccepted,
+  }) : mine = List.unmodifiable(mine),
+       theirs = List.unmodifiable(theirs) {
+    if (!isValidName(partner)) {
+      throw ArgumentError.value(partner, 'partner', 'is not a valid name');
+    }
+    if (mine.length > maxTradeLines || theirs.length > maxTradeLines) {
+      throw ArgumentError('A trade side offers at most $maxTradeLines items.');
+    }
+  }
+
+  final String partner;
+  final List<ItemStack> mine;
+  final List<ItemStack> theirs;
+  final bool confirming;
+  final bool youAccepted;
+  final bool theyAccepted;
 }
 
 /// [speaker] says [text] in the conversation the player has open. The player

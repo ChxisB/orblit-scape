@@ -32,6 +32,10 @@ abstract final class InteractKind {
   /// A creature. The id is its network id. The option is unused, and the
   /// click is an attack.
   static const int npc = 4;
+
+  /// Another player. The id is their network id. The option is unused, and
+  /// the click asks to trade.
+  static const int player = 5;
 }
 
 /// One entry in the menu of an object. [action] names what a feature runs.

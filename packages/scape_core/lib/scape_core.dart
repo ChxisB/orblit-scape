@@ -57,6 +57,10 @@ export 'src/messages.dart'
         ShopView,
         SocialLists,
         Trade,
+        TradeAccept,
+        TradeDecline,
+        TradeOffer,
+        TradeView,
         Understood,
         Unreadable,
         Walk,
@@ -72,6 +76,7 @@ export 'src/messages.dart'
         maxNameChars,
         maxPasswordBytes,
         maxTextBytes,
+        maxTradeLines,
         minPasswordBytes,
         nameKey;
 export 'src/loot.dart' show LootEntry, LootItem, LootSub, LootTable;
@@ -150,4 +155,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.17.0';
+const scapeCoreVersion = '0.18.0';
