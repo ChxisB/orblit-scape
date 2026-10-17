@@ -1,4 +1,5 @@
 import 'package:orblit_net/orblit_net.dart';
+import 'package:scape_content/scape_content.dart';
 import 'package:scape_server/scape_server.dart';
 import 'package:test/test.dart';
 
@@ -39,6 +40,7 @@ void main() {
       log: lines.add,
       map: openWorld(),
       spawn: spawnTile,
+      skills: defaultSkills,
     );
     pacer.server = server;
     addTearDown(server.dispose);

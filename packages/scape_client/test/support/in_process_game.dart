@@ -1,5 +1,6 @@
 import 'package:orblit_net/orblit_net.dart';
 import 'package:scape_client/scape_client.dart';
+import 'package:scape_content/scape_content.dart';
 import 'package:scape_core/scape_core.dart';
 import 'package:scape_server/scape_server.dart';
 import 'package:test/test.dart';
@@ -50,6 +51,7 @@ final class InProcessGame {
       log: (_) {},
       map: openWorld(),
       spawn: TileCoord(32, 32, 0),
+      skills: defaultSkills,
     );
   }
 
@@ -65,7 +67,11 @@ final class InProcessGame {
     final link = LoopbackLink();
     _links.add(link);
     server.host.accept(link.host);
-    final session = GameSession(transport: link.client, clock: () => seconds);
+    final session = GameSession(
+      transport: link.client,
+      skills: defaultSkills,
+      clock: () => seconds,
+    );
     _sessions.add(session);
     return session;
   }
@@ -73,7 +79,10 @@ final class InProcessGame {
   /// A session on a real WebSocket, on this machine, read by the real clock.
   Future<GameSession> connectSocket() async {
     final sockets = _sockets ??= await server.listen();
-    final session = await GameSession.connect(sockets.url);
+    final session = await GameSession.connect(
+      sockets.url,
+      skills: defaultSkills,
+    );
     _sessions.add(session);
     return session;
   }

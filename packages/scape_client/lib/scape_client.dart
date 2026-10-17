@@ -8,4 +8,4 @@ export 'src/session.dart'
 export 'src/tile_pick.dart' show pickTile, standingPoint;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeClientVersion = '0.4.0';
+const scapeClientVersion = '0.5.0';

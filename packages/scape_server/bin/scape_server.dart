@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:orblit_net/orblit_net.dart';
+import 'package:scape_content/scape_content.dart';
 import 'package:scape_core/scape_core.dart';
 import 'package:scape_server/scape_server.dart';
 
@@ -25,6 +26,7 @@ Future<void> main(List<String> args) async {
     log: stderr.writeln,
     map: _openWorld(),
     spawn: TileCoord(32, 32, 0),
+    skills: defaultSkills,
   );
   final sockets = await server.listen(
     port: args.isEmpty ? 7600 : int.parse(args.first),

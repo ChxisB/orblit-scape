@@ -19,6 +19,15 @@ if [ -z "$ENGINE" ] || [ -z "$NET" ]; then
   exit 1
 fi
 
+for package in scape_core scape_content; do
+  cat > "packages/$package/pubspec_overrides.yaml" <<YAML
+# Written by tool/link_local.sh. Not committed.
+dependency_overrides:
+  orblit_progress:
+    path: $ENGINE/packages/orblit_progress
+YAML
+done
+
 cat > packages/scape_server/pubspec_overrides.yaml <<YAML
 # Written by tool/link_local.sh. Not committed.
 dependency_overrides:
@@ -26,6 +35,8 @@ dependency_overrides:
     path: $ENGINE/packages/orblit_core
   orblit_net:
     path: $NET
+  orblit_progress:
+    path: $ENGINE/packages/orblit_progress
 YAML
 
 cat > packages/scape_client/pubspec_overrides.yaml <<YAML
@@ -35,10 +46,14 @@ dependency_overrides:
     path: $ENGINE/packages/orblit_core
   orblit_net:
     path: $NET
+  orblit_progress:
+    path: $ENGINE/packages/orblit_progress
   orblit_terrain:
     path: $ENGINE/packages/orblit_terrain
 YAML
 
+(cd packages/scape_core && dart pub get > /dev/null)
+(cd packages/scape_content && dart pub get > /dev/null)
 (cd packages/scape_server && dart pub get > /dev/null)
 (cd packages/scape_client && dart pub get > /dev/null)
-echo "scape_server, scape_client -> $ENGINE, $NET"
+echo "scape packages -> $ENGINE, $NET"

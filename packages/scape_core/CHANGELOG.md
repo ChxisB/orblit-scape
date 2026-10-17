@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0
+
+- `SkillDef`, `XpCurve` and `SkillSet` say what a skill is and what level
+  an amount of experience gives. The curve uses whole numbers, so a server
+  and a client agree on every platform.
+- `skillsDeltaTag` starts a `PrivateState` delta that carries skill changes.
+- Depends on `orblit_progress`.
+
 ## 0.7.0
 
 - `Whisper`, `EditList` and `ListKind` are client messages. `Said`,

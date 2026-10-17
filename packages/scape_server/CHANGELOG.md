@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- `Skills` holds each player's experience in a `ProgressTable`. `grant`
+  returns each level reached, once each, and stops at the level cap. The
+  player is sent only the skills that changed.
+- `ScapeServer` takes the `skills` of the game.
+
 ## 0.5.0
 
 - Public chat reaches the speaker and players within 15 tiles on the same

@@ -2,6 +2,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:orblit_net/orblit_net.dart';
+import 'package:scape_content/scape_content.dart';
 import 'package:scape_core/scape_core.dart';
 import 'package:scape_server/scape_server.dart';
 import 'package:test/test.dart';
@@ -30,6 +31,7 @@ void main() {
       log: (_) {},
       map: openWorld(),
       spawn: spawnTile,
+      skills: defaultSkills,
     );
   });
 

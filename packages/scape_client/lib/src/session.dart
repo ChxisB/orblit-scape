@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:orblit_core/orblit_core.dart';
 import 'package:orblit_net/orblit_net.dart';
+import 'package:orblit_progress/orblit_progress.dart';
 import 'package:scape_core/scape_core.dart';
 
 /// A little over one tick, so the client always holds a state on each side
@@ -26,10 +27,15 @@ typedef Heard = ({String from, String text});
 /// The client's side of one login: what it sends, what it has been told and
 /// the actors it can see. It holds no rules and draws what it is sent.
 final class GameSession {
-  GameSession({required Transport transport, double Function()? clock})
-    : _transport = transport,
-      _now = clock ?? _stopwatchClock(),
-      _world = World() {
+  GameSession({
+    required Transport transport,
+    required SkillSet skills,
+    double Function()? clock,
+  }) : _transport = transport,
+       _skills = skills,
+       _skillXp = ProgressTable(skills.schema),
+       _now = clock ?? _stopwatchClock(),
+       _world = World() {
     final networkId = _world.registerComponent(
       'NetworkId',
       kind: ComponentKind.int64,
@@ -55,9 +61,13 @@ final class GameSession {
   /// [dispose].
   static Future<GameSession> connect(
     Uri url, {
+    required SkillSet skills,
     double Function()? clock,
-  }) async =>
-      GameSession(transport: await SocketTransport.connect(url), clock: clock);
+  }) async => GameSession(
+    transport: await SocketTransport.connect(url),
+    skills: skills,
+    clock: clock,
+  );
 
   static double Function() _stopwatchClock() {
     final stopwatch = Stopwatch()..start();
@@ -65,6 +75,8 @@ final class GameSession {
   }
 
   final Transport _transport;
+  final SkillSet _skills;
+  ProgressTable _skillXp;
   final double Function() _now;
   final World _world;
   late final ComponentType _position;
@@ -101,6 +113,17 @@ final class GameSession {
   ];
 
   bool get isLoggedIn => name != null;
+
+  /// The experience the server has told the player they hold in [skill].
+  /// Throws [ArgumentError] for a skill the game does not have.
+  int xpOf(String skill) => _skillXp.get(SkillSet.xpName(_skill(skill).id));
+
+  /// The level that experience gives, up to the skill's cap.
+  int levelOf(String skill) => _skills.levelOf(_skill(skill), xpOf(skill));
+
+  SkillDef _skill(String id) =>
+      _skills.find(id) ??
+      (throw ArgumentError.value(id, 'skill', 'is unknown'));
 
   void login(String player) => _client.join(encodeClientMessage(Login(player)));
 
@@ -158,10 +181,16 @@ final class GameSession {
         case SocialLists(:final friends, :final ignored):
           this.friends = friends;
           this.ignored = ignored;
-        case PrivateState():
-          break;
+        case PrivateState(:final delta):
+          _applyPrivate(delta);
       }
     }
+  }
+
+  void _applyPrivate(Uint8List delta) {
+    if (delta.isEmpty || delta[0] != skillsDeltaTag) return;
+    final changes = Changes.tryDecode(_skills.schema, delta.sublist(1));
+    if (changes != null) _skillXp = _skillXp.apply(changes);
   }
 
   void _keep<T>(List<T> lines, T line) {

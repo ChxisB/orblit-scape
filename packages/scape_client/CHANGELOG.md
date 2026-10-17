@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- `GameSession.xpOf` and `levelOf` read the experience the server has sent.
+  A session takes the `skills` of the game.
+
 ## 0.4.0
 
 - `GameSession.say`, `whisper` and `editList` send chat and list changes.

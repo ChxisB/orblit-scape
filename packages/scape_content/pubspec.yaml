@@ -1,10 +1,14 @@
 name: scape_content
 description: Data files and art built in code for orblit-scape.
-version: 0.1.0
+version: 0.2.0
 publish_to: none
 
 environment:
   sdk: ^3.10.0
+
+dependencies:
+  scape_core:
+    path: ../scape_core
 
 dev_dependencies:
   lints: ^5.0.0

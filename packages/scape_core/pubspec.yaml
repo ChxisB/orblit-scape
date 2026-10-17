@@ -1,11 +1,18 @@
 name: scape_core
 description: >-
   Tile coordinates, flags, paths and the rules a server and a client share.
-version: 0.7.0
+version: 0.8.0
 publish_to: none
 
 environment:
   sdk: ^3.10.0
+
+dependencies:
+  orblit_progress:
+    git:
+      url: https://github.com/ChxisB/orblit.git
+      path: packages/orblit_progress
+      ref: main
 
 dev_dependencies:
   lints: ^5.0.0

@@ -47,6 +47,8 @@ export 'src/mover.dart' show MoveSpeed, Mover;
 export 'src/path.dart'
     show PathResult, defaultPathMargin, findPath, findPathToReach;
 export 'src/line_of_sight.dart' show hasClearLine;
+export 'src/skills.dart'
+    show SkillDef, SkillSet, XpCurve, maxLevel, skillsDeltaTag;
 export 'src/reach.dart'
     show Beside, Footprint, OnTile, Reach, Within, reachSatisfied;
 export 'src/tick.dart' show tickPeriod;
@@ -64,4 +66,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.7.0';
+const scapeCoreVersion = '0.8.0';

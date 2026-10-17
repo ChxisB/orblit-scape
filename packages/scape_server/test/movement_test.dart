@@ -1,4 +1,5 @@
 import 'package:orblit_net/orblit_net.dart';
+import 'package:scape_content/scape_content.dart';
 import 'package:scape_core/scape_core.dart';
 import 'package:scape_server/scape_server.dart';
 import 'package:test/test.dart';
@@ -44,6 +45,7 @@ void main() {
       log: (_) {},
       map: map,
       spawn: spawnTile,
+      skills: defaultSkills,
     );
   });
 
@@ -176,6 +178,7 @@ void main() {
         log: (_) {},
         map: map,
         spawn: spawnTile,
+        skills: defaultSkills,
       ),
       throwsArgumentError,
     );
