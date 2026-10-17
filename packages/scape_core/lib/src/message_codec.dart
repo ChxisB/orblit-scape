@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'combat.dart';
 import 'items.dart';
 import 'messages.dart';
 import 'shops.dart';
@@ -22,6 +23,8 @@ const int _choose = 12;
 const int _tradeOffer = 13;
 const int _tradeAccept = 14;
 const int _tradeDecline = 15;
+const int _cast = 16;
+const int _togglePrayer = 17;
 
 const int _loginOk = 1;
 const int _privateState = 2;
@@ -37,6 +40,8 @@ const int _windowClosed = 11;
 const int _conversationLine = 12;
 const int _conversationChoices = 13;
 const int _tradeView = 14;
+const int _projectile = 15;
+const int _prayerView = 16;
 
 /// The most bytes each message may take, by tag. A longer one is refused
 /// before anything is read from it.
@@ -56,6 +61,8 @@ final Map<int, int> _clientCaps = {
   _tradeOffer: 7,
   _tradeAccept: 1,
   _tradeDecline: 1,
+  _cast: 7,
+  _togglePrayer: 2,
 };
 
 final Map<int, int> _serverCaps = {
@@ -64,6 +71,8 @@ final Map<int, int> _serverCaps = {
   _notice: 2 + maxTextBytes,
   _avatar: 5,
   _hit: 7,
+  _projectile: 11,
+  _prayerView: 6 + maxActivePrayers,
   _shopView: 4 + maxShopLines * 6,
   _bankOpen: 1,
   _windowClosed: 1,
@@ -107,6 +116,9 @@ final Map<int, _Reader<ClientMessage>> _clientReaders = {
       _readPair(b, (item, count) => TradeOffer(item: item, count: count)),
   _tradeAccept: (b) => b.length == 1 ? const TradeAccept() : null,
   _tradeDecline: (b) => b.length == 1 ? const TradeDecline() : null,
+  _cast: (b) =>
+      _readPair(b, (spell, target) => Cast(spell: spell, target: target)),
+  _togglePrayer: (b) => b.length == 2 ? TogglePrayer(b[1]) : null,
 };
 
 final Map<int, _Reader<ServerMessage>> _serverReaders = {
@@ -118,6 +130,8 @@ final Map<int, _Reader<ServerMessage>> _serverReaders = {
   _whispered: _readWhispered,
   _socialLists: _readSocialLists,
   _hit: _readHit,
+  _projectile: _readProjectile,
+  _prayerView: _readPrayerView,
   _shopView: _readShopView,
   _bankOpen: (b) => b.length == 1 ? const BankOpen() : null,
   _windowClosed: (b) => b.length == 1 ? const WindowClosed() : null,
@@ -146,6 +160,8 @@ Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
   ),
   TradeAccept() => Uint8List.fromList([_tradeAccept]),
   TradeDecline() => Uint8List.fromList([_tradeDecline]),
+  Cast(:final spell, :final target) => _encodePair(_cast, spell, target),
+  TogglePrayer(:final prayer) => Uint8List.fromList([_togglePrayer, prayer]),
 };
 
 Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
@@ -157,6 +173,8 @@ Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
   Whispered(:final from, :final text) => _withTwoTexts(_whispered, from, text),
   SocialLists() => _encodeSocialLists(message),
   Hit() => _encodeHit(message),
+  Projectile() => _encodeProjectile(message),
+  PrayerView() => _encodePrayerView(message),
   ShopView() => _encodeShopView(message),
   BankOpen() => Uint8List.fromList([_bankOpen]),
   WindowClosed() => Uint8List.fromList([_windowClosed]),
@@ -380,6 +398,52 @@ Hit? _readHit(Uint8List bytes) {
   return Hit(
     target: data.getUint32(1, Endian.little),
     damage: data.getUint16(5, Endian.little),
+  );
+}
+
+/// Tag, the two entity ids, the ticks and the index of the style.
+Uint8List _encodeProjectile(Projectile message) {
+  final bytes = Uint8List(11)
+    ..[0] = _projectile
+    ..[9] = message.ticks
+    ..[10] = message.style.index;
+  ByteData.sublistView(bytes)
+    ..setUint32(1, message.from, Endian.little)
+    ..setUint32(5, message.to, Endian.little);
+  return bytes;
+}
+
+Projectile? _readProjectile(Uint8List bytes) {
+  if (bytes.length != 11 || bytes[10] >= CombatStyle.values.length) return null;
+  final data = ByteData.sublistView(bytes);
+  return Projectile(
+    from: data.getUint32(1, Endian.little),
+    to: data.getUint32(5, Endian.little),
+    ticks: bytes[9],
+    style: CombatStyle.values[bytes[10]],
+  );
+}
+
+/// Tag, the points and the most as u16, the number of prayers on, then their
+/// ids.
+Uint8List _encodePrayerView(PrayerView message) {
+  final bytes = Uint8List(6 + message.active.length)
+    ..[0] = _prayerView
+    ..[5] = message.active.length
+    ..setRange(6, 6 + message.active.length, message.active);
+  ByteData.sublistView(bytes)
+    ..setUint16(1, message.points, Endian.little)
+    ..setUint16(3, message.max, Endian.little);
+  return bytes;
+}
+
+PrayerView? _readPrayerView(Uint8List bytes) {
+  if (bytes.length < 6 || bytes.length != 6 + bytes[5]) return null;
+  final data = ByteData.sublistView(bytes);
+  return PrayerView(
+    points: data.getUint16(1, Endian.little),
+    max: data.getUint16(3, Endian.little),
+    active: bytes.sublist(6),
   );
 }
 

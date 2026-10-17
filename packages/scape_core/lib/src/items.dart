@@ -30,6 +30,7 @@ const List<String> equipmentSlots = [
   'hands',
   'feet',
   'ring',
+  'ammo',
 ];
 
 /// The skill level a player needs to use an item.
@@ -57,16 +58,7 @@ final class ItemDef {
     if (needs != null && (needs!.level < 1 || needs!.level > maxLevel)) {
       throw ArgumentError.value(needs, 'needs', 'has a level outside range');
     }
-    if (combat != null && equipSlot == null) {
-      throw ArgumentError.value(combat, 'combat', 'is on an item not worn');
-    }
-    if (combat?.speed != null && equipSlot != 'weapon') {
-      throw ArgumentError.value(
-        combat,
-        'combat',
-        'gives speed to a non weapon',
-      );
-    }
+    _checkCombat(combat, equipSlot);
   }
 
   final int id;
@@ -85,6 +77,23 @@ final class ItemDef {
 
   /// What it adds to a fight while worn, or null for nothing.
   final CombatBonus? combat;
+}
+
+void _checkCombat(CombatBonus? combat, String? equipSlot) {
+  if (combat == null) return;
+  if (equipSlot == null) {
+    throw ArgumentError.value(combat, 'combat', 'is on an item not worn');
+  }
+  if ((combat.speed != null || combat.range != null) && equipSlot != 'weapon') {
+    throw ArgumentError.value(combat, 'combat', 'gives a weapon trait to gear');
+  }
+  if (combat.ammo != null && combat.range == null && equipSlot != 'ammo') {
+    throw ArgumentError.value(
+      combat,
+      'combat',
+      'is ammo that is not in the ammo slot',
+    );
+  }
 }
 
 /// The items a game has. A skill an item names must exist, so a typo fails

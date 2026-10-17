@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.19.0
+
+- Ranged combat, magic and prayer. `CombatStyle` is melee, ranged or magic,
+  and each beats one other for a 1.25 edge on a swing. `CombatBonus` takes a
+  `style`, a `range` and an `ammo` kind, and an item may sit in the new
+  `ammo` equipment slot. `NpcFight.style` gives a creature a style.
+  `CombatRules.flightTicks` is how long a shot flies.
+- `SpellSet` and `SpellDef` describe spells that damage, stun or teleport.
+  `PrayerSet` and `PrayerDef` describe prayers that raise a combat stat and
+  drain points.
+- `Cast` and `TogglePrayer` are intents. `Projectile` and `PrayerView` are
+  what the server sends back.
+
 ## 0.18.0
 
 - Trading between players. `InteractKind.player` is a click on another

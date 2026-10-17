@@ -2,7 +2,25 @@
 library;
 
 export 'src/combat.dart'
-    show CombatBonus, CombatRules, NpcFight, Rating, healthInts, healthName;
+    show
+        CombatBonus,
+        CombatRules,
+        CombatStyle,
+        maxRange,
+        NpcFight,
+        Rating,
+        healthInts,
+        healthName;
+export 'src/magic.dart'
+    show
+        SpellDamage,
+        SpellDef,
+        SpellEffect,
+        SpellSet,
+        SpellStun,
+        SpellTeleport,
+        maxSpellId;
+export 'src/prayer.dart' show CombatStat, PrayerDef, PrayerSet, maxPrayerId;
 export 'src/container.dart'
     show
         Accepts,
@@ -31,6 +49,7 @@ export 'src/messages.dart'
         BadMessage,
         BankOpen,
         Buy,
+        Cast,
         Chat,
         Choose,
         ClientMessage,
@@ -49,7 +68,9 @@ export 'src/messages.dart'
         LoginOk,
         LoginRefusal,
         Notice,
+        PrayerView,
         PrivateState,
+        Projectile,
         Said,
         Sell,
         ServerMessage,
@@ -60,6 +81,7 @@ export 'src/messages.dart'
         TradeAccept,
         TradeDecline,
         TradeOffer,
+        TogglePrayer,
         TradeView,
         Understood,
         Unreadable,
@@ -70,6 +92,7 @@ export 'src/messages.dart'
         WindowClosed,
         isValidName,
         isValidText,
+        maxActivePrayers,
         maxChoices,
         maxDeltaBytes,
         maxListEntries,
@@ -155,4 +178,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.18.0';
+const scapeCoreVersion = '0.19.0';

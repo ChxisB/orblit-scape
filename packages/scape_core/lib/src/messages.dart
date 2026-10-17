@@ -1,8 +1,11 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'combat.dart';
 import 'container.dart';
 import 'items.dart';
+import 'magic.dart';
+import 'prayer.dart';
 import 'shops.dart';
 import 'tile_coord.dart';
 
@@ -35,6 +38,9 @@ const int maxChoices = 8;
 /// The most different items one side of a trade may offer. An inventory has
 /// one slot for each.
 const int maxTradeLines = inventorySize;
+
+/// The most prayers that are on at once: one for each combat stat.
+final int maxActivePrayers = CombatStat.values.length;
 
 bool isValidName(String name) => _name.hasMatch(name);
 
@@ -212,6 +218,34 @@ final class TradeDecline extends Intent {
   const TradeDecline();
 }
 
+/// Cast the spell [spell] names at the creature [target] names. A spell that
+/// works on the caster, such as a teleport, ignores [target].
+final class Cast extends Intent {
+  Cast({required this.spell, required this.target}) {
+    _inRange(spell, 'spell', maxSpellId);
+    _inRange(target, 'target', 0xFFFFFFFF);
+  }
+
+  final int spell;
+  final int target;
+}
+
+/// Switch the prayer [prayer] names on, or off if it is on. A prayer that
+/// raises the same stat goes off when this one comes on.
+final class TogglePrayer extends Intent {
+  TogglePrayer(this.prayer) {
+    if (prayer < 1 || prayer > maxPrayerId) {
+      throw ArgumentError.value(
+        prayer,
+        'prayer',
+        'is outside 1 to $maxPrayerId',
+      );
+    }
+  }
+
+  final int prayer;
+}
+
 /// Go on from the line a conversation shows.
 final class Continue extends Intent {
   const Continue();
@@ -290,6 +324,59 @@ final class Hit extends ServerMessage {
 
   final int target;
   final int damage;
+}
+
+/// A projectile leaves the entity [from] names and reaches the one [to]
+/// names after [ticks] ticks. The hit it carries arrives with it, as a
+/// [Hit].
+final class Projectile extends ServerMessage {
+  Projectile({
+    required this.from,
+    required this.to,
+    required this.ticks,
+    required this.style,
+  }) {
+    _inRange(from, 'from', 0xFFFFFFFF);
+    _inRange(to, 'to', 0xFFFFFFFF);
+    if (ticks < 1 || ticks > 0xFF) {
+      throw ArgumentError.value(ticks, 'ticks', 'is outside 1 to 255');
+    }
+  }
+
+  final int from;
+  final int to;
+  final int ticks;
+  final CombatStyle style;
+}
+
+/// The prayer points a player has, the most they may have and the prayers
+/// that are on. It is sent whenever any of it changes.
+final class PrayerView extends ServerMessage {
+  PrayerView({
+    required this.points,
+    required this.max,
+    required List<int> active,
+  }) : active = List.unmodifiable(active) {
+    _inRange(max, 'max', 0xFFFF);
+    _inRange(points, 'points', max);
+    if (this.active.length > maxActivePrayers ||
+        this.active.toSet().length != this.active.length) {
+      throw ArgumentError.value(
+        active,
+        'active',
+        'is not a set of up to three',
+      );
+    }
+    for (final id in this.active) {
+      if (id < 1 || id > maxPrayerId) {
+        throw ArgumentError.value(id, 'active', 'holds a bad prayer id');
+      }
+    }
+  }
+
+  final int points;
+  final int max;
+  final List<int> active;
 }
 
 /// A line of public chat, as the listener hears it. The client draws it over
