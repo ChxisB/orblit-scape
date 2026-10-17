@@ -3,6 +3,7 @@ import 'package:scape_server/scape_server.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_time.dart';
+import 'support/open_world.dart';
 
 const period = Duration(milliseconds: 600);
 
@@ -36,6 +37,8 @@ void main() {
       clock: TickClock(period: period, now: time.read),
       pacer: pacer,
       log: lines.add,
+      map: openWorld(),
+      spawn: spawnTile,
     );
     pacer.server = server;
     addTearDown(server.dispose);

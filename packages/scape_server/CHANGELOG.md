@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.3.0
+
+- Players walk. A login puts an avatar on the spawn tile and tells the client
+  which entity it is. A walk intent finds a path on the action tick. The
+  movement phase takes one step a tick and writes `TilePosition`, which is
+  replicated.
+- `ScapeServer` takes the tile map and the spawn tile.
+- Features reach the host through `Services`. `Registry` holds their
+  replicated components and their handlers for intents and joins.
+
 ## 0.2.0
 
 - A client connects, logs in by name and sends intents. `Wire` decodes what

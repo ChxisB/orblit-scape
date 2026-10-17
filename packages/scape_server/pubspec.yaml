@@ -1,6 +1,6 @@
 name: scape_server
 description: The headless game server, with its tick, sessions, actions and saves.
-version: 0.2.0
+version: 0.3.0
 publish_to: none
 
 environment:

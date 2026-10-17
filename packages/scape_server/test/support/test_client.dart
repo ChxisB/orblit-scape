@@ -19,9 +19,14 @@ final class TestClient {
       'NetworkId',
       kind: ComponentKind.int64,
     );
+    position = world.registerComponent(
+      tilePositionName,
+      kind: ComponentKind.float32,
+      arity: 3,
+    );
     client = NetClient(
       world: world,
-      set: ReplicationSet([]),
+      set: ReplicationSet([position]),
       networkId: networkId,
       transport: link.client,
       onMessage: (body) => received.add(decodeServerMessage(body)),
@@ -32,6 +37,7 @@ final class TestClient {
 
   final World world = World();
   final LoopbackLink link = LoopbackLink();
+  late final ComponentType position;
   late final NetClient client;
   final List<Decoded<ServerMessage>> received = [];
   final List<String> goodbyes = [];
@@ -41,6 +47,18 @@ final class TestClient {
     for (final decoded in received)
       if (decoded case Understood(:final message)) message,
   ];
+
+  /// The tile the entity with [networkId] stands on, as this client sees it.
+  TileCoord? tileOf(int networkId) {
+    final entity = client.entityFor(networkId);
+    if (entity == null) return null;
+    final data = ByteData.sublistView(world.bytesOf(entity, position)!);
+    return TileCoord(
+      data.getFloat32(0, Endian.little).round(),
+      data.getFloat32(8, Endian.little).round(),
+      data.getFloat32(4, Endian.little).round(),
+    );
+  }
 
   Future<void> login(String name) async {
     client.join(encodeClientMessage(Login(name)));

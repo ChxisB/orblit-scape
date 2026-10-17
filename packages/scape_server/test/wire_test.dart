@@ -7,13 +7,9 @@ import 'package:scape_server/scape_server.dart';
 import 'package:test/test.dart';
 
 import 'support/fake_time.dart';
+import 'support/no_pacer.dart';
+import 'support/open_world.dart';
 import 'support/test_client.dart';
-
-/// Never waits, so the test steps the loop by hand.
-final class NoPacer implements Pacer {
-  @override
-  Future<void> untilNext() async {}
-}
 
 void main() {
   late ScapeServer server;
@@ -32,6 +28,8 @@ void main() {
       clock: TickClock(period: tickPeriod, now: time.read),
       pacer: NoPacer(),
       log: (_) {},
+      map: openWorld(),
+      spawn: spawnTile,
     );
   });
 
@@ -47,9 +45,8 @@ void main() {
     final ana = connect();
     await ana.login('Ana');
 
-    expect(ana.messages, hasLength(1));
     expect(
-      ana.messages.single,
+      ana.messages.first,
       isA<LoginOk>().having((m) => m.name, 'name', 'ana'),
     );
     expect(server.host.sessionState('ana'), SessionState.live);
@@ -104,7 +101,7 @@ void main() {
     await connect().login('Ana');
     final bo = connect();
     await bo.login('Bo');
-    expect(bo.messages, hasLength(1));
+    expect(bo.messages.first, isA<LoginOk>());
     expect(server.host.clientCount, 2);
   });
 
