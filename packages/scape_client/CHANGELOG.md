@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0
+
+- `GameSession.connect` opens a WebSocket to a server. The session closes the
+  connection on `dispose`.
+
 ## 0.2.0
 
 - `OrbitView` is an orbit camera that turns, zooms and follows a point. It

@@ -15,7 +15,8 @@ typedef Actor = ({int networkId, double x, double y, int plane, bool mine});
 /// the actors it can see. It holds no rules and draws what it is sent.
 final class GameSession {
   GameSession({required Transport transport, double Function()? clock})
-    : _world = World() {
+    : _transport = transport,
+      _world = World() {
     final networkId = _world.registerComponent(
       'NetworkId',
       kind: ComponentKind.int64,
@@ -37,6 +38,15 @@ final class GameSession {
     );
   }
 
+  /// Opens a connection to the server at [url]. The session closes it on
+  /// [dispose].
+  static Future<GameSession> connect(
+    Uri url, {
+    double Function()? clock,
+  }) async =>
+      GameSession(transport: await SocketTransport.connect(url), clock: clock);
+
+  final Transport _transport;
   final World _world;
   late final ComponentType _position;
   late final NetClient _client;
@@ -98,6 +108,7 @@ final class GameSession {
 
   Future<void> dispose() async {
     await _client.dispose();
+    await _transport.close();
     _world.dispose();
   }
 }

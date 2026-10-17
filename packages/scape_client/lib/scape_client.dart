@@ -7,4 +7,4 @@ export 'src/session.dart' show Actor, GameSession, interpolationDelay;
 export 'src/tile_pick.dart' show pickTile, standingPoint;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeClientVersion = '0.2.0';
+const scapeClientVersion = '0.3.0';

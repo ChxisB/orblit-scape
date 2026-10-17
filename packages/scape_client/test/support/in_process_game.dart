@@ -2,11 +2,25 @@ import 'package:orblit_net/orblit_net.dart';
 import 'package:scape_client/scape_client.dart';
 import 'package:scape_core/scape_core.dart';
 import 'package:scape_server/scape_server.dart';
+import 'package:test/test.dart';
 
 /// Lets a loopback link deliver everything queued, and what that causes.
 Future<void> pump() async {
   for (var i = 0; i < 4; i++) {
     await Future<void>.delayed(Duration.zero);
+  }
+}
+
+/// Waits for something that crosses a real socket, which takes turns of the
+/// event loop that [pump] cannot count.
+Future<void> until(
+  bool Function() done, {
+  Duration within = const Duration(seconds: 5),
+}) async {
+  final watch = Stopwatch()..start();
+  while (!done()) {
+    if (watch.elapsed > within) fail('Timed out waiting.');
+    await Future<void>.delayed(const Duration(milliseconds: 5));
   }
 }
 
@@ -41,6 +55,7 @@ final class InProcessGame {
 
   late final ScapeServer server;
   final List<LoopbackLink> _links = [];
+  SocketServer? _sockets;
   final List<GameSession> _sessions = [];
 
   /// Seconds on every session's clock.
@@ -53,6 +68,20 @@ final class InProcessGame {
     final session = GameSession(transport: link.client, clock: () => seconds);
     _sessions.add(session);
     return session;
+  }
+
+  /// A session on a real WebSocket, on this machine, read by the real clock.
+  Future<GameSession> connectSocket() async {
+    final sockets = _sockets ??= await server.listen();
+    final session = await GameSession.connect(sockets.url);
+    _sessions.add(session);
+    return session;
+  }
+
+  /// Ends [session] the way a player closing the window does.
+  Future<void> drop(GameSession session) async {
+    _sessions.remove(session);
+    await session.dispose();
   }
 
   /// Runs one server tick and delivers what it sent.
@@ -68,6 +97,7 @@ final class InProcessGame {
     for (final link in _links) {
       await link.close();
     }
+    await _sockets?.close();
     await server.dispose();
   }
 }
