@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+- `Whisper`, `EditList` and `ListKind` are client messages. `Said`,
+  `Whispered` and `SocialLists` are server messages. Each decoder returns
+  `Unreadable` for a bad body and never throws.
+- `maxListEntries` caps a friend or ignore list at 50 names.
+
 ## 0.6.0
 
 - `TilePosition` is named once: its component name, its layout and the

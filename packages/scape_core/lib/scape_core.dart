@@ -18,20 +18,28 @@ export 'src/messages.dart'
         Chat,
         ClientMessage,
         Decoded,
+        EditList,
+        Friend,
         Intent,
         Interact,
+        ListKind,
         Login,
         LoginOk,
         LoginRefusal,
         Notice,
         PrivateState,
+        Said,
         ServerMessage,
+        SocialLists,
         Understood,
         Unreadable,
         Walk,
+        Whisper,
+        Whispered,
         isValidName,
         isValidText,
         maxDeltaBytes,
+        maxListEntries,
         maxNameChars,
         maxTextBytes,
         nameKey;
@@ -56,4 +64,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.6.0';
+const scapeCoreVersion = '0.7.0';

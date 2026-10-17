@@ -14,6 +14,9 @@ const int maxNameChars = 12;
 /// The most a line of chat or a notice may take once encoded as UTF-8.
 const int maxTextBytes = 240;
 
+/// The most names a friends list or an ignore list may hold.
+const int maxListEntries = 50;
+
 /// The most a [PrivateState] delta may hold.
 const int maxDeltaBytes = 4096;
 
@@ -81,6 +84,37 @@ final class Chat extends Intent {
   final String text;
 }
 
+/// A private message to the player called [to], wherever they are.
+final class Whisper extends Intent {
+  Whisper({required this.to, required this.text}) {
+    if (!isValidName(to)) {
+      throw ArgumentError.value(to, 'to', 'is not a valid name');
+    }
+    if (!isValidText(text)) {
+      throw ArgumentError.value(text, 'text', 'is not valid chat text');
+    }
+  }
+
+  final String to;
+  final String text;
+}
+
+/// The two lists a player keeps of other players.
+enum ListKind { friends, ignored }
+
+/// Puts [name] on a list, or takes it off.
+final class EditList extends Intent {
+  EditList({required this.list, required this.add, required this.name}) {
+    if (!isValidName(name)) {
+      throw ArgumentError.value(name, 'name', 'is not a valid name');
+    }
+  }
+
+  final ListKind list;
+  final bool add;
+  final String name;
+}
+
 /// A message the server sends a client.
 sealed class ServerMessage {
   const ServerMessage();
@@ -129,6 +163,60 @@ final class Notice extends ServerMessage {
   }
 
   final String text;
+}
+
+/// A line of public chat, as the listener hears it. The client draws it over
+/// the entity [speaker] names.
+final class Said extends ServerMessage {
+  Said({required this.speaker, required this.text}) {
+    if (speaker < 0 || speaker > 0xFFFFFFFF) {
+      throw ArgumentError.value(speaker, 'speaker', 'does not fit a u32');
+    }
+    if (!isValidText(text)) {
+      throw ArgumentError.value(text, 'text', 'is not valid text');
+    }
+  }
+
+  final int speaker;
+  final String text;
+}
+
+/// A private message from the player called [from].
+final class Whispered extends ServerMessage {
+  Whispered({required this.from, required this.text}) {
+    if (!isValidName(from)) {
+      throw ArgumentError.value(from, 'from', 'is not a valid name');
+    }
+    if (!isValidText(text)) {
+      throw ArgumentError.value(text, 'text', 'is not valid text');
+    }
+  }
+
+  final String from;
+  final String text;
+}
+
+/// A friend and whether they are logged in.
+typedef Friend = ({String name, bool online});
+
+/// A player's friends, with who is online, and the names they ignore. It is
+/// sent whole whenever any of it changes.
+final class SocialLists extends ServerMessage {
+  SocialLists({required List<Friend> friends, required List<String> ignored})
+    : friends = List.unmodifiable(friends),
+      ignored = List.unmodifiable(ignored) {
+    if (friends.length > maxListEntries || ignored.length > maxListEntries) {
+      throw ArgumentError('A list holds at most $maxListEntries names.');
+    }
+    for (final name in [...friends.map((f) => f.name), ...ignored]) {
+      if (!isValidName(name)) {
+        throw ArgumentError.value(name, 'name', 'is not a valid name');
+      }
+    }
+  }
+
+  final List<Friend> friends;
+  final List<String> ignored;
 }
 
 /// Why a login was refused. It reaches the client as the text of the

@@ -210,7 +210,7 @@ void main() {
       final bytes = Uint8List.fromList([
         for (var j = 0; j < length; j++) random.nextInt(256),
       ]);
-      if (length > 0 && i % 3 == 0) bytes[0] = 1 + random.nextInt(4);
+      if (length > 0 && i % 3 == 0) bytes[0] = 1 + random.nextInt(7);
       decodeClientMessage(bytes);
       decodeServerMessage(bytes);
     }
