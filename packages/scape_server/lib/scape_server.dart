@@ -13,7 +13,7 @@ export 'src/engine/phase.dart' show Phase;
 export 'src/engine/registry.dart' show IntentHandler, Registry;
 export 'src/engine/services.dart' show Hosting, Services;
 export 'src/engine/tick_loop.dart' show ClockPacer, Pacer, TickLoop;
-export 'src/features/movement/movement.dart' show Movement, tilePositionName;
+export 'src/features/movement/movement.dart' show Movement;
 export 'src/inbox.dart' show Inbox, PlayerIntent;
 export 'src/server.dart' show ScapeServer;
 export 'src/wire.dart' show Wire, WireLink;

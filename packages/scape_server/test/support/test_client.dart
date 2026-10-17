@@ -22,7 +22,7 @@ final class TestClient {
     position = world.registerComponent(
       tilePositionName,
       kind: ComponentKind.float32,
-      arity: 3,
+      arity: tilePositionFloats,
     );
     client = NetClient(
       world: world,
@@ -52,12 +52,7 @@ final class TestClient {
   TileCoord? tileOf(int networkId) {
     final entity = client.entityFor(networkId);
     if (entity == null) return null;
-    final data = ByteData.sublistView(world.bytesOf(entity, position)!);
-    return TileCoord(
-      data.getFloat32(0, Endian.little).round(),
-      data.getFloat32(8, Endian.little).round(),
-      data.getFloat32(4, Endian.little).round(),
-    );
+    return tileNearest(readTilePoint(world.bytesOf(entity, position)!));
   }
 
   Future<void> login(String name) async {

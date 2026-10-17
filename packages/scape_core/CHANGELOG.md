@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- `TilePosition` is named once: its component name, its layout and the
+  functions that write and read it, so a client and a server cannot disagree
+  about which float is which.
+
 ## 0.5.0
 
 - `Avatar` tells a client which replicated entity is its own, by network id.

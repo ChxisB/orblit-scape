@@ -1,5 +1,3 @@
-import 'dart:typed_data';
-
 import 'package:orblit_core/orblit_core.dart';
 import 'package:scape_core/scape_core.dart';
 
@@ -7,10 +5,6 @@ import '../../engine/action.dart';
 import '../../engine/phase.dart';
 import '../../engine/registry.dart';
 import '../../engine/services.dart';
-
-/// The tile an actor stands on, as three floats: x, the plane, then y. The
-/// order puts a tile where the interest grid reads a position, as x, up, z.
-const String tilePositionName = 'TilePosition';
 
 final class _Player {
   _Player(this.entity, this.mover);
@@ -37,7 +31,7 @@ final class Movement {
     final position = services.world.registerComponent(
       tilePositionName,
       kind: ComponentKind.float32,
-      arity: 3,
+      arity: tilePositionFloats,
     );
     registry.replicate(position);
     final movement = Movement._(registry, services, spawn, position);
@@ -101,10 +95,6 @@ final class Movement {
   }
 
   void _write(int entity, TileCoord tile) {
-    final bytes = _services.world.bytesOf(entity, _position)!;
-    ByteData.sublistView(bytes)
-      ..setFloat32(0, tile.x.toDouble(), Endian.little)
-      ..setFloat32(4, tile.plane.toDouble(), Endian.little)
-      ..setFloat32(8, tile.y.toDouble(), Endian.little);
+    writeTilePosition(_services.world.bytesOf(entity, _position)!, tile);
   }
 }
