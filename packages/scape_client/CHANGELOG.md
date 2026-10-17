@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.0
+
+- `GameSession.trade` opens a creature's shop. `buy`, `sell`, `deposit`
+  and `withdraw` send a request. `shop` holds the stock the server last
+  sent and `bankOpen` says whether the bank is open. `attack` sends the
+  attack option by name.
+
 ## 0.9.0
 
 - `GameSession.attack` sends a click on a creature. `splats` lists the

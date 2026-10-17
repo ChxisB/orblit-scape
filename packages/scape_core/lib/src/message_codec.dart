@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'messages.dart';
+import 'shops.dart';
 import 'tile_coord.dart';
 
 const int _login = 1;
@@ -11,6 +12,10 @@ const int _interact = 3;
 const int _chat = 4;
 const int _whisper = 5;
 const int _editList = 6;
+const int _buy = 7;
+const int _sell = 8;
+const int _deposit = 9;
+const int _withdraw = 10;
 
 const int _loginOk = 1;
 const int _privateState = 2;
@@ -20,6 +25,9 @@ const int _said = 5;
 const int _whispered = 6;
 const int _socialLists = 7;
 const int _hit = 8;
+const int _shopView = 9;
+const int _bankOpen = 10;
+const int _windowClosed = 11;
 
 /// The most bytes each message may take, by tag. A longer one is refused
 /// before anything is read from it.
@@ -30,6 +38,10 @@ final Map<int, int> _clientCaps = {
   _chat: 2 + maxTextBytes,
   _whisper: 3 + maxNameChars + maxTextBytes,
   _editList: 3 + maxNameChars,
+  _buy: 7,
+  _sell: 7,
+  _deposit: 8,
+  _withdraw: 7,
 };
 
 final Map<int, int> _serverCaps = {
@@ -38,6 +50,9 @@ final Map<int, int> _serverCaps = {
   _notice: 2 + maxTextBytes,
   _avatar: 5,
   _hit: 7,
+  _shopView: 4 + maxShopLines * 6,
+  _bankOpen: 1,
+  _windowClosed: 1,
   _said: 6 + maxTextBytes,
   _whispered: 3 + maxNameChars + maxTextBytes,
   _socialLists:
@@ -64,6 +79,10 @@ final Map<int, _Reader<ClientMessage>> _clientReaders = {
   _chat: _textMessage(Chat.new),
   _whisper: _readWhisper,
   _editList: _readEditList,
+  _buy: (b) => _readTrade(b, Buy.new),
+  _sell: (b) => _readTrade(b, Sell.new),
+  _deposit: _readDeposit,
+  _withdraw: _readWithdraw,
 };
 
 final Map<int, _Reader<ServerMessage>> _serverReaders = {
@@ -75,6 +94,9 @@ final Map<int, _Reader<ServerMessage>> _serverReaders = {
   _whispered: _readWhispered,
   _socialLists: _readSocialLists,
   _hit: _readHit,
+  _shopView: _readShopView,
+  _bankOpen: (b) => b.length == 1 ? const BankOpen() : null,
+  _windowClosed: (b) => b.length == 1 ? const WindowClosed() : null,
 };
 
 Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
@@ -84,6 +106,10 @@ Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
   Chat(:final text) => _withText(_chat, text),
   Whisper(:final to, :final text) => _withTwoTexts(_whisper, to, text),
   EditList() => _encodeEditList(message),
+  Buy(:final item, :final count) => _encodePair(_buy, item, count),
+  Sell(:final item, :final count) => _encodePair(_sell, item, count),
+  Deposit() => _encodeDeposit(message),
+  Withdraw() => _encodeWithdraw(message),
 };
 
 Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
@@ -95,6 +121,9 @@ Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
   Whispered(:final from, :final text) => _withTwoTexts(_whispered, from, text),
   SocialLists() => _encodeSocialLists(message),
   Hit() => _encodeHit(message),
+  ShopView() => _encodeShopView(message),
+  BankOpen() => Uint8List.fromList([_bankOpen]),
+  WindowClosed() => Uint8List.fromList([_windowClosed]),
 };
 
 Decoded<ClientMessage> decodeClientMessage(Uint8List bytes) =>
@@ -328,4 +357,84 @@ SocialLists? _readSocialLists(Uint8List bytes) {
   return at == bytes.length
       ? SocialLists(friends: friends, ignored: ignored)
       : null;
+}
+
+/// Tag, a u16, then a u32. A trade is an item and a count, and a withdrawal a
+/// slot and a count.
+Uint8List _encodePair(int tag, int small, int count) {
+  final bytes = Uint8List(7)..[0] = tag;
+  ByteData.sublistView(bytes)
+    ..setUint16(1, small, Endian.little)
+    ..setUint32(3, count, Endian.little);
+  return bytes;
+}
+
+T? _readTrade<T extends Trade>(
+  Uint8List bytes,
+  T Function({required int item, required int count}) make,
+) {
+  if (bytes.length != 7) return null;
+  final data = ByteData.sublistView(bytes);
+  return make(
+    item: data.getUint16(1, Endian.little),
+    count: data.getUint32(3, Endian.little),
+  );
+}
+
+Uint8List _encodeWithdraw(Withdraw message) =>
+    _encodePair(_withdraw, message.slot, message.count);
+
+Withdraw? _readWithdraw(Uint8List bytes) {
+  if (bytes.length != 7) return null;
+  final data = ByteData.sublistView(bytes);
+  return Withdraw(
+    slot: data.getUint16(1, Endian.little),
+    count: data.getUint32(3, Endian.little),
+  );
+}
+
+Uint8List _encodeDeposit(Deposit message) => Uint8List.fromList([
+  ..._encodePair(_deposit, message.slot, message.count),
+  message.tab,
+]);
+
+Deposit? _readDeposit(Uint8List bytes) {
+  if (bytes.length != 8) return null;
+  final data = ByteData.sublistView(bytes);
+  return Deposit(
+    slot: data.getUint16(1, Endian.little),
+    count: data.getUint32(3, Endian.little),
+    tab: bytes[7],
+  );
+}
+
+Uint8List _encodeShopView(ShopView message) {
+  final bytes = Uint8List(4 + message.lines.length * 6)
+    ..[0] = _shopView
+    ..[3] = message.lines.length;
+  final data = ByteData.sublistView(bytes)
+    ..setUint16(1, message.npc, Endian.little);
+  var at = 4;
+  for (final (:item, :count) in message.lines) {
+    data
+      ..setUint16(at, item, Endian.little)
+      ..setUint32(at + 2, count, Endian.little);
+    at += 6;
+  }
+  return bytes;
+}
+
+ShopView? _readShopView(Uint8List bytes) {
+  if (bytes.length < 4 || bytes.length != 4 + bytes[3] * 6) return null;
+  final data = ByteData.sublistView(bytes);
+  return ShopView(
+    npc: data.getUint16(1, Endian.little),
+    lines: [
+      for (var at = 4; at < bytes.length; at += 6)
+        (
+          item: data.getUint16(at, Endian.little),
+          count: data.getUint32(at + 2, Endian.little),
+        ),
+    ],
+  );
 }

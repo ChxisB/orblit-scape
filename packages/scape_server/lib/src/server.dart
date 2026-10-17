@@ -80,6 +80,7 @@ final class ScapeServer {
     required NodeSet nodes,
     required NpcSet npcs,
     required CombatRules combat,
+    ShopRules? shops,
     Random? random,
   }) {
     final networkId = world.registerComponent(
@@ -106,6 +107,7 @@ final class ScapeServer {
       nodes: nodes,
       npcs: npcs,
       combat: combat,
+      shops: shops,
       random: random ?? Random(),
     );
     social = features.social;

@@ -66,6 +66,7 @@ void main() {
       nodes: defaultNodes,
       npcs: npcs ?? defaultNpcs,
       combat: defaultCombat,
+      shops: defaultShops,
       random: random ?? Random(7),
     );
   }

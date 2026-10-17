@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.0
+
+- A bank booth object opens the player's bank.
+- Bones and feathers. The chicken and the goblin drop them, with coins
+  and sometimes gear. The goblin has a rare sword.
+- A shopkeeper creature sells axes, pickaxes, nets, logs and copper
+  ore. `defaultShops` prices things in coins.
+
 ## 0.7.0
 
 - `defaultCombat` holds the rules of the first game.

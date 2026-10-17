@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.14.0
+
+- `LootTable` pays out on a roll: fixed drops, a weighted pick that may
+  be nothing or another table, and a rare tier that adds a drop once in
+  so many rolls. The caller passes the dice. `NpcDef.loot` holds one.
+- `ShopRules` prices things from an item's value. `ShopDef` and
+  `ShopLine` say what a shopkeeper stocks, how much, and how fast it
+  restocks. `NpcDef.shop` holds one.
+- `NpcOption` names the options of a creature, attack and trade.
+- `Container.exchange` takes and gives as one change that either all
+  happens or leaves the container as it was. `occupied` and `search` give
+  the tab view and the name search of a bank.
+- New messages: `Buy` and `Sell` for a shop, `Deposit` and `Withdraw`
+  for the bank, and `ShopView`, `BankOpen` and `WindowClosed` back.
+
 ## 0.13.0
 
 - `CombatRules` holds the numbers a fight is worked out from: the hit

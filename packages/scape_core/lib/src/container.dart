@@ -86,6 +86,21 @@ final class Container {
     return total;
   }
 
+  /// The slots that hold something, in [tab] or everywhere when it is null.
+  List<int> occupied({int? tab}) => [
+    for (final slot in _tabSlots(tab))
+      if (_slots[slot] != null) slot,
+  ];
+
+  /// The occupied slots whose item name holds [text], whatever the case.
+  List<int> search(String text, {int? tab}) {
+    final needle = text.toLowerCase();
+    return [
+      for (final slot in occupied(tab: tab))
+        if (_nameAt(slot).contains(needle)) slot,
+    ];
+  }
+
   /// Whether one more of [item] would go in. Throws [ArgumentError] for an
   /// item that does not exist.
   bool canHold(int item) {
@@ -202,12 +217,61 @@ final class Container {
     return added == want ? Outcome.done : Outcome.partly;
   }
 
+  /// Takes [take] out and puts [give] in as one change. When [take] is not all
+  /// held, or [give] does not all fit, nothing changes and no slot is marked
+  /// dirty. What [take] frees is there for [give] to use. Throws
+  /// [ArgumentError] for an item that does not exist.
+  // F5: each command returns its outcome, since a refusal is not an error.
+  Outcome exchange({
+    List<ItemStack> take = const [],
+    List<ItemStack> give = const [],
+  }) {
+    for (final stack in [...take, ...give]) {
+      _items.require(stack.item);
+    }
+    final before = List<ItemStack?>.of(_slots);
+    final dirtyBefore = Set<int>.of(_dirty);
+    final outcome = _exchange(take, give);
+    if (outcome != Outcome.done) {
+      _slots.setAll(0, before);
+      _dirty
+        ..clear()
+        ..addAll(dirtyBefore);
+    }
+    return outcome;
+  }
+
   /// Sets slots to what the server says they hold. For a client's copy, so
   /// it ignores [accepts] and does not mark anything dirty.
   void mirror(List<SlotChange> changes) {
     for (final (:slot, :stack) in changes) {
       if (_has(slot)) _slots[slot] = stack;
     }
+  }
+
+  /// The lower case name of the item in [slot], which must be occupied.
+  String _nameAt(int slot) =>
+      _items.require(_slots[slot]!.item).name.toLowerCase();
+
+  Outcome _exchange(List<ItemStack> take, List<ItemStack> give) {
+    for (final stack in take) {
+      if (!_remove(stack)) return Outcome.nothingThere;
+    }
+    for (final stack in give) {
+      if (add(stack.item, stack.count) < stack.count) return Outcome.wontFit;
+    }
+    return Outcome.done;
+  }
+
+  bool _remove(ItemStack stack) {
+    if (countOf(stack.item) < stack.count) return false;
+    var left = stack.count;
+    for (var slot = 0; slot < size && left > 0; slot++) {
+      if (_slots[slot]?.item == stack.item) {
+        left -= take(slot, left)?.count ?? 0;
+      }
+    }
+    return true;
   }
 
   bool _has(int slot) => slot >= 0 && slot < _slots.length;

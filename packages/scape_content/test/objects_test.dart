@@ -40,4 +40,11 @@ void main() {
       expect(node.options.single.offeredIn(1), isFalse);
     }
   });
+
+  test('a bank booth is solid and offers one way to bank', () {
+    final booth = defaultObjects.require(ObjectId.bankBooth);
+
+    expect(booth.solid, isTrue);
+    expect([for (final option in booth.options) option.action], ['bank']);
+  });
 }

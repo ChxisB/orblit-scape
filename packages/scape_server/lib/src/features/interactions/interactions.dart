@@ -13,7 +13,7 @@ import '../objects/objects.dart';
 typedef ObjectAction = void Function(String player, PlacedObject object);
 
 /// What a feature does when [player] has walked up to the creature they
-/// clicked.
+/// clicked and picked an option.
 typedef NpcAction = void Function(String player, PlacedNpc npc);
 
 /// What a feature does when [player] uses the item in [slot] on an object.
@@ -94,7 +94,7 @@ final class Interactions {
   final Map<String, ObjectAction> _objectActions = {};
   final Map<(int, int), UseOnObject> _useOnObject = {};
   final Map<(int, int), UseOnItem> _useOnItem = {};
-  NpcAction? _npcAction;
+  final Map<int, NpcAction> _npcActions = {};
 
   /// Runs [action] when a player picks an option of an object whose
   /// definition names [name].
@@ -105,13 +105,14 @@ final class Interactions {
     _objectActions[name] = action;
   }
 
-  /// Runs [action] when a player has walked up to a creature they clicked.
-  /// One feature owns the click, so a second call throws.
-  void addNpcAction(NpcAction action) {
-    if (_npcAction != null) {
-      throw StateError('A creature click already has an action.');
+  /// Runs [action] when a player has walked up to a creature and picked
+  /// [option], one of the [NpcOption] values. One feature owns each option,
+  /// so a second call for it throws.
+  void addNpcAction(int option, NpcAction action) {
+    if (_npcActions.containsKey(option)) {
+      throw StateError('That creature option already has an action.');
     }
-    _npcAction = action;
+    _npcActions[option] = action;
   }
 
   /// Runs [action] when [item] is used on an object whose definition is
@@ -165,7 +166,7 @@ final class Interactions {
 
   void _clickNpc(String player, Interact click) {
     final npc = _npcs.find(click.id);
-    final action = _npcAction;
+    final action = _npcActions[click.option];
     if (npc == null || action == null) return;
     _start(
       player,

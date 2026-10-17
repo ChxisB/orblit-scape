@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.12.0
+
+- A kill pays the creature's loot table. The drops lie where it died and
+  belong to the killer first. A table that names an item that does not
+  exist fails at startup.
+- `Windows` keeps the shop or bank each player has open and closes it
+  when the player can no longer reach what it belongs to.
+- A shopkeeper's trade option opens its shop. A purchase or a sale
+  changes coins, stock and inventory together or not at all. Stock
+  comes back on its own tick and is sent to everyone looking.
+- The `bank` object action opens the bank. Deposits and withdrawals
+  work only while it is open.
+- `Interactions.addNpcAction` takes the option it answers, and a second
+  action for one option throws.
+- `ScapeServer` takes `shops`, which is needed once a creature has a
+  shop. Loot rolls use the same `random` as combat.
+
 ## 0.11.0
 
 - `Combat` runs melee. A click on a creature walks the player up and

@@ -17,6 +17,8 @@ abstract final class ItemId {
   static const int woodenShield = 10;
   static const int bronzeHelmet = 11;
   static const int fishingNet = 12;
+  static const int bones = 13;
+  static const int feathers = 14;
 }
 
 /// The items of the first game.
@@ -69,5 +71,7 @@ final ItemSet defaultItems = ItemSet(
       combat: CombatBonus(defence: 4),
     ),
     ItemDef(id: ItemId.fishingNet, name: 'Fishing net', value: 8),
+    ItemDef(id: ItemId.bones, name: 'Bones', value: 1),
+    ItemDef(id: ItemId.feathers, name: 'Feathers', stackable: true, value: 2),
   ],
 );

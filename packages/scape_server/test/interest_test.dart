@@ -47,6 +47,7 @@ void main() {
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: defaultNpcs,
+      shops: defaultShops,
       combat: defaultCombat,
     );
   });

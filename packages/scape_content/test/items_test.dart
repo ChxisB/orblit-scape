@@ -17,6 +17,8 @@ void main() {
       ItemId.woodenShield: 'Wooden shield',
       ItemId.bronzeHelmet: 'Bronze helmet',
       ItemId.fishingNet: 'Fishing net',
+      ItemId.bones: 'Bones',
+      ItemId.feathers: 'Feathers',
     };
 
     expect(defaultItems.items, hasLength(named.length));
@@ -25,13 +27,13 @@ void main() {
     }
   });
 
-  test('only coins stack', () {
+  test('only coins and feathers stack', () {
     final stackable = [
       for (final item in defaultItems.items)
         if (item.stackable) item.id,
     ];
 
-    expect(stackable, [ItemId.coins]);
+    expect(stackable, [ItemId.coins, ItemId.feathers]);
   });
 
   test('worn items name a slot and tools need a level', () {

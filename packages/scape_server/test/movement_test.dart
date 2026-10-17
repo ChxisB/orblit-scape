@@ -50,6 +50,7 @@ void main() {
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: defaultNpcs,
+      shops: defaultShops,
       combat: defaultCombat,
     );
   });
@@ -188,6 +189,7 @@ void main() {
         objects: defaultObjects,
         nodes: defaultNodes,
         npcs: defaultNpcs,
+        shops: defaultShops,
         combat: defaultCombat,
       ),
       throwsArgumentError,

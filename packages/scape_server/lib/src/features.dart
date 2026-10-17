@@ -4,16 +4,20 @@ import 'package:scape_core/scape_core.dart';
 
 import 'engine/registry.dart';
 import 'engine/services.dart';
+import 'features/bank/bank.dart';
 import 'features/combat/combat.dart';
 import 'features/gathering/gathering.dart';
 import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
+import 'features/loot/loot.dart';
 import 'features/movement/movement.dart';
 import 'features/npcs/npcs.dart';
 import 'features/objects/objects.dart';
+import 'features/shops/shops.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
+import 'features/windows/windows.dart';
 
 /// What the rest of the server may reach into after the features register.
 typedef Features = ({
@@ -40,6 +44,7 @@ Features registerFeatures(
   required NpcSet npcs,
   required CombatRules combat,
   required Random random,
+  ShopRules? shops,
 }) {
   final movement = Movement.register(registry, services, spawn: spawn);
   final social = Social.register(
@@ -98,6 +103,35 @@ Features registerFeatures(
     random: random,
     spawn: spawn,
   );
+  registerLoot(
+    combat: fights,
+    ground: ground,
+    items: items,
+    npcs: npcs,
+    random: random,
+  );
+  final windows = Windows.register(registry, services, movement: movement);
+  Bank.register(
+    registry,
+    services,
+    interactions: interactions,
+    bags: bags,
+    windows: windows,
+  );
+  if (shops != null) {
+    Shops.register(
+      registry,
+      services,
+      rules: shops,
+      items: items,
+      npcs: npcs,
+      interactions: interactions,
+      bags: bags,
+      windows: windows,
+    );
+  } else if (npcs.npcs.any((npc) => npc.shop != null)) {
+    throw ArgumentError.value(shops, 'shops', 'is needed for a creature shop');
+  }
   return (
     combat: fights,
     ground: ground,

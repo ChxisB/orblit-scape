@@ -28,9 +28,12 @@ export 'src/messages.dart'
     show
         Avatar,
         BadMessage,
+        BankOpen,
+        Buy,
         Chat,
         ClientMessage,
         Decoded,
+        Deposit,
         EditList,
         Friend,
         Hit,
@@ -43,13 +46,19 @@ export 'src/messages.dart'
         Notice,
         PrivateState,
         Said,
+        Sell,
         ServerMessage,
+        ShopStock,
+        ShopView,
         SocialLists,
+        Trade,
         Understood,
         Unreadable,
         Walk,
         Whisper,
         Whispered,
+        Withdraw,
+        WindowClosed,
         isValidName,
         isValidText,
         maxDeltaBytes,
@@ -57,6 +66,7 @@ export 'src/messages.dart'
         maxNameChars,
         maxTextBytes,
         nameKey;
+export 'src/loot.dart' show LootEntry, LootItem, LootSub, LootTable;
 export 'src/mover.dart' show MoveSpeed, Mover;
 export 'src/nodes.dart' show NodeDef, NodeSet, nodeDepleted, nodeFull;
 export 'src/npcs.dart'
@@ -65,6 +75,7 @@ export 'src/npcs.dart'
         Behaviour,
         Idle,
         NpcDef,
+        NpcOption,
         NpcSet,
         NpcSpawn,
         Wander,
@@ -95,6 +106,8 @@ export 'src/items.dart'
         itemsDeltaTag,
         maxItemId,
         maxStack;
+export 'src/shops.dart'
+    show ShopDef, ShopLine, ShopRules, maxShopLines, maxShopStock;
 export 'src/skills.dart'
     show SkillDef, SkillSet, XpCurve, maxLevel, skillsDeltaTag;
 export 'src/reach.dart'
@@ -114,4 +127,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.13.0';
+const scapeCoreVersion = '0.14.0';

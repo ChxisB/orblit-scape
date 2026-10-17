@@ -164,6 +164,13 @@ final class GameSession {
   /// Names the player ignores.
   List<String> ignored = const [];
 
+  /// The shop the player has open, as the server last sent it, or null. A
+  /// bank and a shop are never open together.
+  ShopView? shop;
+
+  /// Whether the player's bank is open. [itemAt] reads what is in it.
+  bool bankOpen = false;
+
   List<String> get notices => List.unmodifiable(_notices);
 
   /// Swings that landed or missed, oldest first.
@@ -225,8 +232,32 @@ final class GameSession {
       _interact(Interact(kind: InteractKind.ground, id: networkId, option: 0));
 
   /// Attacks the creature that [networkId] names.
-  void attack(int networkId) =>
-      _interact(Interact(kind: InteractKind.npc, id: networkId, option: 0));
+  void attack(int networkId) => _interact(
+    Interact(kind: InteractKind.npc, id: networkId, option: NpcOption.attack),
+  );
+
+  /// Opens the shop of the creature that [networkId] names.
+  void trade(int networkId) => _interact(
+    Interact(kind: InteractKind.npc, id: networkId, option: NpcOption.trade),
+  );
+
+  /// Buys [count] of [item] from the open shop.
+  void buy(int item, int count) =>
+      _client.sendMessage(encodeClientMessage(Buy(item: item, count: count)));
+
+  /// Sells [count] of [item] to the open shop.
+  void sell(int item, int count) =>
+      _client.sendMessage(encodeClientMessage(Sell(item: item, count: count)));
+
+  /// Puts up to [count] of the inventory stack in [slot] into bank [tab].
+  void deposit(int slot, int count, {int tab = 0}) => _client.sendMessage(
+    encodeClientMessage(Deposit(slot: slot, count: count, tab: tab)),
+  );
+
+  /// Takes up to [count] of the bank stack in [slot] into the inventory.
+  void withdraw(int slot, int count) => _client.sendMessage(
+    encodeClientMessage(Withdraw(slot: slot, count: count)),
+  );
 
   /// Uses the inventory item in [slot] on the object [networkId].
   void useItemOnObject(int slot, int networkId) => _interact(
@@ -368,6 +399,15 @@ final class GameSession {
           this.ignored = ignored;
         case PrivateState(:final delta):
           _applyPrivate(delta);
+        case ShopView():
+          shop = message;
+          bankOpen = false;
+        case BankOpen():
+          shop = null;
+          bankOpen = true;
+        case WindowClosed():
+          shop = null;
+          bankOpen = false;
       }
     }
   }

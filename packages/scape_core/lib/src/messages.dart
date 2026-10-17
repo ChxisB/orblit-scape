@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:typed_data';
 
+import 'items.dart';
+import 'shops.dart';
 import 'tile_coord.dart';
 
 /// Letters and digits first, then up to eleven more with spaces, underscores
@@ -113,6 +115,54 @@ final class EditList extends Intent {
   final ListKind list;
   final bool add;
   final String name;
+}
+
+/// An item and a count, which a trade with a shop names.
+sealed class Trade extends Intent {
+  Trade({required this.item, required this.count}) {
+    if (item < 1 || item > maxItemId) {
+      throw ArgumentError.value(item, 'item', 'is outside 1 to $maxItemId');
+    }
+    _checkCount(count);
+  }
+
+  final int item;
+  final int count;
+}
+
+/// Buy [count] of [item] from the shop the player has open.
+final class Buy extends Trade {
+  Buy({required super.item, required super.count});
+}
+
+/// Sell [count] of [item] to the shop the player has open.
+final class Sell extends Trade {
+  Sell({required super.item, required super.count});
+}
+
+/// Put up to [count] of the inventory stack in [slot] into the bank, in
+/// bank tab [tab].
+final class Deposit extends Intent {
+  Deposit({required this.slot, required this.count, required this.tab}) {
+    _inRange(slot, 'slot', 0xFFFF);
+    _checkCount(count);
+    _inRange(tab, 'tab', 0xFF);
+  }
+
+  final int slot;
+  final int count;
+  final int tab;
+}
+
+/// Take up to [count] of the bank stack in [slot] into the inventory.
+final class Withdraw extends Intent {
+  Withdraw({required this.slot, required this.count}) {
+    _inRange(slot, 'slot', 0xFFFF);
+    _checkCount(count);
+  }
+
+  final int slot;
+  final int count;
 }
 
 /// A message the server sends a client.
@@ -235,6 +285,38 @@ final class SocialLists extends ServerMessage {
   final List<String> ignored;
 }
 
+/// One line of a shop's stock: an item and how many the shop holds.
+typedef ShopStock = ({int item, int count});
+
+/// What the shop of the creature kind [npc] holds now. It is sent when a
+/// shop opens and again each time its stock changes.
+final class ShopView extends ServerMessage {
+  ShopView({required this.npc, required List<ShopStock> lines})
+    : lines = List.unmodifiable(lines) {
+    _inRange(npc, 'npc', 0xFFFF);
+    if (lines.length > maxShopLines) {
+      throw ArgumentError('A shop holds at most $maxShopLines lines.');
+    }
+    for (final (:item, :count) in lines) {
+      _inRange(item, 'item', maxItemId);
+      _inRange(count, 'count', maxShopStock);
+    }
+  }
+
+  final int npc;
+  final List<ShopStock> lines;
+}
+
+/// The player's bank is open. The slots reach them as container state.
+final class BankOpen extends ServerMessage {
+  const BankOpen();
+}
+
+/// A shop or bank window is no longer open.
+final class WindowClosed extends ServerMessage {
+  const WindowClosed();
+}
+
 /// Why a login was refused. It reaches the client as the text of the
 /// goodbye the host sends a connection it turns away, because a refused
 /// connection is never a client and so cannot be sent a message.
@@ -267,6 +349,12 @@ final class Unreadable<T> extends Decoded<T> {
   const Unreadable(this.why);
 
   final BadMessage why;
+}
+
+void _checkCount(int count) {
+  if (count < 1 || count > maxStack) {
+    throw ArgumentError.value(count, 'count', 'is outside 1 to $maxStack');
+  }
 }
 
 void _inRange(int value, String name, int max) {

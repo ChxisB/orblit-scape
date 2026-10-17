@@ -536,4 +536,122 @@ void main() {
       expect(tryDecodeSlots(bytes, testItems()), isNull);
     });
   });
+
+  group('exchange', () {
+    test('takes and gives as one change', () {
+      final c = inventory()..add(coins, 50);
+      final outcome = c.exchange(
+        take: [ItemStack(coins, 30)],
+        give: [ItemStack(logs, 2)],
+      );
+      expect(outcome, Outcome.done);
+      expect(c.countOf(coins), 20);
+      expect(c.countOf(logs), 2);
+    });
+
+    test('takes across stacks', () {
+      final c = Container(items: testItems(), size: 4)..add(logs, 3);
+      c.exchange(take: [ItemStack(logs, 2)]);
+      expect(c.countOf(logs), 1);
+    });
+
+    test('changes nothing when the take is not all held', () {
+      final c = inventory()..add(coins, 5);
+      c.markClean();
+      final outcome = c.exchange(
+        take: [ItemStack(coins, 6)],
+        give: [ItemStack(logs, 1)],
+      );
+      expect(outcome, Outcome.nothingThere);
+      expect(c.countOf(coins), 5);
+      expect(c.countOf(logs), 0);
+      expect(c.dirty, isEmpty);
+    });
+
+    test('changes nothing and marks nothing when the give does not fit', () {
+      final c = Container(items: testItems(), size: 2)
+        ..add(coins, 10)
+        ..add(logs, 1);
+      c.markClean();
+      final outcome = c.exchange(
+        take: [ItemStack(coins, 4)],
+        give: [ItemStack(logs, 2)],
+      );
+      expect(outcome, Outcome.wontFit);
+      expect(c.at(0), ItemStack(coins, 10));
+      expect(c.at(1), ItemStack(logs, 1));
+      expect(c.dirty, isEmpty);
+    });
+
+    test('keeps the slots dirty from before a refused exchange', () {
+      final c = Container(items: testItems(), size: 1)..add(coins, 10);
+      expect(c.dirty, [0]);
+      c.exchange(take: [ItemStack(coins, 1)], give: [ItemStack(logs, 2)]);
+      expect(c.dirty, [0]);
+    });
+
+    test('lets the give use a slot the take freed', () {
+      final c = Container(items: testItems(), size: 1)..add(coins, 10);
+      final outcome = c.exchange(
+        take: [ItemStack(coins, 10)],
+        give: [ItemStack(logs, 1)],
+      );
+      expect(outcome, Outcome.done);
+      expect(c.at(0), ItemStack(logs, 1));
+    });
+
+    test('throws for an item that does not exist before changing anything', () {
+      final c = inventory()..add(coins, 5);
+      c.markClean();
+      expect(
+        () => c.exchange(take: [ItemStack(coins, 1)], give: [ItemStack(99, 1)]),
+        throwsArgumentError,
+      );
+      expect(c.countOf(coins), 5);
+      expect(c.dirty, isEmpty);
+    });
+  });
+
+  group('a view', () {
+    Container bank() {
+      final c = bag(ContainerId.bank);
+      c.add(logs, 2, tab: 0);
+      c.add(coins, 9, tab: 3);
+      c.add(sword, 1, tab: 3);
+      return c;
+    }
+
+    test('lists the occupied slots of a tab', () {
+      final c = bank();
+      expect(c.occupied(tab: 3), [300, 301]);
+      expect(c.occupied(tab: 0), [0, 1]);
+      expect(c.occupied(tab: 1), isEmpty);
+    });
+
+    test('lists every occupied slot with no tab', () {
+      expect(bank().occupied(), [0, 1, 300, 301]);
+    });
+
+    test('a tab that does not exist is empty', () {
+      expect(bank().occupied(tab: bankTabs), isEmpty);
+      expect(bank().occupied(tab: -1), isEmpty);
+    });
+
+    test('searches names whatever the case', () {
+      final c = bank();
+      expect(c.search('LOG'), [0, 1]);
+      expect(c.search('oin'), [300]);
+      expect(c.search('zzz'), isEmpty);
+    });
+
+    test('searches inside one tab', () {
+      final c = bank();
+      expect(c.search('o', tab: 3), [300, 301]);
+      expect(c.search('log', tab: 3), isEmpty);
+    });
+
+    test('an empty search finds everything held', () {
+      expect(bank().search(''), [0, 1, 300, 301]);
+    });
+  });
 }

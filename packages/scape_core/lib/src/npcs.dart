@@ -1,4 +1,6 @@
 import 'combat.dart';
+import 'loot.dart';
+import 'shops.dart';
 import 'tile_coord.dart';
 
 /// The name of the replicated component on a creature standing in the world.
@@ -9,6 +11,12 @@ const int npcInts = 1;
 
 /// The highest NPC id.
 const int maxNpcId = 0xFFFF;
+
+/// The options of a creature, as the option byte of an `Interact` names them.
+abstract final class NpcOption {
+  static const int attack = 0;
+  static const int trade = 1;
+}
 
 /// What a creature does when nobody is making it do anything.
 sealed class Behaviour {
@@ -47,6 +55,8 @@ final class NpcDef {
     required this.name,
     this.behaviour = const Idle(),
     this.fight,
+    this.loot,
+    this.shop,
   }) {
     if (id < 1 || id > maxNpcId) {
       throw ArgumentError.value(id, 'id', 'is outside 1 to $maxNpcId');
@@ -60,6 +70,12 @@ final class NpcDef {
 
   /// How it fights, or null for a creature that cannot be attacked.
   final NpcFight? fight;
+
+  /// What it drops when it dies, or null for nothing.
+  final LootTable? loot;
+
+  /// What it sells, or null for a creature that does not trade.
+  final ShopDef? shop;
 }
 
 /// The creatures a game has.

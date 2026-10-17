@@ -103,7 +103,7 @@ final class Combat {
       spawn: spawn,
       health: health,
     );
-    interactions.addNpcAction(feature._begin);
+    interactions.addNpcAction(NpcOption.attack, feature._begin);
     npcs.addStandHandler(feature._stood);
     registry
       ..addKind(feature._attack)
