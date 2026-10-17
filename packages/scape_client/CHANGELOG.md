@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.13.0
+
+- `GameSession.requestTrade` asks another player to trade. `playerTrade` holds
+  the open trade as the server last sent it. `offer`, `acceptTrade` and
+  `declineTrade` act on it.
+
 ## 0.12.0
 
 - `GameSession.talk` starts a conversation. `line` holds what a creature

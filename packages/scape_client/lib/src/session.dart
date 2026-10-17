@@ -168,6 +168,11 @@ final class GameSession {
   /// shop, a bank and a conversation are never open together.
   ShopView? shop;
 
+  /// The trade with another player the player has open, as the server last
+  /// sent it, or null. Never open together with a shop, a bank or a
+  /// conversation.
+  TradeView? playerTrade;
+
   /// Whether the player's bank is open. [itemAt] reads what is in it.
   bool bankOpen = false;
 
@@ -265,6 +270,25 @@ final class GameSession {
   /// Picks the option at [index] of [choices].
   void choose(int index) =>
       _client.sendMessage(encodeClientMessage(Choose(index)));
+
+  /// Asks the player [networkId] to trade. When they ask back, a trade opens
+  /// and [playerTrade] is set.
+  void requestTrade(int networkId) =>
+      _interact(Interact(kind: InteractKind.player, id: networkId, option: 0));
+
+  /// Offers [count] of [item] in the open trade, in place of what was
+  /// offered of it. A count of zero takes it back.
+  void offer(int item, int count) => _client.sendMessage(
+    encodeClientMessage(TradeOffer(item: item, count: count)),
+  );
+
+  /// Agrees to the open trade as it stands.
+  void acceptTrade() =>
+      _client.sendMessage(encodeClientMessage(const TradeAccept()));
+
+  /// Leaves the open trade.
+  void declineTrade() =>
+      _client.sendMessage(encodeClientMessage(const TradeDecline()));
 
   /// Buys [count] of [item] from the open shop.
   void buy(int item, int count) =>
@@ -427,6 +451,9 @@ final class GameSession {
         case ShopView():
           _closeWindow();
           shop = message;
+        case TradeView():
+          _closeWindow();
+          playerTrade = message;
         case BankOpen():
           _closeWindow();
           bankOpen = true;
@@ -444,6 +471,7 @@ final class GameSession {
 
   void _closeWindow() {
     shop = null;
+    playerTrade = null;
     bankOpen = false;
     line = null;
     choices = const [];
