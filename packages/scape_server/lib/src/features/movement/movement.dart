@@ -55,6 +55,27 @@ final class Movement {
   /// The tile [player] stands on, or null when they are not in the world.
   TileCoord? tileOf(String player) => _players[player]?.mover.position;
 
+  /// The key actions of [player] are queued under, or null when they are not
+  /// in the world.
+  int? actorOf(String player) => _players[player]?.entity;
+
+  bool isMoving(String player) => _players[player]?.mover.isMoving ?? false;
+
+  /// Sets [player] walking along [steps], each beside the one before, or
+  /// stops them when it is empty.
+  void follow(String player, List<TileCoord> steps) =>
+      _players[player]?.mover.setPath(steps);
+
+  /// Puts [player] on [tile] with no walk between, such as up a stair.
+  void teleport(String player, TileCoord tile) {
+    final found = _players[player];
+    if (found == null) return;
+    found.mover
+      ..clearPath()
+      ..position = tile;
+    _write(found.entity, tile);
+  }
+
   /// The replicated entity and the tile of [player], or null when they are not
   /// in the world.
   ({int networkId, TileCoord tile})? standing(String player) {

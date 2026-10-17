@@ -114,6 +114,11 @@ final class GroundItems {
     return owner == null || owner == player;
   }
 
+  /// The tile the item [networkId] lies on, or null when there is no such
+  /// item or [player] may not see it.
+  TileCoord? whereIs(String player, int networkId) =>
+      canSee(player, networkId) ? _lying[networkId]?.tile : null;
+
   /// What [player] can see on [tile].
   List<Lying> lyingAt(String player, TileCoord tile) => [
     for (final item in _lying.values)

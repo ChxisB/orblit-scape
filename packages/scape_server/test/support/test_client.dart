@@ -29,9 +29,14 @@ final class TestClient {
       kind: ComponentKind.int32,
       arity: groundItemInts,
     );
+    object = world.registerComponent(
+      worldObjectName,
+      kind: ComponentKind.int32,
+      arity: worldObjectInts,
+    );
     client = NetClient(
       world: world,
-      set: ReplicationSet([position, ground]),
+      set: ReplicationSet([position, ground, object]),
       networkId: networkId,
       transport: link.client,
       onMessage: (body) => received.add(decodeServerMessage(body)),
@@ -44,6 +49,7 @@ final class TestClient {
   final LoopbackLink link = LoopbackLink();
   late final ComponentType position;
   late final ComponentType ground;
+  late final ComponentType object;
   late final NetClient client;
   final List<Decoded<ServerMessage>> received = [];
   final List<String> goodbyes = [];
@@ -64,6 +70,19 @@ final class TestClient {
 
   (int, int) _readGround(int entity) {
     final data = ByteData.sublistView(world.bytesOf(entity, ground)!);
+    return (data.getInt32(0, Endian.little), data.getInt32(4, Endian.little));
+  }
+
+  /// The objects this client has been told about, as (definition, state)
+  /// by network id.
+  Map<int, (int, int)> get objects => {
+    for (final networkId in client.networkIds)
+      if (client.world.has(client.entityFor(networkId)!, object))
+        networkId: _readObject(client.entityFor(networkId)!),
+  };
+
+  (int, int) _readObject(int entity) {
+    final data = ByteData.sublistView(world.bytesOf(entity, object)!);
     return (data.getInt32(0, Endian.little), data.getInt32(4, Endian.little));
   }
 

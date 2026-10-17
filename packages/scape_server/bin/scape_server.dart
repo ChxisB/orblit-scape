@@ -28,6 +28,7 @@ Future<void> main(List<String> args) async {
     spawn: TileCoord(32, 32, 0),
     skills: defaultSkills,
     items: defaultItems,
+    objects: defaultObjects,
   );
   final sockets = await server.listen(
     port: args.isEmpty ? 7600 : int.parse(args.first),

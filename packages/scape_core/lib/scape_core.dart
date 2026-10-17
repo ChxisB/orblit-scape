@@ -55,6 +55,15 @@ export 'src/messages.dart'
         maxTextBytes,
         nameKey;
 export 'src/mover.dart' show MoveSpeed, Mover;
+export 'src/objects.dart'
+    show
+        InteractKind,
+        ObjectDef,
+        ObjectOption,
+        ObjectSet,
+        maxObjectId,
+        worldObjectInts,
+        worldObjectName;
 export 'src/path.dart'
     show PathResult, defaultPathMargin, findPath, findPathToReach;
 export 'src/line_of_sight.dart' show hasClearLine;
@@ -89,4 +98,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.9.0';
+const scapeCoreVersion = '0.10.0';

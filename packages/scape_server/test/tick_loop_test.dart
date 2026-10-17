@@ -42,6 +42,7 @@ void main() {
       spawn: spawnTile,
       skills: defaultSkills,
       items: defaultItems,
+      objects: defaultObjects,
     );
     pacer.server = server;
     addTearDown(server.dispose);

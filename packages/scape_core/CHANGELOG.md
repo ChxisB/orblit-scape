@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.10.0
+
+- `ObjectDef` and `ObjectSet` say what an object is: its size, whether it
+  blocks while closed, and the options a player may pick. An option names
+  an action and may be offered only in one state.
+- `InteractKind` names the four things a click can mean. The `Interact`
+  intent carries one.
+- `TileFlags.without` clears a flag and leaves the others.
+
 ## 0.9.0
 
 - `ItemDef` and `ItemSet` say what an item is. `ItemStack` is a count of

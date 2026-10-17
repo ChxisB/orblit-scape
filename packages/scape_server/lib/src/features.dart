@@ -2,16 +2,20 @@ import 'package:scape_core/scape_core.dart';
 
 import 'engine/registry.dart';
 import 'engine/services.dart';
+import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
 import 'features/movement/movement.dart';
+import 'features/objects/objects.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
 
 /// What the rest of the server may reach into after the features register.
 typedef Features = ({
   GroundItems ground,
+  Interactions interactions,
   Items items,
+  WorldObjects objects,
   Skills skills,
   Social social,
 });
@@ -24,6 +28,7 @@ Features registerFeatures(
   required TileCoord spawn,
   required SkillSet skills,
   required ItemSet items,
+  required ObjectSet objects,
 }) {
   final movement = Movement.register(registry, services, spawn: spawn);
   final social = Social.register(
@@ -32,15 +37,26 @@ Features registerFeatures(
     standing: movement.standing,
   );
   final bags = Items.register(registry, services, items: items);
+  final ground = GroundItems.register(
+    registry,
+    services,
+    items: items,
+    tileOf: movement.tileOf,
+    inventoryOf: (player) => bags.container(player, ContainerId.inventory),
+  );
+  final placed = WorldObjects.register(registry, services, objects: objects);
   return (
-    ground: GroundItems.register(
+    ground: ground,
+    interactions: Interactions.register(
       registry,
       services,
-      items: items,
-      tileOf: movement.tileOf,
-      inventoryOf: (player) => bags.container(player, ContainerId.inventory),
+      movement: movement,
+      objects: placed,
+      ground: ground,
+      items: bags,
     ),
     items: bags,
+    objects: placed,
     skills: Skills.register(registry, services, skills: skills),
     social: social,
   );

@@ -28,6 +28,16 @@ typedef GroundSprite = ({
   int plane,
 });
 
+/// An object standing in view, with the position it is drawn at now.
+typedef ObjectSprite = ({
+  int networkId,
+  int def,
+  int state,
+  double x,
+  double y,
+  int plane,
+});
+
 /// A line of public chat to draw over the actor [networkId] is.
 typedef Bubble = ({int networkId, String text});
 
@@ -65,9 +75,14 @@ final class GameSession {
       kind: ComponentKind.int32,
       arity: groundItemInts,
     );
+    _object = _world.registerComponent(
+      worldObjectName,
+      kind: ComponentKind.int32,
+      arity: worldObjectInts,
+    );
     _client = NetClient(
       world: _world,
-      set: ReplicationSet([_position, _ground]),
+      set: ReplicationSet([_position, _ground, _object]),
       networkId: networkId,
       transport: transport,
       interpolationDelay: interpolationDelay,
@@ -105,6 +120,7 @@ final class GameSession {
   final World _world;
   late final ComponentType _position;
   late final ComponentType _ground;
+  late final ComponentType _object;
   late final NetClient _client;
   final List<String> _notices = [];
   final List<Heard> _whispers = [];
@@ -160,6 +176,28 @@ final class GameSession {
   void walkTo(TileCoord tile) =>
       _client.sendMessage(encodeClientMessage(Walk(tile)));
 
+  /// Picks option [option] of the object [networkId].
+  void useObject(int networkId, int option) => _interact(
+    Interact(kind: InteractKind.object, id: networkId, option: option),
+  );
+
+  /// Picks up the item lying on the ground that [networkId] names.
+  void takeItem(int networkId) =>
+      _interact(Interact(kind: InteractKind.ground, id: networkId, option: 0));
+
+  /// Uses the inventory item in [slot] on the object [networkId].
+  void useItemOnObject(int slot, int networkId) => _interact(
+    Interact(kind: InteractKind.useOnObject, id: networkId, option: slot),
+  );
+
+  /// Uses the inventory item in [slot] on the one in [onSlot].
+  void useItemOnItem(int slot, int onSlot) => _interact(
+    Interact(kind: InteractKind.useOnItem, id: onSlot, option: slot),
+  );
+
+  void _interact(Interact click) =>
+      _client.sendMessage(encodeClientMessage(click));
+
   /// Says [text] to the players nearby. The text must satisfy [isValidText].
   void say(String text) => _client.sendMessage(encodeClientMessage(Chat(text)));
 
@@ -181,7 +219,13 @@ final class GameSession {
   /// Every actor in view, with the position it is drawn at now.
   List<Actor> get actors => [
     for (final networkId in _client.networkIds)
-      if (!_isGround(networkId)) _actorFor(networkId),
+      if (!_isGround(networkId) && !_isObject(networkId)) _actorFor(networkId),
+  ];
+
+  /// Every object in view, such as a door or a tree, with its state.
+  List<ObjectSprite> get objects => [
+    for (final networkId in _client.networkIds)
+      if (_isObject(networkId)) _objectFor(networkId),
   ];
 
   /// Every item lying in view, with the position it is drawn at now.
@@ -192,6 +236,23 @@ final class GameSession {
 
   bool _isGround(int networkId) =>
       _world.has(_client.entityFor(networkId)!, _ground);
+
+  bool _isObject(int networkId) =>
+      _world.has(_client.entityFor(networkId)!, _object);
+
+  ObjectSprite _objectFor(int networkId) {
+    final entity = _client.entityFor(networkId)!;
+    final point = readTilePoint(_world.bytesOf(entity, _position)!);
+    final data = ByteData.sublistView(_world.bytesOf(entity, _object)!);
+    return (
+      networkId: networkId,
+      def: data.getInt32(0, Endian.little),
+      state: data.getInt32(4, Endian.little),
+      x: point.x,
+      y: point.y,
+      plane: point.plane,
+    );
+  }
 
   GroundSprite _spriteFor(int networkId) {
     final entity = _client.entityFor(networkId)!;

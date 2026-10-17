@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.7.0
+
+- `GameSession.objects` lists the objects in view with their state,
+  apart from the `actors`.
+- `useObject`, `takeItem`, `useItemOnObject` and `useItemOnItem` send a
+  click to the server.
+
 ## 0.6.0
 
 - `GameSession.itemAt` reads the slots the server has sent. A session

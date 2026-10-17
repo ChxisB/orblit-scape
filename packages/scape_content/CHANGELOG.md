@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.0
+
+- `defaultObjects`: a door that opens and closes, and stairs up and
+  down. `ObjectId` names each one.
+
 ## 0.3.0
 
 - `defaultItems`: coins, logs, copper ore, bronze bars, raw and cooked

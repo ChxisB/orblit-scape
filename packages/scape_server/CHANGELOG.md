@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.8.0
+
+- `WorldObjects` places doors, stairs and the like. A state change tells
+  the clients near it and frees or blocks the object's tiles.
+- `Interactions` walks a player to where they can reach a thing, then
+  runs what the click names: an object option, a pick up from the ground,
+  an item used on an object or an item used on an item. A walk or a new
+  click cancels one that has not run. Features add their own actions with
+  `addObjectAction`, `addUseOnObject` and `addUseOnItem`.
+- `ScapeServer` takes the `objects` of the game.
+
 ## 0.7.0
 
 - `Items` holds each player's inventory, equipment and bank. The owner is

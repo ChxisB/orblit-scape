@@ -16,4 +16,7 @@ extension type const TileFlags(int bits) {
 
   /// Whether any bit of [flag] is set.
   bool has(TileFlags flag) => bits & flag.bits != 0;
+
+  /// These flags with every bit of [flag] cleared.
+  TileFlags without(TileFlags flag) => TileFlags(bits & ~flag.bits);
 }

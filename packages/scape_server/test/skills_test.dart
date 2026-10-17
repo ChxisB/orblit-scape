@@ -46,6 +46,7 @@ void main() {
       spawn: spawnTile,
       skills: defaultSkills,
       items: defaultItems,
+      objects: defaultObjects,
     );
   });
 

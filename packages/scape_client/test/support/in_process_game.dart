@@ -53,6 +53,7 @@ final class InProcessGame {
       spawn: TileCoord(32, 32, 0),
       skills: defaultSkills,
       items: defaultItems,
+      objects: defaultObjects,
     );
   }
 

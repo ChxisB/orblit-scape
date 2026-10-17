@@ -11,8 +11,10 @@ import 'engine/services.dart';
 import 'engine/summary_text.dart';
 import 'engine/tick_loop.dart';
 import 'features.dart';
+import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
+import 'features/objects/objects.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
 import 'inbox.dart';
@@ -71,6 +73,7 @@ final class ScapeServer {
     required TileCoord spawn,
     required SkillSet skills,
     required ItemSet items,
+    required ObjectSet objects,
   }) {
     final networkId = world.registerComponent(
       'NetworkId',
@@ -92,11 +95,14 @@ final class ScapeServer {
       spawn: spawn,
       skills: skills,
       items: items,
+      objects: objects,
     );
     social = features.social;
     this.skills = features.skills;
     this.items = features.items;
     ground = features.ground;
+    this.objects = features.objects;
+    interactions = features.interactions;
     final set = ReplicationSet(registry.replicated);
     final nearby = GridInterest(
       set: set,
@@ -147,6 +153,8 @@ final class ScapeServer {
   late final Skills skills;
   late final Items items;
   late final GroundItems ground;
+  late final WorldObjects objects;
+  late final Interactions interactions;
   late final Wire wire;
   late final NetHost host;
   late final TickLoop loop;
