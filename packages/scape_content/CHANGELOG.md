@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.6.0
+
+- `defaultNpcs` gives the chicken, goblin and guard their behaviour.
+  `NpcId` names each one.
+
 ## 0.5.0
 
 - `defaultNodes` gives the tree, rock and fishing spot their numbers.

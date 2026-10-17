@@ -59,6 +59,11 @@ final class Movement {
   /// in the world.
   int? actorOf(String player) => _players[player]?.entity;
 
+  /// The tile each player in the world stands on.
+  Iterable<TileCoord> get tiles => [
+    for (final player in _players.values) player.mover.position,
+  ];
+
   bool isMoving(String player) => _players[player]?.mover.isMoving ?? false;
 
   /// Sets [player] walking along [steps], each beside the one before, or

@@ -1,7 +1,7 @@
 name: scape_core
 description: >-
   Tile coordinates, flags, paths and the rules a server and a client share.
-version: 0.11.0
+version: 0.12.0
 publish_to: none
 
 environment:

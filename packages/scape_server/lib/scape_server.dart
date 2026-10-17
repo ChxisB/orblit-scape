@@ -26,6 +26,8 @@ export 'src/features/items/ground.dart'
         groundPublicTicks;
 export 'src/features/items/items.dart' show Items;
 export 'src/features/movement/movement.dart' show Movement;
+export 'src/features/npcs/npcs.dart'
+    show Npcs, PlacedNpc, PlayerTiles, wanderChance;
 export 'src/features/objects/objects.dart' show PlacedObject, WorldObjects;
 export 'src/features/skills/skills.dart' show Skills;
 export 'src/features/social/social.dart' show Social, chatRadius;
@@ -34,4 +36,4 @@ export 'src/server.dart' show ScapeServer;
 export 'src/wire.dart' show Wire, WireLink;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeServerVersion = '0.9.0';
+const scapeServerVersion = '0.10.0';

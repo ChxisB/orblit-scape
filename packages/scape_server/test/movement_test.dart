@@ -49,6 +49,7 @@ void main() {
       items: defaultItems,
       objects: defaultObjects,
       nodes: defaultNodes,
+      npcs: defaultNpcs,
     );
   });
 
@@ -185,6 +186,7 @@ void main() {
         items: defaultItems,
         objects: defaultObjects,
         nodes: defaultNodes,
+        npcs: defaultNpcs,
       ),
       throwsArgumentError,
     );

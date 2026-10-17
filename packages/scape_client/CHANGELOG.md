@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.8.0
+
+- `GameSession.npcs` lists the creatures in view with their kind. They
+  are not `actors`.
+
 ## 0.7.0
 
 - `GameSession.objects` lists the objects in view with their state,

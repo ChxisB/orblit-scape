@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.10.0
+
+- `Npcs` places creatures and moves them on the NPC phase. A wanderer
+  stays inside its radius. An aggressive creature notices a player at its
+  sight and follows until the player leaves its leash, then walks home.
+- A creature only moves while a player is near its home. When its cell
+  wakes it stands at home again.
+- `ScapeServer` takes `npcs`. `Movement.tiles` lists where players
+  stand.
+
 ## 0.9.0
 
 - `Gathering` adds the `gather` object option. A player tries every

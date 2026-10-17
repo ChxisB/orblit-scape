@@ -105,6 +105,7 @@ void main() {
       items: defaultItems,
       objects: defaultObjects,
       nodes: nodes ?? defaultNodes,
+      npcs: defaultNpcs,
       random: rolls,
     );
     tree = server.objects.place(ObjectId.tree, at(33, 32));

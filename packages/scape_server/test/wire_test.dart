@@ -35,6 +35,7 @@ void main() {
       items: defaultItems,
       objects: defaultObjects,
       nodes: defaultNodes,
+      npcs: defaultNpcs,
     );
   });
 

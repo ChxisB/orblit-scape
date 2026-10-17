@@ -30,6 +30,7 @@ Future<void> main(List<String> args) async {
     items: defaultItems,
     objects: defaultObjects,
     nodes: defaultNodes,
+    npcs: defaultNpcs,
   );
   final sockets = await server.listen(
     port: args.isEmpty ? 7600 : int.parse(args.first),

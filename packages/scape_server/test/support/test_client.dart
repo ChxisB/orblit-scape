@@ -34,9 +34,14 @@ final class TestClient {
       kind: ComponentKind.int32,
       arity: worldObjectInts,
     );
+    npc = world.registerComponent(
+      npcName,
+      kind: ComponentKind.int32,
+      arity: npcInts,
+    );
     client = NetClient(
       world: world,
-      set: ReplicationSet([position, ground, object]),
+      set: ReplicationSet([position, ground, object, npc]),
       networkId: networkId,
       transport: link.client,
       onMessage: (body) => received.add(decodeServerMessage(body)),
@@ -50,6 +55,7 @@ final class TestClient {
   late final ComponentType position;
   late final ComponentType ground;
   late final ComponentType object;
+  late final ComponentType npc;
   late final NetClient client;
   final List<Decoded<ServerMessage>> received = [];
   final List<String> goodbyes = [];
@@ -85,6 +91,16 @@ final class TestClient {
     final data = ByteData.sublistView(world.bytesOf(entity, object)!);
     return (data.getInt32(0, Endian.little), data.getInt32(4, Endian.little));
   }
+
+  /// The creatures this client has been told about, as their definition id
+  /// by network id.
+  Map<int, int> get npcs => {
+    for (final networkId in client.networkIds)
+      if (client.world.has(client.entityFor(networkId)!, npc))
+        networkId: ByteData.sublistView(
+          world.bytesOf(client.entityFor(networkId)!, npc)!,
+        ).getInt32(0, Endian.little),
+  };
 
   /// The tile the entity with [networkId] stands on, as this client sees it.
   TileCoord? tileOf(int networkId) {

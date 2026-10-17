@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0
+
+- `NpcDef`, `NpcSet` and `NpcSpawn` say what a creature is and where it
+  stands. A creature is idle, wanders, or is aggressive with a sight and
+  a leash.
+- `npcName` names the replicated component that carries a creature's id.
+
 ## 0.11.0
 
 - `NodeDef` and `NodeSet` say what a tree, a rock or a fishing spot gives:

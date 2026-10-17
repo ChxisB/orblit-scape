@@ -9,6 +9,7 @@ import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
 import 'features/movement/movement.dart';
+import 'features/npcs/npcs.dart';
 import 'features/objects/objects.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
@@ -18,6 +19,7 @@ typedef Features = ({
   GroundItems ground,
   Interactions interactions,
   Items items,
+  Npcs npcs,
   WorldObjects objects,
   Skills skills,
   Social social,
@@ -33,6 +35,7 @@ Features registerFeatures(
   required ItemSet items,
   required ObjectSet objects,
   required NodeSet nodes,
+  required NpcSet npcs,
   required Random random,
 }) {
   final movement = Movement.register(registry, services, spawn: spawn);
@@ -48,6 +51,13 @@ Features registerFeatures(
     items: items,
     tileOf: movement.tileOf,
     inventoryOf: (player) => bags.container(player, ContainerId.inventory),
+  );
+  final creatures = Npcs.register(
+    registry,
+    services,
+    npcs: npcs,
+    playerTiles: () => movement.tiles,
+    random: random,
   );
   final placed = WorldObjects.register(registry, services, objects: objects);
   final levels = Skills.register(registry, services, skills: skills);
@@ -75,6 +85,7 @@ Features registerFeatures(
     ground: ground,
     interactions: interactions,
     items: bags,
+    npcs: creatures,
     objects: placed,
     skills: levels,
     social: social,

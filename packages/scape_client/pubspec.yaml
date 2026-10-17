@@ -1,6 +1,6 @@
 name: scape_client
 description: The orblit-scape app, with its drawing, input and panels.
-version: 0.7.0
+version: 0.8.0
 publish_to: none
 
 environment:

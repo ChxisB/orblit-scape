@@ -38,6 +38,9 @@ typedef ObjectSprite = ({
   int plane,
 });
 
+/// A creature standing in view, with the position it is drawn at now.
+typedef NpcSprite = ({int networkId, int def, double x, double y, int plane});
+
 /// A line of public chat to draw over the actor [networkId] is.
 typedef Bubble = ({int networkId, String text});
 
@@ -80,9 +83,14 @@ final class GameSession {
       kind: ComponentKind.int32,
       arity: worldObjectInts,
     );
+    _npc = _world.registerComponent(
+      npcName,
+      kind: ComponentKind.int32,
+      arity: npcInts,
+    );
     _client = NetClient(
       world: _world,
-      set: ReplicationSet([_position, _ground, _object]),
+      set: ReplicationSet([_position, _ground, _object, _npc]),
       networkId: networkId,
       transport: transport,
       interpolationDelay: interpolationDelay,
@@ -121,6 +129,7 @@ final class GameSession {
   late final ComponentType _position;
   late final ComponentType _ground;
   late final ComponentType _object;
+  late final ComponentType _npc;
   late final NetClient _client;
   final List<String> _notices = [];
   final List<Heard> _whispers = [];
@@ -219,13 +228,19 @@ final class GameSession {
   /// Every actor in view, with the position it is drawn at now.
   List<Actor> get actors => [
     for (final networkId in _client.networkIds)
-      if (!_isGround(networkId) && !_isObject(networkId)) _actorFor(networkId),
+      if (_isActor(networkId)) _actorFor(networkId),
   ];
 
   /// Every object in view, such as a door or a tree, with its state.
   List<ObjectSprite> get objects => [
     for (final networkId in _client.networkIds)
       if (_isObject(networkId)) _objectFor(networkId),
+  ];
+
+  /// Every creature in view, such as a chicken or a guard.
+  List<NpcSprite> get npcs => [
+    for (final networkId in _client.networkIds)
+      if (_isNpc(networkId)) _npcFor(networkId),
   ];
 
   /// Every item lying in view, with the position it is drawn at now.
@@ -236,6 +251,25 @@ final class GameSession {
 
   bool _isGround(int networkId) =>
       _world.has(_client.entityFor(networkId)!, _ground);
+
+  bool _isNpc(int networkId) => _world.has(_client.entityFor(networkId)!, _npc);
+
+  bool _isActor(int networkId) =>
+      !_isGround(networkId) && !_isObject(networkId) && !_isNpc(networkId);
+
+  NpcSprite _npcFor(int networkId) {
+    final entity = _client.entityFor(networkId)!;
+    final point = readTilePoint(_world.bytesOf(entity, _position)!);
+    return (
+      networkId: networkId,
+      def: ByteData.sublistView(
+        _world.bytesOf(entity, _npc)!,
+      ).getInt32(0, Endian.little),
+      x: point.x,
+      y: point.y,
+      plane: point.plane,
+    );
+  }
 
   bool _isObject(int networkId) =>
       _world.has(_client.entityFor(networkId)!, _object);
