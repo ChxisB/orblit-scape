@@ -1,15 +1,32 @@
 name: scape_client
 description: The orblit-scape app, with its drawing, input and panels.
-version: 0.1.0
+version: 0.2.0
 publish_to: none
 
 environment:
   sdk: ^3.10.0
 
 dependencies:
+  orblit_core:
+    git:
+      url: https://github.com/ChxisB/orblit.git
+      path: packages/orblit_core
+      ref: main
+  orblit_net:
+    git:
+      url: https://github.com/ChxisB/orblit-net.git
+      ref: main
+  orblit_terrain:
+    git:
+      url: https://github.com/ChxisB/orblit.git
+      path: packages/orblit_terrain
+      ref: main
   scape_core:
     path: ../scape_core
+  vector_math: ^2.1.4
 
 dev_dependencies:
   lints: ^5.0.0
+  scape_server:
+    path: ../scape_server
   test: ^1.25.0

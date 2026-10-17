@@ -1,7 +1,8 @@
 #!/bin/bash
-# Points the server at sibling checkouts instead of git dependencies, so a
+# Points the packages at sibling checkouts instead of git dependencies, so a
 # change to the engine or to networking can be tried here before it is pushed.
-# The override is not committed, so nobody ships a build wired to a local path.
+# The overrides are not committed, so nobody ships a build wired to a local
+# path.
 #
 # Usage: link_local.sh [engine] [networking]
 set -euo pipefail
@@ -27,5 +28,17 @@ dependency_overrides:
     path: $NET
 YAML
 
+cat > packages/scape_client/pubspec_overrides.yaml <<YAML
+# Written by tool/link_local.sh. Not committed.
+dependency_overrides:
+  orblit_core:
+    path: $ENGINE/packages/orblit_core
+  orblit_net:
+    path: $NET
+  orblit_terrain:
+    path: $ENGINE/packages/orblit_terrain
+YAML
+
 (cd packages/scape_server && dart pub get > /dev/null)
-echo "scape_server -> $ENGINE, $NET"
+(cd packages/scape_client && dart pub get > /dev/null)
+echo "scape_server, scape_client -> $ENGINE, $NET"
