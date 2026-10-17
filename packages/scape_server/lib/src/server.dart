@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:orblit_core/orblit_core.dart';
@@ -74,6 +75,8 @@ final class ScapeServer {
     required SkillSet skills,
     required ItemSet items,
     required ObjectSet objects,
+    required NodeSet nodes,
+    Random? random,
   }) {
     final networkId = world.registerComponent(
       'NetworkId',
@@ -96,6 +99,8 @@ final class ScapeServer {
       skills: skills,
       items: items,
       objects: objects,
+      nodes: nodes,
+      random: random ?? Random(),
     );
     social = features.social;
     this.skills = features.skills;

@@ -54,6 +54,7 @@ final class InProcessGame {
       skills: defaultSkills,
       items: defaultItems,
       objects: defaultObjects,
+      nodes: defaultNodes,
     );
   }
 

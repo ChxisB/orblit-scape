@@ -30,4 +30,14 @@ void main() {
       expect([for (final option in stairs.options) option.action], ['climb']);
     }
   });
+
+  test('a tree, a rock and a fishing spot are gathered only while full', () {
+    for (final id in [ObjectId.tree, ObjectId.rock, ObjectId.fishingSpot]) {
+      final node = defaultObjects.require(id);
+
+      expect([for (final option in node.options) option.action], ['gather']);
+      expect(node.options.single.offeredIn(0), isTrue);
+      expect(node.options.single.offeredIn(1), isFalse);
+    }
+  });
 }

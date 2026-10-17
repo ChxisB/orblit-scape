@@ -48,6 +48,7 @@ void main() {
       skills: defaultSkills,
       items: defaultItems,
       objects: defaultObjects,
+      nodes: defaultNodes,
     );
   });
 
@@ -183,6 +184,7 @@ void main() {
         skills: defaultSkills,
         items: defaultItems,
         objects: defaultObjects,
+        nodes: defaultNodes,
       ),
       throwsArgumentError,
     );

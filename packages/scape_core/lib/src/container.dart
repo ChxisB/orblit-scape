@@ -86,6 +86,17 @@ final class Container {
     return total;
   }
 
+  /// Whether one more of [item] would go in. Throws [ArgumentError] for an
+  /// item that does not exist.
+  bool canHold(int item) {
+    final def = _items.require(item);
+    return _slots.indexed.any((entry) {
+      final (slot, stack) = entry;
+      if (stack == null) return _allows(slot, ItemStack(item, 1));
+      return def.stackable && stack.item == item && stack.count < maxStack;
+    });
+  }
+
   /// Puts up to [count] of [item] in, into [tab] or anywhere when it is null,
   /// and returns how many went in. A stackable item fills its own stacks
   /// first. Throws [ArgumentError] for an item that does not exist and

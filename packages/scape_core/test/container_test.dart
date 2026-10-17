@@ -92,6 +92,40 @@ void main() {
     });
   });
 
+  group('canHold', () {
+    test('is true for an empty container and false for a full one', () {
+      final c = inventory();
+      expect(c.canHold(logs), isTrue);
+
+      c.add(logs, inventorySize);
+
+      expect(c.canHold(logs), isFalse);
+      expect(c.canHold(coins), isFalse);
+    });
+
+    test('is true for a stackable item that has a stack with room', () {
+      final c = inventory()..add(coins, 5);
+      c.add(logs, inventorySize - 1);
+
+      expect(c.canHold(coins), isTrue);
+    });
+
+    test('is false for a stack at the limit when no slot is free', () {
+      final c = inventory()..add(coins, maxStack);
+      c.add(logs, inventorySize - 1);
+
+      expect(c.canHold(coins), isFalse);
+    });
+
+    test('honours where an item may go', () {
+      final worn = bag(ContainerId.equipment);
+
+      expect(worn.canHold(helmet), isTrue);
+      expect(worn.canHold(logs), isFalse);
+      expect(() => worn.canHold(99), throwsArgumentError);
+    });
+  });
+
   group('take', () {
     test('takes part of a stack, all of it, and nothing from empty', () {
       final c = inventory()..add(coins, 10);

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.11.0
+
+- `NodeDef` and `NodeSet` say what a tree, a rock or a fishing spot gives:
+  the skill, level, tool, experience, product, the chance of a success
+  from level to full level, and how long a dry node stays dry.
+- `nodeFull` and `nodeDepleted` are the two states of a node object.
+- `Container.canHold` says whether one more of an item would go in.
+
 ## 0.10.0
 
 - `ObjectDef` and `ObjectSet` say what an object is: its size, whether it

@@ -34,6 +34,7 @@ void main() {
       skills: defaultSkills,
       items: defaultItems,
       objects: defaultObjects,
+      nodes: defaultNodes,
     );
   });
 

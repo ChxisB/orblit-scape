@@ -1,7 +1,10 @@
+import 'dart:math';
+
 import 'package:scape_core/scape_core.dart';
 
 import 'engine/registry.dart';
 import 'engine/services.dart';
+import 'features/gathering/gathering.dart';
 import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
@@ -29,6 +32,8 @@ Features registerFeatures(
   required SkillSet skills,
   required ItemSet items,
   required ObjectSet objects,
+  required NodeSet nodes,
+  required Random random,
 }) {
   final movement = Movement.register(registry, services, spawn: spawn);
   final social = Social.register(
@@ -45,19 +50,33 @@ Features registerFeatures(
     inventoryOf: (player) => bags.container(player, ContainerId.inventory),
   );
   final placed = WorldObjects.register(registry, services, objects: objects);
+  final levels = Skills.register(registry, services, skills: skills);
+  final interactions = Interactions.register(
+    registry,
+    services,
+    movement: movement,
+    objects: placed,
+    ground: ground,
+    items: bags,
+  );
+  Gathering.register(
+    registry,
+    services,
+    interactions: interactions,
+    nodes: nodes,
+    items: items,
+    objects: placed,
+    skills: levels,
+    bags: bags,
+    actorOf: movement.actorOf,
+    random: random,
+  );
   return (
     ground: ground,
-    interactions: Interactions.register(
-      registry,
-      services,
-      movement: movement,
-      objects: placed,
-      ground: ground,
-      items: bags,
-    ),
+    interactions: interactions,
     items: bags,
     objects: placed,
-    skills: Skills.register(registry, services, skills: skills),
+    skills: levels,
     social: social,
   );
 }

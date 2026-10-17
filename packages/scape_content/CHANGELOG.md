@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.0
+
+- `defaultNodes` gives the tree, rock and fishing spot their numbers.
+- Objects: tree, rock and fishing spot. Item: fishing net.
+
 ## 0.4.0
 
 - `defaultObjects`: a door that opens and closes, and stairs up and

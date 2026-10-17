@@ -13,6 +13,7 @@ export 'src/engine/phase.dart' show Phase;
 export 'src/engine/registry.dart' show IntentHandler, Registry;
 export 'src/engine/services.dart' show Hosting, Services;
 export 'src/engine/tick_loop.dart' show ClockPacer, Pacer, TickLoop;
+export 'src/features/gathering/gathering.dart' show gatherTicks;
 export 'src/features/interactions/interactions.dart'
     show Interactions, ObjectAction, UseOnItem, UseOnObject;
 export 'src/features/items/ground.dart'
@@ -33,4 +34,4 @@ export 'src/server.dart' show ScapeServer;
 export 'src/wire.dart' show Wire, WireLink;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeServerVersion = '0.8.0';
+const scapeServerVersion = '0.9.0';

@@ -16,6 +16,7 @@ void main() {
       ItemId.bronzeSword: 'Bronze sword',
       ItemId.woodenShield: 'Wooden shield',
       ItemId.bronzeHelmet: 'Bronze helmet',
+      ItemId.fishingNet: 'Fishing net',
     };
 
     expect(defaultItems.items, hasLength(named.length));

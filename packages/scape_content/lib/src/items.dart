@@ -16,6 +16,7 @@ abstract final class ItemId {
   static const int bronzeSword = 9;
   static const int woodenShield = 10;
   static const int bronzeHelmet = 11;
+  static const int fishingNet = 12;
 }
 
 /// The items of the first game.
@@ -62,5 +63,6 @@ final ItemSet defaultItems = ItemSet(
       equipSlot: 'head',
       needs: (skill: 'fighting', level: 1),
     ),
+    ItemDef(id: ItemId.fishingNet, name: 'Fishing net', value: 8),
   ],
 );

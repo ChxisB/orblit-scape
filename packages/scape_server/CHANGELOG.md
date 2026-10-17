@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.9.0
+
+- `Gathering` adds the `gather` object option. A player tries every
+  `gatherTicks` until the bag is full, the node runs dry or they do
+  something else. A dry node fills again on its tick, once a player is
+  near it.
+- `ScapeServer` takes `nodes`, and an optional `random` so a test can
+  roll the dice.
+
 ## 0.8.0
 
 - `WorldObjects` places doors, stairs and the like. A state change tells

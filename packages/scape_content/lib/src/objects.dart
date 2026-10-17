@@ -5,10 +5,14 @@ abstract final class ObjectId {
   static const int door = 1;
   static const int stairsUp = 2;
   static const int stairsDown = 3;
+  static const int tree = 4;
+  static const int rock = 5;
+  static const int fishingSpot = 6;
 }
 
 /// A door opens and shuts, and stairs lead to the next plane. Where stairs
-/// lead is set where each one is placed.
+/// lead is set where each one is placed. A tree, a rock and a fishing spot
+/// can be gathered from while in state 0 and are bare in state 1.
 final ObjectSet defaultObjects = ObjectSet(
   objects: [
     ObjectDef(
@@ -29,6 +33,25 @@ final ObjectSet defaultObjects = ObjectSet(
       id: ObjectId.stairsDown,
       name: 'Stairs',
       options: [ObjectOption(label: 'Climb down', action: 'climb')],
+    ),
+    ObjectDef(
+      id: ObjectId.tree,
+      name: 'Tree',
+      solid: true,
+      options: [
+        ObjectOption(label: 'Chop down', action: 'gather', whenState: 0),
+      ],
+    ),
+    ObjectDef(
+      id: ObjectId.rock,
+      name: 'Rock',
+      solid: true,
+      options: [ObjectOption(label: 'Mine', action: 'gather', whenState: 0)],
+    ),
+    ObjectDef(
+      id: ObjectId.fishingSpot,
+      name: 'Fishing spot',
+      options: [ObjectOption(label: 'Net', action: 'gather', whenState: 0)],
     ),
   ],
 );

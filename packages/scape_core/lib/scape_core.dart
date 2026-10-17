@@ -55,6 +55,7 @@ export 'src/messages.dart'
         maxTextBytes,
         nameKey;
 export 'src/mover.dart' show MoveSpeed, Mover;
+export 'src/nodes.dart' show NodeDef, NodeSet, nodeDepleted, nodeFull;
 export 'src/objects.dart'
     show
         InteractKind,
@@ -98,4 +99,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.10.0';
+const scapeCoreVersion = '0.11.0';

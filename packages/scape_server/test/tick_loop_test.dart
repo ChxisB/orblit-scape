@@ -43,6 +43,7 @@ void main() {
       skills: defaultSkills,
       items: defaultItems,
       objects: defaultObjects,
+      nodes: defaultNodes,
     );
     pacer.server = server;
     addTearDown(server.dispose);
