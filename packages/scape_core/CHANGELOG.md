@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.9.0
+
+- `ItemDef` and `ItemSet` say what an item is. `ItemStack` is a count of
+  one item, up to `maxStack`, which fits a signed 32-bit integer.
+- `Container` is a row of slots with `add`, `take`, `move`, `swap`,
+  `stack`, `split` and `transfer`. Each call moves everything it reports
+  or nothing, and a refusal is an `Outcome`. `Container.forId` builds the
+  inventory, the equipment and the bank.
+- `encodeSlots` and `tryDecodeSlots` write and read the slots that changed
+  as `PrivateState` deltas. `itemsDeltaTag` starts one. A bank is sent in
+  as many deltas as it needs.
+- `groundItemName` and `groundItemInts` name the replicated component of
+  an item lying on a tile.
+
 ## 0.8.0
 
 - `SkillDef`, `XpCurve` and `SkillSet` say what a skill is and what level

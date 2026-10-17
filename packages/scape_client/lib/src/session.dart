@@ -18,6 +18,16 @@ const int _keepLines = 100;
 /// One actor as the client draws it.
 typedef Actor = ({int networkId, double x, double y, int plane, bool mine});
 
+/// An item lying on the ground, with the position it is drawn at now.
+typedef GroundSprite = ({
+  int networkId,
+  int item,
+  int count,
+  double x,
+  double y,
+  int plane,
+});
+
 /// A line of public chat to draw over the actor [networkId] is.
 typedef Bubble = ({int networkId, String text});
 
@@ -30,10 +40,15 @@ final class GameSession {
   GameSession({
     required Transport transport,
     required SkillSet skills,
+    required ItemSet items,
     double Function()? clock,
   }) : _transport = transport,
        _skills = skills,
+       _items = items,
        _skillXp = ProgressTable(skills.schema),
+       _containers = {
+         for (final id in ContainerId.values) id: Container.forId(id, items),
+       },
        _now = clock ?? _stopwatchClock(),
        _world = World() {
     final networkId = _world.registerComponent(
@@ -45,9 +60,14 @@ final class GameSession {
       kind: ComponentKind.float32,
       arity: tilePositionFloats,
     );
+    _ground = _world.registerComponent(
+      groundItemName,
+      kind: ComponentKind.int32,
+      arity: groundItemInts,
+    );
     _client = NetClient(
       world: _world,
-      set: ReplicationSet([_position]),
+      set: ReplicationSet([_position, _ground]),
       networkId: networkId,
       transport: transport,
       interpolationDelay: interpolationDelay,
@@ -62,10 +82,12 @@ final class GameSession {
   static Future<GameSession> connect(
     Uri url, {
     required SkillSet skills,
+    required ItemSet items,
     double Function()? clock,
   }) async => GameSession(
     transport: await SocketTransport.connect(url),
     skills: skills,
+    items: items,
     clock: clock,
   );
 
@@ -76,10 +98,13 @@ final class GameSession {
 
   final Transport _transport;
   final SkillSet _skills;
+  final ItemSet _items;
+  final Map<ContainerId, Container> _containers;
   ProgressTable _skillXp;
   final double Function() _now;
   final World _world;
   late final ComponentType _position;
+  late final ComponentType _ground;
   late final NetClient _client;
   final List<String> _notices = [];
   final List<Heard> _whispers = [];
@@ -121,6 +146,11 @@ final class GameSession {
   /// The level that experience gives, up to the skill's cap.
   int levelOf(String skill) => _skills.levelOf(_skill(skill), xpOf(skill));
 
+  /// What the server has told the player is in [slot] of [container], or null
+  /// for an empty slot and for a slot that does not exist.
+  ItemStack? itemAt(ContainerId container, int slot) =>
+      _containers[container]!.at(slot);
+
   SkillDef _skill(String id) =>
       _skills.find(id) ??
       (throw ArgumentError.value(id, 'skill', 'is unknown'));
@@ -150,8 +180,32 @@ final class GameSession {
 
   /// Every actor in view, with the position it is drawn at now.
   List<Actor> get actors => [
-    for (final networkId in _client.networkIds) _actorFor(networkId),
+    for (final networkId in _client.networkIds)
+      if (!_isGround(networkId)) _actorFor(networkId),
   ];
+
+  /// Every item lying in view, with the position it is drawn at now.
+  List<GroundSprite> get groundItems => [
+    for (final networkId in _client.networkIds)
+      if (_isGround(networkId)) _spriteFor(networkId),
+  ];
+
+  bool _isGround(int networkId) =>
+      _world.has(_client.entityFor(networkId)!, _ground);
+
+  GroundSprite _spriteFor(int networkId) {
+    final entity = _client.entityFor(networkId)!;
+    final point = readTilePoint(_world.bytesOf(entity, _position)!);
+    final data = ByteData.sublistView(_world.bytesOf(entity, _ground)!);
+    return (
+      networkId: networkId,
+      item: data.getInt32(0, Endian.little),
+      count: data.getInt32(4, Endian.little),
+      x: point.x,
+      y: point.y,
+      plane: point.plane,
+    );
+  }
 
   Actor _actorFor(int networkId) {
     final bytes = _world.bytesOf(_client.entityFor(networkId)!, _position)!;
@@ -188,9 +242,16 @@ final class GameSession {
   }
 
   void _applyPrivate(Uint8List delta) {
-    if (delta.isEmpty || delta[0] != skillsDeltaTag) return;
-    final changes = Changes.tryDecode(_skills.schema, delta.sublist(1));
-    if (changes != null) _skillXp = _skillXp.apply(changes);
+    if (delta.isEmpty) return;
+    switch (delta[0]) {
+      case skillsDeltaTag:
+        final changes = Changes.tryDecode(_skills.schema, delta.sublist(1));
+        if (changes != null) _skillXp = _skillXp.apply(changes);
+      case itemsDeltaTag:
+        if (tryDecodeSlots(delta, _items) case final slots?) {
+          _containers[slots.container]!.mirror(slots.changes);
+        }
+    }
   }
 
   void _keep<T>(List<T> lines, T line) {

@@ -1,6 +1,17 @@
 /// Tile coordinates, flags, paths and the rules a server and a client share.
 library;
 
+export 'src/container.dart'
+    show
+        Accepts,
+        Container,
+        ContainerId,
+        Outcome,
+        SlotChange,
+        bankTabSize,
+        bankTabs,
+        inventorySize;
+export 'src/container_codec.dart' show SlotsDelta, encodeSlots, tryDecodeSlots;
 export 'src/flag_region.dart' show FlagRegion;
 export 'src/flag_region_file.dart'
     show decodeFlagRegion, encodeFlagRegion, flagRegionVersion;
@@ -47,6 +58,18 @@ export 'src/mover.dart' show MoveSpeed, Mover;
 export 'src/path.dart'
     show PathResult, defaultPathMargin, findPath, findPathToReach;
 export 'src/line_of_sight.dart' show hasClearLine;
+export 'src/items.dart'
+    show
+        ItemDef,
+        ItemSet,
+        ItemStack,
+        Needs,
+        equipmentSlots,
+        groundItemInts,
+        groundItemName,
+        itemsDeltaTag,
+        maxItemId,
+        maxStack;
 export 'src/skills.dart'
     show SkillDef, SkillSet, XpCurve, maxLevel, skillsDeltaTag;
 export 'src/reach.dart'
@@ -66,4 +89,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.8.0';
+const scapeCoreVersion = '0.9.0';

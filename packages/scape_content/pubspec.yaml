@@ -1,6 +1,6 @@
 name: scape_content
 description: Data files and art built in code for orblit-scape.
-version: 0.2.0
+version: 0.3.0
 publish_to: none
 
 environment:

@@ -4,12 +4,15 @@ import 'package:orblit_core/orblit_core.dart';
 import 'package:orblit_net/orblit_net.dart';
 import 'package:scape_core/scape_core.dart';
 
+import 'engine/filtered_interest.dart';
 import 'engine/phase.dart';
 import 'engine/registry.dart';
 import 'engine/services.dart';
 import 'engine/summary_text.dart';
 import 'engine/tick_loop.dart';
 import 'features.dart';
+import 'features/items/ground.dart';
+import 'features/items/items.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
 import 'inbox.dart';
@@ -67,6 +70,7 @@ final class ScapeServer {
     required TileMap map,
     required TileCoord spawn,
     required SkillSet skills,
+    required ItemSet items,
   }) {
     final networkId = world.registerComponent(
       'NetworkId',
@@ -87,11 +91,14 @@ final class ScapeServer {
       Services(world: world, map: map, hosting: bridge, active: active),
       spawn: spawn,
       skills: skills,
+      items: items,
     );
     social = features.social;
     this.skills = features.skills;
+    this.items = features.items;
+    ground = features.ground;
     final set = ReplicationSet(registry.replicated);
-    final interest = GridInterest(
+    final nearby = GridInterest(
       set: set,
       position: registry.replicated.firstWhere(
         (c) => c.name == tilePositionName,
@@ -99,7 +106,8 @@ final class ScapeServer {
       grid: grid,
       ring: _interestRing,
     );
-    registry.addSystem(Phase.inbound, () => active.update(interest.focusCells));
+    final interest = FilteredInterest(nearby, ground.canSee);
+    registry.addSystem(Phase.inbound, () => active.update(nearby.focusCells));
     host = NetHost(
       world: world,
       set: set,
@@ -137,6 +145,8 @@ final class ScapeServer {
   late final ActiveCells active;
   late final Social social;
   late final Skills skills;
+  late final Items items;
+  late final GroundItems ground;
   late final Wire wire;
   late final NetHost host;
   late final TickLoop loop;

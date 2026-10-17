@@ -24,9 +24,14 @@ final class TestClient {
       kind: ComponentKind.float32,
       arity: tilePositionFloats,
     );
+    ground = world.registerComponent(
+      groundItemName,
+      kind: ComponentKind.int32,
+      arity: groundItemInts,
+    );
     client = NetClient(
       world: world,
-      set: ReplicationSet([position]),
+      set: ReplicationSet([position, ground]),
       networkId: networkId,
       transport: link.client,
       onMessage: (body) => received.add(decodeServerMessage(body)),
@@ -38,6 +43,7 @@ final class TestClient {
   final World world = World();
   final LoopbackLink link = LoopbackLink();
   late final ComponentType position;
+  late final ComponentType ground;
   late final NetClient client;
   final List<Decoded<ServerMessage>> received = [];
   final List<String> goodbyes = [];
@@ -47,6 +53,19 @@ final class TestClient {
     for (final decoded in received)
       if (decoded case Understood(:final message)) message,
   ];
+
+  /// The items on the ground this client has been told about, as
+  /// (item, count) by network id.
+  Map<int, (int, int)> get groundItems => {
+    for (final networkId in client.networkIds)
+      if (client.world.has(client.entityFor(networkId)!, ground))
+        networkId: _readGround(client.entityFor(networkId)!),
+  };
+
+  (int, int) _readGround(int entity) {
+    final data = ByteData.sublistView(world.bytesOf(entity, ground)!);
+    return (data.getInt32(0, Endian.little), data.getInt32(4, Endian.little));
+  }
 
   /// The tile the entity with [networkId] stands on, as this client sees it.
   TileCoord? tileOf(int networkId) {

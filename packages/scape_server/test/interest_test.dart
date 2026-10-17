@@ -43,6 +43,7 @@ void main() {
       map: openWorld(),
       spawn: spawnTile,
       skills: defaultSkills,
+      items: defaultItems,
     );
   });
 

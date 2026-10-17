@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.7.0
+
+- `Items` holds each player's inventory, equipment and bank. The owner is
+  sent the slots that changed once a tick.
+- `GroundItems` puts items on tiles. An item first belongs to the player
+  who dropped it, `groundOwnerTicks`, and the other players are not told
+  of it. Then it is open to all for `groundPublicTicks` and vanishes.
+  `dropFrom` and `pickUp` return an `Outcome`.
+- `ScapeServer` takes the `items` of the game.
+
 ## 0.6.0
 
 - `Skills` holds each player's experience in a `ProgressTable`. `grant`

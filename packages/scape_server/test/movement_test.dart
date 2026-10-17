@@ -46,6 +46,7 @@ void main() {
       map: map,
       spawn: spawnTile,
       skills: defaultSkills,
+      items: defaultItems,
     );
   });
 
@@ -179,6 +180,7 @@ void main() {
         map: map,
         spawn: spawnTile,
         skills: defaultSkills,
+        items: defaultItems,
       ),
       throwsArgumentError,
     );

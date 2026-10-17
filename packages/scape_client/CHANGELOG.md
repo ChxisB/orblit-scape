@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.0
+
+- `GameSession.itemAt` reads the slots the server has sent. A session
+  takes the `items` of the game.
+- `groundItems` lists the items lying in view, apart from the `actors`.
+
 ## 0.5.0
 
 - `GameSession.xpOf` and `levelOf` read the experience the server has sent.

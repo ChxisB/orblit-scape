@@ -52,6 +52,7 @@ final class InProcessGame {
       map: openWorld(),
       spawn: TileCoord(32, 32, 0),
       skills: defaultSkills,
+      items: defaultItems,
     );
   }
 
@@ -70,6 +71,7 @@ final class InProcessGame {
     final session = GameSession(
       transport: link.client,
       skills: defaultSkills,
+      items: defaultItems,
       clock: () => seconds,
     );
     _sessions.add(session);
@@ -82,6 +84,7 @@ final class InProcessGame {
     final session = await GameSession.connect(
       sockets.url,
       skills: defaultSkills,
+      items: defaultItems,
     );
     _sessions.add(session);
     return session;

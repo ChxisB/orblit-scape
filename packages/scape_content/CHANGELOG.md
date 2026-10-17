@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- `defaultItems`: coins, logs, copper ore, bronze bars, raw and cooked
+  fish, a bronze axe, pickaxe, sword and helmet, and a wooden shield.
+  `ItemId` names each one.
+
 ## 0.2.0
 
 - `defaultSkills`: woodcutting, mining, fishing, cooking, smithing,

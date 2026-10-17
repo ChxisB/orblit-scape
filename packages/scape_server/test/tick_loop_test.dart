@@ -41,6 +41,7 @@ void main() {
       map: openWorld(),
       spawn: spawnTile,
       skills: defaultSkills,
+      items: defaultItems,
     );
     pacer.server = server;
     addTearDown(server.dispose);
