@@ -17,6 +17,9 @@ final class _Pool {
 
   /// The prayers that are on, in the order they were switched on.
   final Set<int> active = {};
+
+  /// The most points the player was last told they have.
+  int shownMax = 0;
 }
 
 /// Prayers a player switches on for a bonus to their fighting. Each one
@@ -57,13 +60,6 @@ final class Prayers {
       ).where((prayer) => prayer.stat == stat).firstOrNull?.percent ??
       0;
 
-  /// The prayer points [player] has left, or null when they are not in the
-  /// world.
-  int? pointsOf(String player) {
-    final pool = _pools[player];
-    return pool == null ? null : _points(player, pool);
-  }
-
   Iterable<PrayerDef> _active(String player) => [
     for (final id in _pools[player]?.active ?? const <int>{}) ?_set.find(id),
   ];
@@ -100,16 +96,16 @@ final class Prayers {
   }
 
   /// Spends the drain of every prayer that is on. A prayer that runs the
-  /// points out switches them all off.
+  /// points out switches them all off. A player whose level changed since
+  /// they were last told, by a login, a quest or a level, is told again.
   void _drain() {
     for (final MapEntry(key: player, value: pool) in _pools.entries) {
       pool.drained += _active(player).fold(0, (sum, p) => sum + p.drain);
       final spent = pool.drained ~/ _set.drainPerPoint;
-      if (spent == 0) continue;
       pool.drained -= spent * _set.drainPerPoint;
       pool.lost += spent;
-      if (_points(player, pool) == 0) _runOut(player, pool);
-      _show(player);
+      if (spent > 0 && _points(player, pool) == 0) _runOut(player, pool);
+      if (spent > 0 || pool.shownMax != _max(player)) _show(player);
     }
   }
 
@@ -121,6 +117,7 @@ final class Prayers {
 
   void _show(String player) {
     final pool = _pools[player]!; // every caller has just read it
+    pool.shownMax = _max(player);
     _services.hosting.tell(
       player,
       PrayerView(

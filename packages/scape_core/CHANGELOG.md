@@ -5,7 +5,8 @@
 - Ranged combat, magic and prayer. `CombatStyle` is melee, ranged or magic,
   and each beats one other for a 1.25 edge on a swing. `CombatBonus` takes a
   `style`, a `range` and an `ammo` kind, and an item may sit in the new
-  `ammo` equipment slot. `NpcFight.style` gives a creature a style.
+  `ammo` equipment slot. A ranged weapon needs a speed, a range and an
+  ammo kind. `NpcFight.style` gives a creature a style.
   `CombatRules.flightTicks` is how long a shot flies.
 - `SpellSet` and `SpellDef` describe spells that damage, stun or teleport.
   `PrayerSet` and `PrayerDef` describe prayers that raise a combat stat and

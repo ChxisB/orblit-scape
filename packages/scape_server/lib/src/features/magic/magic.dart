@@ -1,6 +1,5 @@
 import 'package:scape_core/scape_core.dart';
 
-import '../../engine/action.dart';
 import '../../engine/registry.dart';
 import '../../engine/services.dart';
 import '../combat/combat.dart';
@@ -16,7 +15,6 @@ import '../skills/skills.dart';
 final class Magic {
   Magic._(
     this._services,
-    this._registry,
     this._spells, {
     required Skills skills,
     required Items bags,
@@ -42,7 +40,6 @@ final class Magic {
   }) {
     final feature = Magic._(
       services,
-      registry,
       spells,
       skills: skills,
       bags: bags,
@@ -55,19 +52,12 @@ final class Magic {
   }
 
   final Services _services;
-  final Registry _registry;
   final SpellSet _spells;
   final Skills _skills;
   final Items _bags;
   final Combat _combat;
   final Movement _movement;
   final Npcs _npcs;
-
-  /// Queued to cancel the attack a player had waiting when they teleport.
-  final ActionKind _teleport = ActionKind(
-    'teleport',
-    cancels: const CancelsAll(),
-  );
 
   void _onIntent(String player, Intent intent) {
     if (intent is! Cast) return;
@@ -81,7 +71,8 @@ final class Magic {
       return _tell(player, 'You do not have what that spell costs.');
     }
     _skills.award(player, _spells.skill, spell.xp);
-    _cast(player, spell, target);
+    final level = _skills.levelOf(player, _spells.skill);
+    _combat.cast(player, spell, level, at: target);
   }
 
   /// Why [player] may not cast [spell] at [target] now, or null.
@@ -99,17 +90,6 @@ final class Magic {
     return reachSatisfied(_services.map, reach, tile)
         ? null
         : 'That is out of range.';
-  }
-
-  void _cast(String player, SpellDef spell, PlacedNpc? target) {
-    final level = _skills.levelOf(player, _spells.skill);
-    if (spell.effect case SpellTeleport(:final to)) {
-      final actor = _movement.actorOf(player)!; // isReady found them
-      _registry.actions.submit(actor, _teleport, () {});
-      _movement.teleport(player, to);
-    } else {
-      _combat.cast(player, target!, spell, level); // _refusal checked it
-    }
   }
 
   void _tell(String player, String text) =>

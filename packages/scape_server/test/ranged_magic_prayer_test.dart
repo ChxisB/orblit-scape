@@ -32,6 +32,7 @@ const int _bolts = 100;
 const int _crossbow = 101;
 const int _archer = 3;
 const int _mage = 4;
+const int _brute = 5;
 
 /// The default items and a crossbow that fires bolts, which the bow cannot.
 final ItemSet _items = ItemSet(
@@ -59,6 +60,13 @@ final ItemSet _items = ItemSet(
   ],
 );
 
+/// Shots that fly a tile a tick, so a long shot is in the air a long while.
+CombatRules _slowShots() => CombatRules(
+  fightingSkill: 'fighting',
+  healthSkill: 'health',
+  projectileSpeed: 1,
+);
+
 NpcSet _foes({int health = 30, int respawnTicks = 10}) => NpcSet(
   npcs: [
     NpcDef(
@@ -70,6 +78,12 @@ NpcSet _foes({int health = 30, int respawnTicks = 10}) => NpcSet(
       id: _archer,
       name: 'Archer',
       fight: NpcFight(health: health, style: CombatStyle.ranged),
+    ),
+    NpcDef(
+      id: _brute,
+      name: 'Brute',
+      behaviour: Aggressive(sight: 6, leash: 12),
+      fight: NpcFight(health: health, strength: 200),
     ),
     NpcDef(
       id: _mage,
@@ -269,14 +283,7 @@ void main() {
 
     test('whose target dies or is replaced in flight does no harm', () async {
       // A slow shot flies 7 ticks, so the second leaves before the first lands.
-      start(
-        npcs: _foes(health: 1, respawnTicks: 1),
-        rules: CombatRules(
-          fightingSkill: 'fighting',
-          healthSkill: 'health',
-          projectileSpeed: 1,
-        ),
-      );
+      start(npcs: _foes(health: 1, respawnTicks: 1), rules: _slowShots());
       final ana = await join('Ana');
       wear('ana', ItemId.shortbow);
       wear('ana', ItemId.bronzeArrows, 10);
@@ -289,6 +296,23 @@ void main() {
       expect(ana.shots, hasLength(2));
       expect(ana.hits, hasLength(1));
       expect(server.combat.healthOfNpc(rat)!.now, 1);
+    });
+
+    test('whose shooter dies in the meantime lands on nobody', () async {
+      start(rules: _slowShots());
+      final ana = await join('Ana');
+      wear('ana', ItemId.shortbow);
+      wear('ana', ItemId.bronzeArrows, 10);
+      final rat = place(1, at(39, 32));
+      await tick(2);
+      await ana.attack(rat.networkId);
+      await ticksUntil(ana, 1, (c) => c.shots);
+
+      place(_brute, at(33, 32));
+      await tick(12);
+
+      expect(ana.notices, contains('Oh dear, you are dead.'));
+      expect(server.combat.healthOfNpc(rat)!.now, 30);
     });
 
     test('counts the arrows as gear only for the bow they suit', () async {
@@ -440,9 +464,17 @@ void main() {
         expect(server.movement.tileOf('ana')!.x, greaterThan(32));
 
         await ana.cast(SpellId.home);
+        await ana.cast(SpellId.home);
         await tick(12);
 
         expect(server.movement.tileOf('ana'), spawnTile);
+        expect(ana.notices, ['You are not ready yet.']);
+        expect(
+          server.items
+              .container('ana', ContainerId.inventory)!
+              .countOf(ItemId.runes),
+          2,
+        );
       },
     );
   });
@@ -456,13 +488,24 @@ void main() {
       await tick(19);
       expect(ana.prayer!.active, [PrayerId.thickSkin]);
       expect(ana.prayer!.points, 1);
-      expect(server.prayers!.percentOf('ana', CombatStat.defence), 5);
+      expect(server.prayers!.percentOf('ana', CombatStat.defence), 10);
 
       await tick();
       expect(ana.prayer!.points, 0);
       expect(ana.prayer!.active, isEmpty);
       expect(server.prayers!.percentOf('ana', CombatStat.defence), 0);
       expect(ana.notices, ['You have run out of prayer points.']);
+    });
+
+    test('tells the player when their prayer level changes', () async {
+      final ana = await join('Ana');
+      expect(ana.prayer!.max, 1);
+
+      level('ana', 'prayer', 20);
+      await tick();
+
+      expect(ana.prayer!.max, 20);
+      expect(ana.prayer!.points, 20);
     });
 
     test('cannot be switched on with no points or too low a level', () async {
@@ -519,7 +562,7 @@ void main() {
 
     test('raises the strength a swing is rolled with while it is on', () async {
       final ana = await join('Ana');
-      level('ana', 'fighting', 50);
+      level('ana', 'fighting', 15);
       level('ana', 'prayer', 4);
       final rat = place(1, at(33, 32));
       await tick(2);
@@ -529,10 +572,12 @@ void main() {
       await ana.send(TogglePrayer(PrayerId.burstOfStrength));
       await ticksUntil(ana, 2, (c) => c.foeHits);
 
-      // Level 50 rolls (50 + 8) * 64 / 320. Five percent more is level 52.
+      // Level 15 rolls (15 + 8) * 64 / 320. Ten percent is a level and a
+      // half, which rounds up to 17. Cutting it off at 16 would change
+      // nothing.
       expect(
         [for (final hit in ana.foeHits) hit.damage],
-        [1 + 58 * 64 ~/ 320, 1 + 60 * 64 ~/ 320],
+        [1 + 23 * 64 ~/ 320, 1 + 25 * 64 ~/ 320],
       );
     });
   });

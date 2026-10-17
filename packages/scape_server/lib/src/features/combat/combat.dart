@@ -143,7 +143,7 @@ final class Combat {
     npcs.addStandHandler(feature._stood);
     registry
       ..addKind(feature._attack)
-      ..addKind(feature._revive)
+      ..addKind(feature._interrupt)
       ..addJoinHandler(feature._join)
       ..addGoneHandler(feature._gone)
       ..addSystem(Phase.combat, feature._turn);
@@ -171,8 +171,11 @@ final class Combat {
   /// Checked every tick, so the attack follows a creature that moves.
   final ActionKind _attack = ActionKind('attack', delay: 1);
 
-  /// Queued to cancel what a player had waiting when they die.
-  final ActionKind _revive = ActionKind('revive', cancels: const CancelsAll());
+  /// Queued to cancel what a player had waiting when they die or teleport.
+  final ActionKind _interrupt = ActionKind(
+    'interrupt',
+    cancels: const CancelsAll(),
+  );
 
   int get _tick => _registry.actions.tick;
 
@@ -238,40 +241,52 @@ final class Combat {
     return fighter != null && fighter.readyAt <= _tick;
   }
 
-  /// Casts [spell] at [npc] with a magic skill of [level]. A damage spell
-  /// flies and a stun holds the creature at once. The caller has checked the
-  /// range, the level and the cost.
-  void cast(String player, PlacedNpc npc, SpellDef spell, int level) {
-    final fight = npc.def.fight;
+  /// Casts [spell] with a magic skill of [level]. A damage spell flies at
+  /// [at], a stun holds it at once and a teleport takes the caster away, so
+  /// only a teleport may have no creature. The caller has checked the range,
+  /// the level and the cost.
+  void cast(String player, SpellDef spell, int level, {PlacedNpc? at}) {
     final fighter = _players[player];
-    if (fight == null || fighter == null || npc.isDead) return;
+    if (fighter == null) return;
     switch (spell.effect) {
       case SpellDamage(:final most):
-        final damage = _rules.damage(
-          _random,
-          most: most,
-          attack: (level: level, bonus: 0),
-          defence: (level: fight.defence, bonus: 0),
-          edge: _rules.edge(CombatStyle.magic, fight.style),
-        );
-        _shoot(player, npc, damage, CombatStyle.magic);
+        _hurt(player, at!, most, level); // a spell that hits has a creature
       case SpellStun(:final ticks):
-        final target = _creatures[npc]!; // a creature that fights has a fighter
-        target.readyAt = max(target.readyAt, _tick + ticks);
-        _provoke(player, npc, target);
-      case SpellTeleport():
-        return; // there is no creature to hit
+        _stun(player, at!, ticks); // a spell that hits has a creature
+      case SpellTeleport(:final to):
+        _carry(player, to);
     }
-    fighter
-      ..readyAt = _tick + spell.speed
-      ..lastFight = _tick;
+    fighter.readyAt = _tick + spell.speed;
+    if (spell.effect is! SpellTeleport) fighter.lastFight = _tick;
+  }
+
+  void _hurt(String player, PlacedNpc npc, int most, int level) {
+    final fight = npc.def.fight!; // Magic refused a creature that cannot fight
+    final damage = _rules.damage(
+      _random,
+      most: most,
+      attack: (level: level, bonus: 0),
+      defence: (level: fight.defence, bonus: 0),
+      edge: _rules.edge(CombatStyle.magic, fight.style),
+    );
+    _shoot(player, npc, damage, CombatStyle.magic);
+  }
+
+  void _stun(String player, PlacedNpc npc, int ticks) {
+    final target =
+        _creatures[npc]!; // Magic refused a creature that cannot fight
+    target.readyAt = max(target.readyAt, _tick + ticks);
+    _provoke(player, npc, target);
   }
 
   /// Where [player] stands to attack [npc]: beside it, or within the range of
   /// the weapon they shoot.
-  Reach _reachOf(String player, PlacedNpc npc) {
+  Reach _reachOf(String player, PlacedNpc npc) =>
+      _reachWith(_gearOf(player), npc);
+
+  Reach _reachWith(_Gear gear, PlacedNpc npc) {
     final target = Footprint.single(npc.tile);
-    final range = _gearOf(player).range;
+    final range = gear.range;
     return range == null ? Beside(target) : Within(target, range: range);
   }
 
@@ -296,14 +311,14 @@ final class Combat {
     final fighter = _players[player];
     final tile = _movement.tileOf(player);
     if (fighter == null || tile == null || npc.isDead) return;
-    final reach = _reachOf(player, npc);
+    final gear = _gearOf(player);
+    final reach = _reachWith(gear, npc);
     if (!reachSatisfied(_services.map, reach, tile)) {
       _follow(player, tile, reach, npc);
       return;
     }
     _movement.follow(player, const []);
     if (fighter.readyAt <= _tick) {
-      final gear = _gearOf(player);
       if (!gear.loaded) return _notice(player, 'You have no ammo.');
       _strike(player, fighter, npc, gear);
     }
@@ -346,7 +361,7 @@ final class Combat {
   /// The fighting level of [player] with the prayer bonus on [stat].
   int _boosted(String player, CombatStat stat) {
     final level = _skills.levelOf(player, _rules.fightingSkill);
-    return level + level * _boost(player, stat) ~/ 100;
+    return level + (level * _boost(player, stat) + 50) ~/ 100;
   }
 
   void _shoot(String player, PlacedNpc npc, int damage, CombatStyle style) {
@@ -392,6 +407,7 @@ final class Combat {
   }
 
   void _landFlights() {
+    if (_flights.isEmpty) return;
     final due = [
       for (final flight in _flights)
         if (flight.lands <= _tick) flight,
@@ -422,10 +438,7 @@ final class Combat {
   }
 
   void _grant(String player, String skill, int xp) {
-    final reached = _skills.grant(player, skill, xp);
-    for (final level in reached) {
-      _notice(player, 'You reached level $level in $skill.');
-    }
+    final reached = _skills.award(player, skill, xp);
     if (reached.isNotEmpty && skill == _rules.healthSkill) refit(player);
   }
 
@@ -551,15 +564,22 @@ final class Combat {
   }
 
   void _die(String player, _Fighter fighter) {
-    _dropOpponentsOf(player);
     fighter
       ..health = fighter.max
       ..lastFight = _tick;
-    final actor = _movement.actorOf(player)!;
-    _registry.actions.submit(actor, _revive, () {});
-    _movement.teleport(player, _spawn);
-    _write(actor, fighter);
+    _carry(player, _spawn);
+    _write(_movement.actorOf(player)!, fighter);
     _notice(player, 'Oh dear, you are dead.');
+  }
+
+  /// Takes [player] to [to] and ends what they were doing: their attack, the
+  /// creatures fighting them and the shots they had in the air.
+  void _carry(String player, TileCoord to) {
+    _dropOpponentsOf(player);
+    _flights.removeWhere((flight) => flight.player == player);
+    final actor = _movement.actorOf(player)!; // the caller found them
+    _registry.actions.submit(actor, _interrupt, () {});
+    _movement.teleport(player, to);
   }
 
   void _dropOpponentsOf(String player) {

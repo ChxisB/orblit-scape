@@ -81,8 +81,18 @@ void main() {
     test('a ranged weapon has a range and an ammo kind', () {
       expect(() => CombatBonus(style: CombatStyle.ranged), throwsArgumentError);
       expect(
-        () => CombatBonus(style: CombatStyle.ranged, range: 0, ammo: 'arrow'),
+        () => CombatBonus(
+          style: CombatStyle.ranged,
+          speed: 4,
+          range: 0,
+          ammo: 'arrow',
+        ),
         throwsArgumentError,
+      );
+      expect(
+        () => CombatBonus(style: CombatStyle.ranged, range: 7, ammo: 'arrow'),
+        throwsArgumentError,
+        reason: 'a bow with no speed would never be ready again',
       );
       expect(
         () => CombatBonus(range: 5, speed: 4),

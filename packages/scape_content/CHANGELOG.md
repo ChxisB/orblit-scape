@@ -6,7 +6,8 @@
 - A shortbow, bronze arrows and runes are items. The shopkeeper sells
   them.
 - `defaultSpells` has Strike, Daze and Home teleport. `defaultPrayers`
-  has Thick skin, Burst of strength and Clarity of thought.
+  has Thick skin, Burst of strength and Clarity of thought. Each raises its
+  stat by 10 percent.
 
 ## 0.10.0
 

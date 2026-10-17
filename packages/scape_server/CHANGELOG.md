@@ -5,17 +5,22 @@
 - Ranged combat, magic and prayer. A bow shoots from up to its range with a
   clear line, spends one arrow of its own kind a shot, and the hit lands when
   the flight ends. A target that died or respawned in flight takes nothing.
-  Creatures with a style hit back with the same edge.
+  Creatures with a style hit back with the same edge, but only when they
+  are beside their target. A creature that does not chase never hits back
+  at range.
 - `Cast` casts a spell at a creature in range. It costs the spell's items and
   gives magic experience. It never walks, so a target out of range is
-  refused. Daze keeps a creature from swinging, and home teleport ends the
-  fight.
+  refused. Daze keeps a creature from swinging. Home teleport waits its
+  cooldown, ends the fight and drops the caster's shots in flight.
 - `TogglePrayer` switches a prayer on or off. Points drain while it is on, a
   prayer is off at zero points, and one prayer holds each stat. A prayer
-  raises the fighting level a swing is rolled with.
+  raises the fighting level a swing is rolled with, rounded to the nearest
+  point. The view is sent again when the prayer level changes.
 - `Magic` and `Prayers` are features. Both are off unless the server is
-  given `spells` and `prayers`. `Skills.award` grants experience and tells
-  the player of a level.
+  given `spells` and `prayers`. `bin/scape_server.dart` gives both.
+- `Skills.award` grants experience, tells the player of a level and returns
+  the levels reached. Gathering, production, magic, combat and quests use
+  it, so a level-up is told one way.
 - `Interactions.addNpcAction` takes an optional `reach` for options that do
   not walk next to the creature.
 

@@ -76,10 +76,14 @@ final class Skills {
   }
 
   /// Grants [xp] as [grant] does and tells [player] each level they reach.
-  void award(String player, String skill, int xp) {
-    for (final level in grant(player, skill, xp)) {
+  /// Returns the levels reached.
+  // F5: the caller needs to know whether a level came, to refit.
+  List<int> award(String player, String skill, int xp) {
+    final reached = grant(player, skill, xp);
+    for (final level in reached) {
       _hosting.tell(player, Notice('You reached level $level in $skill.'));
     }
+    return reached;
   }
 
   /// The experience of [player] in each skill where it is above zero, by skill

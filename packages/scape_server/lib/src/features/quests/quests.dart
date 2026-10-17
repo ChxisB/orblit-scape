@@ -169,10 +169,7 @@ final class Quests {
     if (reward != null && tile != null && inventory != null) {
       var leveled = false;
       for (final MapEntry(key: skill, value: xp) in reward.xp.entries) {
-        for (final level in _levels.grant(player, skill, xp)) {
-          leveled = true;
-          _tell(player, 'You reached level $level in $skill.');
-        }
+        if (_levels.award(player, skill, xp).isNotEmpty) leveled = true;
       }
       if (leveled) _combat.refit(player);
       for (final ItemStack(:item, :count) in reward.items) {

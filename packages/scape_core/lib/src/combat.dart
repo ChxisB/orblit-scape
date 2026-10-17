@@ -47,7 +47,7 @@ final class CombatBonus {
     if (speed != null && speed! < 1) {
       throw ArgumentError.value(speed, 'speed', 'is below one');
     }
-    _checkRanged(style, range, ammo);
+    _checkRanged(style, speed, range, ammo);
   }
 
   final int attack;
@@ -67,13 +67,17 @@ final class CombatBonus {
   final String? ammo;
 }
 
-void _checkRanged(CombatStyle style, int? range, String? ammo) {
+void _checkRanged(CombatStyle style, int? speed, int? range, String? ammo) {
   if (style == CombatStyle.magic) {
     throw ArgumentError.value(style, 'style', 'is not worn');
   }
   if (style == CombatStyle.ranged) {
-    if (range == null || range < 1 || range > maxRange || ammo == null) {
-      throw ArgumentError('A ranged weapon has a range and fires ammo.');
+    if (speed == null ||
+        range == null ||
+        range < 1 ||
+        range > maxRange ||
+        ammo == null) {
+      throw ArgumentError('A ranged weapon has a speed, a range and ammo.');
     }
   } else if (range != null) {
     throw ArgumentError.value(

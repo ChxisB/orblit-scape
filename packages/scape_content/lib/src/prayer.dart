@@ -19,7 +19,7 @@ final PrayerSet defaultPrayers = PrayerSet(
       name: 'Thick skin',
       level: 1,
       stat: CombatStat.defence,
-      percent: 5,
+      percent: 10,
       drain: 5,
     ),
     PrayerDef(
@@ -27,7 +27,7 @@ final PrayerSet defaultPrayers = PrayerSet(
       name: 'Burst of strength',
       level: 4,
       stat: CombatStat.strength,
-      percent: 5,
+      percent: 10,
       drain: 5,
     ),
     PrayerDef(
@@ -35,7 +35,7 @@ final PrayerSet defaultPrayers = PrayerSet(
       name: 'Clarity of thought',
       level: 7,
       stat: CombatStat.attack,
-      percent: 5,
+      percent: 10,
       drain: 5,
     ),
   ],

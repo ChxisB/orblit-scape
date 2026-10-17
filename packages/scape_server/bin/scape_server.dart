@@ -42,6 +42,8 @@ Future<void> main(List<String> args) async {
     combat: defaultCombat,
     shops: defaultShops,
     recipes: defaultRecipes,
+    spells: defaultSpells,
+    prayers: defaultPrayers,
     storage: Storage(queue: queue, hasher: const Argon2idHasher()),
   );
   final sockets = await server.listen(
