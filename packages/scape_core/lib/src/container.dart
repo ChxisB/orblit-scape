@@ -12,6 +12,13 @@ const int bankTabSize = 100;
 /// The containers a player owns. The wire names one by its index.
 enum ContainerId { inventory, equipment, bank }
 
+/// How many slots the container for [id] has.
+int containerSize(ContainerId id) => switch (id) {
+  ContainerId.inventory => inventorySize,
+  ContainerId.equipment => equipmentSlots.length,
+  ContainerId.bank => bankTabs * bankTabSize,
+};
+
 /// How an operation ended. A refusal is a value, never an exception, because
 /// a full bag is a normal thing for a player to meet.
 enum Outcome { done, partly, nothingThere, noSuchSlot, wontFit, notAllowed }
@@ -49,12 +56,12 @@ final class Container {
     ContainerId.inventory => Container(items: items, size: inventorySize),
     ContainerId.equipment => Container(
       items: items,
-      size: equipmentSlots.length,
+      size: containerSize(id),
       accepts: (slot, item) => item.equipSlot == equipmentSlots[slot],
     ),
     ContainerId.bank => Container(
       items: items,
-      size: bankTabs * bankTabSize,
+      size: containerSize(id),
       tabSize: bankTabSize,
     ),
   };
@@ -68,6 +75,9 @@ final class Container {
   final int tabSize;
 
   int get size => _slots.length;
+
+  /// The stack in each slot, an empty slot as null.
+  List<ItemStack?> get slots => List.unmodifiable(_slots);
 
   /// The slots changed since the last [markClean], lowest first.
   List<int> get dirty => _dirty.toList()..sort();
@@ -247,6 +257,30 @@ final class Container {
     for (final (:slot, :stack) in changes) {
       if (_has(slot)) _slots[slot] = stack;
     }
+  }
+
+  /// Puts a saved list of slots back into an empty container, and marks each
+  /// slot it filled changed so the owner is sent it. A stack whose item is no
+  /// longer in the game, that this slot no longer accepts, or that lies past
+  /// the last slot is left out. Returns how many were left out, so the caller
+  /// can say so. Throws [StateError] when the container is not empty.
+  // F5: the count of lost stacks is the caller's cue to log them.
+  int restore(List<ItemStack?> saved) {
+    if (_slots.any((stack) => stack != null)) {
+      throw StateError('Only an empty container can be restored.');
+    }
+    var lost = 0;
+    for (final (slot, stack) in saved.indexed) {
+      if (stack == null) continue;
+      if (_has(slot) &&
+          _items.find(stack.item) != null &&
+          _allows(slot, stack)) {
+        _set(slot, stack);
+      } else {
+        lost++;
+      }
+    }
+    return lost;
   }
 
   /// The lower case name of the item in [slot], which must be occupied.

@@ -19,6 +19,12 @@ const int maxTextBytes = 240;
 /// The most names a friends list or an ignore list may hold.
 const int maxListEntries = 50;
 
+/// The most bytes a password may take as UTF-8.
+const int maxPasswordBytes = 64;
+
+/// The fewest bytes a new account's password may take as UTF-8.
+const int minPasswordBytes = 8;
+
 /// The most a [PrivateState] delta may hold.
 const int maxDeltaBytes = 4096;
 
@@ -40,15 +46,26 @@ sealed class ClientMessage {
   const ClientMessage();
 }
 
-/// The credentials in a join. A name is all it takes until accounts exist.
+/// The credentials in a join. A server with accounts checks [password]
+/// against the account named [name], or makes the account when [create] is
+/// set. A server without accounts reads only [name].
 final class Login extends ClientMessage {
-  Login(this.name) {
+  Login(this.name, {this.password = '', this.create = false}) {
     if (!isValidName(name)) {
       throw ArgumentError.value(name, 'name', 'is not a valid name');
+    }
+    if (utf8.encode(password).length > maxPasswordBytes) {
+      throw ArgumentError.value(
+        password.length,
+        'password',
+        'is over $maxPasswordBytes bytes',
+      );
     }
   }
 
   final String name;
+  final String password;
+  final bool create;
 }
 
 /// What a player asks to do. The server turns it into an action.
@@ -325,7 +342,24 @@ enum LoginRefusal {
   nameTaken,
 
   /// The bytes were not a login.
-  unreadable;
+  unreadable,
+
+  /// No account has that name, or the password is wrong. One answer for
+  /// both, so a guess does not learn which names exist.
+  badLogin,
+
+  /// A new account's password is under [minPasswordBytes] bytes.
+  weakPassword,
+
+  /// An account is already made under that name.
+  accountExists,
+
+  /// The server is checking as many passwords as it will at once. Try again.
+  busy,
+
+  /// The server could not load the account or its character. Nothing was
+  /// changed, so trying again later is safe.
+  unavailable;
 
   static LoginRefusal? fromWire(String reason) => values.asNameMap()[reason];
 }

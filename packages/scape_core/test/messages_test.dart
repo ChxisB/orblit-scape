@@ -75,6 +75,59 @@ void main() {
       expect(back, isA<Login>().having((m) => m.name, 'name', 'Ana'));
     });
 
+    test('a login carries its password and whether to create', () {
+      final back = understoodClient(
+        encodeClientMessage(Login('Ana', password: 'pässword1', create: true)),
+      );
+      expect(
+        back,
+        isA<Login>()
+            .having((m) => m.name, 'name', 'Ana')
+            .having((m) => m.password, 'password', 'pässword1')
+            .having((m) => m.create, 'create', isTrue),
+      );
+    });
+
+    test(
+      'a login with no password round-trips as one that does not create',
+      () {
+        final back = understoodClient(encodeClientMessage(Login('Ana')));
+        expect(
+          back,
+          isA<Login>()
+              .having((m) => m.password, 'password', '')
+              .having((m) => m.create, 'create', isFalse),
+        );
+      },
+    );
+
+    test('a login password may be as long as the limit and no longer', () {
+      final longest = 'x' * maxPasswordBytes;
+      final back = understoodClient(
+        encodeClientMessage(Login('Ana', password: longest)),
+      );
+      expect(back, isA<Login>().having((m) => m.password, 'p', longest));
+      expect(() => Login('Ana', password: '${longest}x'), throwsArgumentError);
+      expect(
+        () => Login('Ana', password: 'é' * (maxPasswordBytes ~/ 2 + 1)),
+        throwsArgumentError,
+      );
+    });
+
+    test('a login that is cut short or has a stray byte is malformed', () {
+      final good = encodeClientMessage(Login('Ana', password: 'abcdefgh'));
+      for (final cut in [1, 2, 4, 5, 6, good.length - 1]) {
+        expect(whyClient(good.sublist(0, cut)), isNotNull, reason: '$cut');
+      }
+      expect(whyClient([...good, 0]), BadMessage.malformed);
+      final flagged = Uint8List.fromList(good)..[5] = 2;
+      expect(whyClient(flagged), BadMessage.malformed);
+    });
+
+    test('a login in the old layout is malformed', () {
+      expect(whyClient([1, 3, 65, 110, 97]), BadMessage.malformed);
+    });
+
     test('a walk round-trips with every tile field', () {
       final target = TileCoord(worldSize - 1, 12345, planeCount - 1);
       final back = understoodClient(encodeClientMessage(Walk(target)));
@@ -135,7 +188,7 @@ void main() {
         ..[0] = 4
         ..[1] = 241;
       expect(whyClient(chat), BadMessage.tooLarge);
-      expect(whyClient([1, ...List.filled(40, 65)]), BadMessage.tooLarge);
+      expect(whyClient([1, ...List.filled(80, 65)]), BadMessage.tooLarge);
     });
 
     test('no message from a client is over the stated limit', () {

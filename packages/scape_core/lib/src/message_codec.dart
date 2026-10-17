@@ -32,7 +32,7 @@ const int _windowClosed = 11;
 /// The most bytes each message may take, by tag. A longer one is refused
 /// before anything is read from it.
 final Map<int, int> _clientCaps = {
-  _login: 2 + maxNameChars,
+  _login: 4 + maxNameChars + maxPasswordBytes,
   _walk: 6,
   _interact: 7,
   _chat: 2 + maxTextBytes,
@@ -73,7 +73,7 @@ _Reader<T> _textMessage<T>(T Function(String text) make) => (bytes) {
 };
 
 final Map<int, _Reader<ClientMessage>> _clientReaders = {
-  _login: _textMessage(Login.new),
+  _login: _readLogin,
   _walk: _readWalk,
   _interact: _readInteract,
   _chat: _textMessage(Chat.new),
@@ -100,7 +100,7 @@ final Map<int, _Reader<ServerMessage>> _serverReaders = {
 };
 
 Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
-  Login(:final name) => _withText(_login, name),
+  Login() => _encodeLogin(message),
   Walk(:final target) => _encodeWalk(target),
   Interact() => _encodeInteract(message),
   Chat(:final text) => _withText(_chat, text),
@@ -162,6 +162,32 @@ Uint8List _withText(int tag, String text) {
     ..[0] = tag
     ..[1] = body.length
     ..setRange(2, 2 + body.length, body);
+}
+
+/// Tag, the name, a byte that is 1 to create the account, then the password.
+/// The name and the password each have a length byte.
+Uint8List _encodeLogin(Login message) {
+  final name = utf8.encode(message.name);
+  final password = utf8.encode(message.password);
+  return Uint8List.fromList([
+    _login,
+    name.length,
+    ...name,
+    if (message.create) 1 else 0,
+    password.length,
+    ...password,
+  ]);
+}
+
+Login? _readLogin(Uint8List bytes) {
+  final name = _textAt(bytes, 1);
+  if (name == null || name.next >= bytes.length) return null;
+  final flag = bytes[name.next];
+  final password = _textAt(bytes, name.next + 1);
+  if (flag > 1 || password == null || password.next != bytes.length) {
+    return null;
+  }
+  return Login(name.text, password: password.text, create: flag == 1);
 }
 
 /// The string in a tag, length and text message, or null when the length

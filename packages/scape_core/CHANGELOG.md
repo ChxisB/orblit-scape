@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.16.0
+
+- `PlayerState` is what a server keeps of one player between logins: the
+  tile, experience by skill id, the slots of each container and the
+  friends and ignore lists. `encode` writes sorted JSON, so the same
+  state gives the same bytes. `decode` throws a `FormatException` for
+  anything damaged and for a version from a later server.
+- `Container.slots` copies the stacks out. `Container.restore` puts them
+  back into an empty container and returns how many it had to leave out,
+  because the game no longer has the item or the slot no longer takes it.
+- `containerSize` gives the number of slots of a container id.
+- `Login` carries a password and whether to create the account. The
+  login layout changed, so a 0.15.0 client cannot log in to a 0.16.0
+  server. `LoginRefusal` adds `badLogin`, `weakPassword`,
+  `accountExists`, `busy` and `unavailable`.
+
 ## 0.15.0
 
 - `Recipe` says what a player makes: the inputs it uses, the tool it

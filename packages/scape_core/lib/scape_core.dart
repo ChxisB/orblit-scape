@@ -12,6 +12,7 @@ export 'src/container.dart'
         SlotChange,
         bankTabSize,
         bankTabs,
+        containerSize,
         inventorySize;
 export 'src/container_codec.dart' show SlotsDelta, encodeSlots, tryDecodeSlots;
 export 'src/flag_region.dart' show FlagRegion;
@@ -64,10 +65,13 @@ export 'src/messages.dart'
         maxDeltaBytes,
         maxListEntries,
         maxNameChars,
+        maxPasswordBytes,
         maxTextBytes,
+        minPasswordBytes,
         nameKey;
 export 'src/loot.dart' show LootEntry, LootItem, LootSub, LootTable;
 export 'src/mover.dart' show MoveSpeed, Mover;
+export 'src/player_state.dart' show PlayerState, maxSavedXp, playerStateVersion;
 export 'src/nodes.dart' show NodeDef, NodeSet, nodeDepleted, nodeFull;
 export 'src/npcs.dart'
     show
@@ -139,4 +143,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.15.0';
+const scapeCoreVersion = '0.16.0';

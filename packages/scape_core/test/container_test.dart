@@ -654,4 +654,63 @@ void main() {
       expect(bank().search(''), [0, 1, 300, 301]);
     });
   });
+
+  group('restore', () {
+    test('puts saved stacks back and marks each slot changed', () {
+      final saved = inventory()
+        ..add(coins, 40)
+        ..add(logs, 2);
+      final c = inventory();
+
+      expect(c.restore(saved.slots), 0);
+      expect(c.slots, saved.slots);
+      expect(c.dirty, [0, 1, 2]);
+    });
+
+    test('leaves out an item the game no longer has', () {
+      final c = inventory();
+      final lost = c.restore([ItemStack(99, 1), ItemStack(coins, 5)]);
+
+      expect(lost, 1);
+      expect(c.at(0), isNull);
+      expect(c.at(1), ItemStack(coins, 5));
+    });
+
+    test('leaves out a stack its slot no longer accepts', () {
+      final c = bag(ContainerId.equipment);
+      final lost = c.restore([
+        ItemStack(sword, 1),
+        null,
+        null,
+        ItemStack(sword, 1),
+      ]);
+
+      expect(lost, 1);
+      expect(c.at(0), isNull);
+      expect(c.at(3), ItemStack(sword, 1));
+    });
+
+    test('leaves out a stack past the last slot', () {
+      final c = inventory();
+      final saved = List<ItemStack?>.filled(inventorySize + 1, null);
+      saved[inventorySize] = ItemStack(coins, 1);
+
+      expect(c.restore(saved), 1);
+      expect(c.occupied(), isEmpty);
+    });
+
+    test('refuses a container that already holds something', () {
+      final c = inventory()..add(coins, 1);
+      expect(() => c.restore([ItemStack(coins, 1)]), throwsStateError);
+    });
+
+    test('slots is a copy that cannot be changed', () {
+      final c = inventory()..add(coins, 1);
+      final before = c.slots;
+      c.add(logs, 1);
+
+      expect(before[1], isNull);
+      expect(() => before[0] = null, throwsUnsupportedError);
+    });
+  });
 }
