@@ -7,7 +7,7 @@ import 'messages.dart';
 import 'tile_coord.dart';
 
 /// The version `encode` writes. A reader refuses a later one.
-const int playerStateVersion = 1;
+const int playerStateVersion = 2;
 
 /// The most experience a skill may hold in a save. A progress table keeps it
 /// in 32 bits.

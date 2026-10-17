@@ -11,7 +11,8 @@
 - `NpcOption.talk` and `NpcDef.dialogue`. A creature with a dialogue can
   be talked to.
 - `PlayerState.quests` keeps each quest's stage by quest key. A save from
-  before reads as having begun none. `playerStateVersion` stays 1.
+  before reads as having begun none. `playerStateVersion` is 2, so an
+  older server refuses a file that holds quests and cannot erase them.
 - `questsDeltaTag` marks a quest change in a `PrivateState`.
 
 ## 0.16.0

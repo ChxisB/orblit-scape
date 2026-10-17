@@ -62,7 +62,9 @@ final class Saves {
     if (record == null || _hasSession(player)) {
       _pending.remove(player);
     } else {
-      _pending[player] = PlayerState.decode(record.bytes);
+      final state = PlayerState.decode(record.bytes);
+      _states.check(state);
+      _pending[player] = state;
     }
   }
 

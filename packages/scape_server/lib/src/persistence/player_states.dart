@@ -37,6 +37,17 @@ final class PlayerStates {
   /// The keys of the players in the world.
   Iterable<String> get players => _movement.players;
 
+  /// Throws [FormatException] when [state] holds something this server would
+  /// lose on the next save, so a login is refused and the save stays as it
+  /// was.
+  void check(PlayerState state) {
+    if (_quests == null && state.quests.isNotEmpty) {
+      throw const FormatException(
+        'The save has quests and this server has no story',
+      );
+    }
+  }
+
   /// What the features hold of [player], or null when they are not in the
   /// world.
   PlayerState? capture(String player) {

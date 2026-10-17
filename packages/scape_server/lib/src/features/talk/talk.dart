@@ -18,7 +18,15 @@ const String _notOffered = 'That is not on offer.';
 /// moves a quest only through a named step, so every move passes the quest
 /// book and a finished quest pays out.
 final class Talk {
-  Talk._(this._services, this._book, this._quests, this._windows, this._steps);
+  Talk._({
+    required Services services,
+    required DialogueBook book,
+    required Quests quests,
+    required Windows windows,
+  }) : _services = services,
+       _book = book,
+       _quests = quests,
+       _windows = windows;
 
   /// Adds conversations to [registry]. Throws [ArgumentError] when a
   /// creature names a dialogue the story lacks, when a dialogue writes the
@@ -34,17 +42,15 @@ final class Talk {
     required Windows windows,
   }) {
     _check(story, npcs);
-    final steps = _Steps(story);
     final feature = Talk._(
-      services,
-      DialogueBook(
+      services: services,
+      book: DialogueBook(
         schema: story.schema,
-        hooks: steps.hooks,
+        hooks: _hooks(story),
         dialogues: story.dialogues,
       ),
-      quests,
-      windows,
-      steps,
+      quests: quests,
+      windows: windows,
     );
     interactions.addNpcAction(NpcOption.talk, feature._open);
     registry
@@ -56,7 +62,6 @@ final class Talk {
   final DialogueBook _book;
   final Quests _quests;
   final Windows _windows;
-  final _Steps _steps;
   final Map<String, DialogueRunner> _talks = {};
 
   void _open(String player, PlacedNpc npc) {
@@ -67,8 +72,7 @@ final class Talk {
       return;
     }
     final runner = _book.start(key, table);
-    _commit(player, runner);
-    if (runner.isOver) {
+    if (!_commit(player, table, runner) || runner.isOver) {
       _tell(player, _nothingToSay);
       return;
     }
@@ -108,19 +112,21 @@ final class Talk {
     bool allowed,
     void Function() move,
   ) {
-    if (!identical(_quests.tableOf(player), runner.table)) {
-      _end(player);
-    } else if (!allowed) {
+    if (!allowed) {
       _tell(player, _notOffered);
-    } else {
-      move();
-      _commit(player, runner);
+      return;
+    }
+    final from = runner.table;
+    move();
+    if (_commit(player, from, runner)) {
       _show(player, runner);
+    } else {
+      _end(player);
     }
   }
 
-  void _commit(String player, DialogueRunner runner) =>
-      _quests.commit(player, runner.table, completed: _steps.takeCompleted());
+  bool _commit(String player, ProgressTable from, DialogueRunner runner) =>
+      _quests.commit(player, from: from, to: runner.table);
 
   void _show(String player, DialogueRunner runner) {
     switch (runner.current) {
@@ -149,37 +155,15 @@ final class Talk {
 }
 
 /// The functions a dialogue may name in `before`, one for each step of the
-/// story. A step moves a quest forward and notes it when that finishes the
-/// quest. A step the quest book refuses leaves the table as it was, so a
+/// story. A step the quest book refuses leaves the table as it was, so a
 /// conversation heard twice does nothing the second time.
-final class _Steps {
-  _Steps(this._story);
-
-  final Story _story;
-  final List<String> _completed = [];
-
-  Map<String, Before> get hooks => {
-    for (final MapEntry(:key, :value) in _story.steps.entries)
-      key: (table) => _move(table, value),
-  };
-
-  // F5: the quests finished since the last call are the caller's to pay.
-  List<String> takeCompleted() {
-    final taken = List.of(_completed);
-    _completed.clear();
-    return taken;
-  }
-
-  ProgressTable _move(ProgressTable table, QuestStep step) {
-    switch (_story.book.advance(table, step.quest, step.stage)) {
-      case Moved(table: final moved, :final completed):
-        if (completed) _completed.add(step.quest);
-        return moved;
-      case Refused():
-        return table;
-    }
-  }
-}
+Map<String, Before> _hooks(Story story) => {
+  for (final MapEntry(:key, value: (:quest, :stage)) in story.steps.entries)
+    key: (table) => switch (story.book.advance(table, quest, stage)) {
+      Moved(table: final moved) => moved,
+      Refused() => table,
+    },
+};
 
 void _check(Story story, NpcSet npcs) {
   final keys = {for (final d in story.dialogues) d.key};

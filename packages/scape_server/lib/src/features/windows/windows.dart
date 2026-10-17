@@ -9,8 +9,8 @@ import '../movement/movement.dart';
 enum WindowKind { shop, bank, talk }
 
 /// The window a player has open: what it is, which of its kind ([ref] is the
-/// shopkeeper's creature id, and zero for a bank), and where the player has
-/// to stand to keep using it.
+/// creature id of the shopkeeper or of whoever they talk to, and zero for a
+/// bank), and where the player has to stand to keep using it.
 typedef OpenWindow = ({WindowKind kind, int ref, Reach reach});
 
 /// The window each player has open. A player has one at a time.

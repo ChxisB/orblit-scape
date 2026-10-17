@@ -53,15 +53,21 @@ final class Story {
       names: [for (final quest in quests) Whole(questStageName(quest.key))],
     );
     return Story._(
-      schema,
-      QuestBook(schema: schema, quests: quests),
-      List.unmodifiable(dialogues),
-      Map.unmodifiable(steps),
-      Map.unmodifiable(rewards),
+      schema: schema,
+      book: QuestBook(schema: schema, quests: quests),
+      dialogues: List.unmodifiable(dialogues),
+      steps: Map.unmodifiable(steps),
+      rewards: Map.unmodifiable(rewards),
     );
   }
 
-  Story._(this.schema, this.book, this.dialogues, this.steps, this.rewards) {
+  Story._({
+    required this.schema,
+    required this.book,
+    required this.dialogues,
+    required this.steps,
+    required this.rewards,
+  }) {
     for (final MapEntry(key: name, value: (:quest, :stage)) in steps.entries) {
       RangeError.checkValueInInterval(stage, 1, book.quest(quest).last, name);
     }

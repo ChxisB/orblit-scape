@@ -293,6 +293,7 @@ void main() {
         }),
       );
       expect(back.tile, TileCoord(3, 4, 0));
+      expect(back.quests, isEmpty);
     });
 
     test('random damage never throws anything but a FormatException', () {

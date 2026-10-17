@@ -4,8 +4,9 @@
 
 - Quests and conversations. `ScapeServer` takes `story`. `Quests` holds
   each player's stages in a table and tells only that player when one
-  moves. A save holds the stages, and a stage the game no longer has is
-  counted as dropped.
+  moves. A save holds the stages. A stage the game no longer has, or one
+  past the last of its quest, is counted as dropped. A server with no
+  story refuses a login whose save holds quests.
 - `Talk` opens a conversation when a player talks to a creature that has
   a `dialogue`. The player goes on with `Continue` and picks with
   `Choose`. A pick that is not on offer gets a notice and changes

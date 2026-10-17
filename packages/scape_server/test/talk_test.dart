@@ -1,5 +1,6 @@
 import 'package:orblit_dialogue/orblit_dialogue.dart';
 import 'package:orblit_net/orblit_net.dart';
+import 'package:orblit_quest/orblit_quest.dart';
 import 'package:orblit_save/orblit_save.dart';
 import 'package:scape_content/scape_content.dart';
 import 'package:scape_core/scape_core.dart';
@@ -215,6 +216,86 @@ void main() {
 
       expect(dropped, 1);
       expect(server.quests!.stagesOf('ana'), {'lantern': 2});
+    });
+
+    test('drops a saved stage past the last of its quest', () async {
+      await join('Ana');
+
+      final dropped = server.quests!.restore('ana', {'lantern': 4});
+
+      expect(dropped, 1);
+      expect(server.quests!.stagesOf('ana'), isEmpty);
+    });
+
+    test('refuses a write from a table that is no longer current', () async {
+      await join('Ana');
+      final quests = server.quests!;
+      final stale = quests.tableOf('ana')!;
+      quests.restore('ana', {'tally': 1});
+      final to = stale.set(questStageName('lantern'), 3).table;
+
+      final applied = quests.commit('ana', from: stale, to: to);
+
+      expect(applied, isFalse);
+      expect(quests.stagesOf('ana'), {'tally': 1});
+      expect(server.skills.xpOf('ana', 'firemaking'), 0);
+    });
+
+    test('announces the levels a reward reaches and refits health', () async {
+      await server.dispose();
+      server = build(
+        story: Story(
+          quests: [
+            ...defaultStory.book.quests,
+            Quest(
+              key: 'drill',
+              title: 'Drill',
+              stages: [
+                Stage(id: 'a', journal: 'a'),
+                Stage(id: 'b', journal: 'b'),
+              ],
+            ),
+          ],
+          dialogues: defaultStory.dialogues,
+          steps: defaultStory.steps,
+          rewards: {
+            ...defaultStory.rewards,
+            'drill': QuestReward(xp: {'health': 5000}),
+          },
+        ),
+      );
+      final ana = await join('Ana');
+      final before = server.combat.healthOfPlayer('ana')!.max;
+      final table = server.quests!.tableOf('ana')!;
+
+      server.quests!.commit(
+        'ana',
+        from: table,
+        to: table.set(questStageName('drill'), 1).table,
+      );
+      await tick();
+
+      final level = server.skills.levelOf('ana', 'health');
+      expect(level, greaterThan(1));
+      expect(ana.notices, contains('You reached level $level in health.'));
+      expect(server.combat.healthOfPlayer('ana')!.max, greaterThan(before));
+    });
+
+    test('is refused by a server with no story, leaving the save', () async {
+      final first = await join('Ana');
+      await say(first, brindle);
+      await press(first, const Continue());
+      await press(first, Choose(0));
+      await server.dispose();
+      server = build(npcs: NpcSet(npcs: [defaultNpcs.require(NpcId.chicken)]));
+
+      final ana = await join('Ana');
+
+      expect(ana.goodbyes, [LoginRefusal.unavailable.name]);
+      final saved = PlayerState.decode(
+        (await store.read(saveKeyOf('ana')))!.bytes,
+      );
+      expect(saved.quests, {'lantern': 1});
     });
   });
 
