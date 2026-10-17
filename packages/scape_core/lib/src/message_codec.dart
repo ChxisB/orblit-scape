@@ -13,6 +13,7 @@ const int _chat = 4;
 const int _loginOk = 1;
 const int _privateState = 2;
 const int _notice = 3;
+const int _avatar = 4;
 
 /// The most bytes each message may take, by tag. A longer one is refused
 /// before anything is read from it.
@@ -27,6 +28,7 @@ final Map<int, int> _serverCaps = {
   _loginOk: 2 + maxNameChars,
   _privateState: 1 + maxDeltaBytes,
   _notice: 2 + maxTextBytes,
+  _avatar: 5,
 };
 
 /// The largest message a client may send. A host's inbound budget must let
@@ -51,6 +53,7 @@ final Map<int, _Reader<ServerMessage>> _serverReaders = {
   _loginOk: _textMessage(LoginOk.new),
   _privateState: (b) => PrivateState(b.sublist(1)),
   _notice: _textMessage(Notice.new),
+  _avatar: _readAvatar,
 };
 
 Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
@@ -64,6 +67,7 @@ Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
   LoginOk(:final name) => _withText(_loginOk, name),
   PrivateState(:final delta) => Uint8List.fromList([_privateState, ...delta]),
   Notice(:final text) => _withText(_notice, text),
+  Avatar(:final networkId) => _encodeAvatar(networkId),
 };
 
 Decoded<ClientMessage> decodeClientMessage(Uint8List bytes) =>
@@ -149,4 +153,15 @@ Interact? _readInteract(Uint8List bytes) {
     id: data.getUint32(2, Endian.little),
     option: data.getUint8(6),
   );
+}
+
+Uint8List _encodeAvatar(int networkId) {
+  final bytes = Uint8List(5)..[0] = _avatar;
+  ByteData.sublistView(bytes).setUint32(1, networkId, Endian.little);
+  return bytes;
+}
+
+Avatar? _readAvatar(Uint8List bytes) {
+  if (bytes.length != 5) return null;
+  return Avatar(ByteData.sublistView(bytes).getUint32(1, Endian.little));
 }

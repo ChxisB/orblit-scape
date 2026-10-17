@@ -150,6 +150,17 @@ void main() {
       expect(back, isA<LoginOk>().having((m) => m.name, 'name', 'ana'));
     });
 
+    test('an avatar round-trips the largest id', () {
+      final back = understoodServer(encodeServerMessage(Avatar(0xFFFFFFFF)));
+      expect(
+        back,
+        isA<Avatar>().having((m) => m.networkId, 'networkId', 0xFFFFFFFF),
+      );
+      expect(() => Avatar(-1), throwsArgumentError);
+      expect(() => Avatar(0x100000000), throwsArgumentError);
+      expect(whyServer([4, 1, 2]), BadMessage.malformed);
+    });
+
     test('private state keeps its bytes', () {
       final delta = Uint8List.fromList([0, 1, 2, 255]);
       final back = understoodServer(encodeServerMessage(PrivateState(delta)));

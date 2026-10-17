@@ -97,6 +97,18 @@ final class LoginOk extends ServerMessage {
   final String name;
 }
 
+/// Which replicated entity is the player's own, by network id. The client
+/// follows it with the camera.
+final class Avatar extends ServerMessage {
+  Avatar(this.networkId) {
+    if (networkId < 0 || networkId > 0xFFFFFFFF) {
+      throw ArgumentError.value(networkId, 'networkId', 'does not fit a u32');
+    }
+  }
+
+  final int networkId;
+}
+
 /// A change to what only the owner sees, such as items and skills. What the
 /// bytes mean belongs to the feature that wrote them.
 final class PrivateState extends ServerMessage {

@@ -13,6 +13,7 @@ export 'src/message_codec.dart'
         encodeServerMessage;
 export 'src/messages.dart'
     show
+        Avatar,
         BadMessage,
         Chat,
         ClientMessage,
@@ -46,4 +47,4 @@ export 'src/tile_flags.dart' show TileFlags;
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.4.0';
+const scapeCoreVersion = '0.5.0';

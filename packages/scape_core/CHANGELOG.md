@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0
+
+- `Avatar` tells a client which replicated entity is its own, by network id.
+
 ## 0.4.0
 
 - Messages a client and a server send each other, named once: `Login`,
