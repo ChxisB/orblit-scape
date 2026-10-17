@@ -7,9 +7,10 @@ import '../../engine/registry.dart';
 import '../../engine/services.dart';
 
 final class _Player {
-  _Player(this.entity, this.mover);
+  _Player(this.entity, this.networkId, this.mover);
 
   final int entity;
+  final int networkId;
   final Mover mover;
 }
 
@@ -54,12 +55,20 @@ final class Movement {
   /// The tile [player] stands on, or null when they are not in the world.
   TileCoord? tileOf(String player) => _players[player]?.mover.position;
 
+  /// The replicated entity and the tile of [player], or null when they are not
+  /// in the world.
+  ({int networkId, TileCoord tile})? standing(String player) {
+    final found = _players[player];
+    if (found == null) return null;
+    return (networkId: found.networkId, tile: found.mover.position);
+  }
+
   void _join(String key) {
     final world = _services.world;
     final entity = world.createEntity();
     world.add(entity, _position);
     final networkId = _services.hosting.spawn(entity, owner: key);
-    _players[key] = _Player(entity, Mover(_spawn));
+    _players[key] = _Player(entity, networkId, Mover(_spawn));
     _write(entity, _spawn);
     _services.hosting.tell(key, Avatar(networkId));
   }

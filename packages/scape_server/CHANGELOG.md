@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.5.0
+
+- Public chat reaches the speaker and players within 15 tiles on the same
+  plane, skipping any who ignore the speaker. The line names the speaker's
+  avatar so a client can draw it over their head.
+- A whisper goes to one player by name. An offline name and a name that
+  ignores the sender get the same notice.
+- `EditList` adds or removes a name on a friend or ignore list, up to 50
+  each. The player is sent both lists, with which friends are online, on
+  login, on every change and when a friend comes or goes.
+- `ScapeServer.social` mutes and unmutes a player. A muted player is told
+  so and nobody hears them. Lists and mutes last while the server runs.
+- `Movement.standing` says which entity is a player's and where it stands.
+
 ## 0.4.0
 
 - A client is sent the players in its own 16 tile cell and the ring of cells

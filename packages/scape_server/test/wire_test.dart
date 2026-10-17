@@ -143,8 +143,8 @@ void main() {
   test('a message past the host budget never reaches the decoder', () async {
     final ana = connect();
     await ana.login('Ana');
-    // One byte more than the longest chat line, once wrapped.
-    final chat = Uint8List(2 + maxTextBytes + 1)
+    // One byte more than the longest message a client may send.
+    final chat = Uint8List(clientMessageLimit + 1)
       ..[0] = 4
       ..[1] = maxTextBytes + 1;
 

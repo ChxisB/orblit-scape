@@ -10,6 +10,7 @@ import 'engine/services.dart';
 import 'engine/summary_text.dart';
 import 'engine/tick_loop.dart';
 import 'features.dart';
+import 'features/social/social.dart';
 import 'inbox.dart';
 import 'wire.dart';
 
@@ -79,11 +80,11 @@ final class ScapeServer {
       clock: () => tickPeriod * registry.actions.tick,
     );
     registry.addSystem(Phase.inbound, _deliverIntents);
-    registerFeatures(
+    social = registerFeatures(
       registry,
       Services(world: world, map: map, hosting: bridge, active: active),
       spawn: spawn,
-    );
+    ).social;
     final set = ReplicationSet(registry.replicated);
     final interest = GridInterest(
       set: set,
@@ -129,6 +130,7 @@ final class ScapeServer {
   final Registry registry = Registry();
   final Inbox inbox = Inbox();
   late final ActiveCells active;
+  late final Social social;
   late final Wire wire;
   late final NetHost host;
   late final TickLoop loop;
