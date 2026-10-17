@@ -16,11 +16,17 @@ import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
 import 'features/combat/combat.dart';
+import 'features/movement/movement.dart';
 import 'features/npcs/npcs.dart';
 import 'features/objects/objects.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
+import 'accounts/accounts.dart';
+import 'entrance.dart';
 import 'inbox.dart';
+import 'persistence/player_states.dart';
+import 'persistence/saves.dart';
+import 'persistence/storage.dart';
 import 'wire.dart';
 
 /// The bytes the net layer adds round a message before the host counts it.
@@ -31,6 +37,10 @@ const int _loginTicks = 20;
 
 /// Ticks a dropped player's avatar stays in the world, 6 seconds.
 const int _lingerTicks = 10;
+
+/// Ticks a dropped player who is in a fight stays, 60 seconds, so pulling
+/// the plug is not a way out of one.
+const int _fightingLingerTicks = 100;
 
 /// Interest and active cells share one grid of 16 tiles a side.
 const int _cellTiles = 16;
@@ -82,6 +92,7 @@ final class ScapeServer {
     required CombatRules combat,
     RecipeSet? recipes,
     ShopRules? shops,
+    Storage? storage,
     Random? random,
   }) {
     final networkId = world.registerComponent(
@@ -89,7 +100,6 @@ final class ScapeServer {
       kind: ComponentKind.int64,
     );
     final bridge = _HostBridge();
-    wire = Wire(link: bridge, inbox: inbox);
     final grid = Grid(_cellTiles.toDouble());
     active = ActiveCells(
       grid: grid,
@@ -117,9 +127,38 @@ final class ScapeServer {
     this.items = features.items;
     this.npcs = features.npcs;
     this.combat = features.combat;
+    movement = features.movement;
     ground = features.ground;
     this.objects = features.objects;
     interactions = features.interactions;
+    final saves = storage == null
+        ? null
+        : Saves(
+            queue: storage.queue,
+            states: PlayerStates(
+              movement: features.movement,
+              skills: features.skills,
+              items: features.items,
+              social: features.social,
+              combat: features.combat,
+              map: map,
+            ),
+            autosave: storage.autosave,
+            hasSession: (player) => bridge.host.sessionState(player) != null,
+            log: log,
+          );
+    _saves = saves;
+    if (saves != null) {
+      registry.addSystem(
+        Phase.outbound,
+        () => saves.autosave(registry.actions.tick),
+      );
+    }
+    wire = Wire(
+      link: bridge,
+      inbox: inbox,
+      gate: saves == null ? null : _entranceOf(storage!, saves).check,
+    );
     final set = ReplicationSet(registry.replicated);
     final nearby = GridInterest(
       set: set,
@@ -143,13 +182,18 @@ final class ScapeServer {
         onJoin: (key) {
           wire.onJoin(key);
           registry.playerJoined(key);
+          saves?.arrived(key);
         },
         onGone: (key, reason) {
+          saves?.left(key, reason);
           wire.onGone(key, reason);
           registry.playerGone(key);
         },
         joinTicks: _loginTicks,
         lingerTicks: _lingerTicks,
+        lingerFor: (key) => features.combat.isFighting(key)
+            ? _fightingLingerTicks
+            : _lingerTicks,
       ),
       budget: InboundBudget(
         messagesPerTick: 20,
@@ -166,6 +210,7 @@ final class ScapeServer {
   final Registry registry = Registry();
   final Inbox inbox = Inbox();
   late final ActiveCells active;
+  late final Movement movement;
   late final Social social;
   late final Skills skills;
   late final Items items;
@@ -175,6 +220,7 @@ final class ScapeServer {
   late final WorldObjects objects;
   late final Interactions interactions;
   late final Wire wire;
+  late final Saves? _saves;
   late final NetHost host;
   late final TickLoop loop;
 
@@ -195,8 +241,22 @@ final class ScapeServer {
     }
   }
 
+  /// Saves every player in the world, waits for the store, and stops the host.
   Future<void> dispose() async {
+    await _saves?.shutdown();
     await host.dispose();
     world.dispose();
   }
 }
+
+Entrance _entranceOf(Storage storage, Saves saves) => Entrance(
+  saves: saves,
+  accounts: switch (storage.hasher) {
+    final hasher? => Accounts(
+      queue: storage.queue,
+      hasher: hasher,
+      random: storage.salt,
+    ),
+    null => null,
+  },
+);

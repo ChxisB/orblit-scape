@@ -128,10 +128,19 @@ final class TestClient {
     return tileNearest(readTilePoint(world.bytesOf(entity, position)!));
   }
 
-  Future<void> login(String name) async {
-    client.join(encodeClientMessage(Login(name)));
+  Future<void> login(
+    String name, {
+    String password = '',
+    bool create = false,
+  }) async {
+    client.join(
+      encodeClientMessage(Login(name, password: password, create: create)),
+    );
     await pump();
   }
+
+  /// Whether the server has let this client in.
+  bool get admitted => messages.any((m) => m is LoginOk);
 
   Future<void> send(ClientMessage message) async {
     client.sendMessage(encodeClientMessage(message));

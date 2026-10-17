@@ -1,6 +1,7 @@
 /// The server package of orblit-scape.
 library;
 
+export 'src/accounts/password_hasher.dart' show Argon2idHasher, PasswordHasher;
 export 'src/engine/action.dart'
     show
         ActionKind,
@@ -34,8 +35,10 @@ export 'src/features/production/production.dart' show Production;
 export 'src/features/skills/skills.dart' show Skills;
 export 'src/features/social/social.dart' show Social, chatRadius;
 export 'src/inbox.dart' show Inbox, PlayerIntent;
+export 'src/persistence/keys.dart' show accountKeyOf, saveKeyOf;
+export 'src/persistence/storage.dart' show Storage;
 export 'src/server.dart' show ScapeServer;
 export 'src/wire.dart' show Wire, WireLink;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeServerVersion = '0.13.0';
+const scapeServerVersion = '0.14.0';

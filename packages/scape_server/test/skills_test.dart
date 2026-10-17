@@ -62,6 +62,58 @@ void main() {
     await server.dispose();
   });
 
+  test('experienceOf lists only the skills above zero', () async {
+    await join('Ana');
+    server.skills.grant('ana', 'mining', 40);
+    server.skills.grant('ana', 'fishing', 0);
+
+    expect(server.skills.experienceOf('ana'), {'mining': 40});
+    expect(server.skills.experienceOf('nobody'), isEmpty);
+  });
+
+  group('restore', () {
+    test(
+      'sets the experience and tells the owner what is above zero',
+      () async {
+        final ana = await join('Ana');
+
+        final dropped = server.skills.restore('ana', {
+          'mining': 70,
+          'fishing': 5,
+        });
+        await tick();
+
+        expect(dropped, 0);
+        expect(server.skills.xpOf('ana', 'mining'), 70);
+        expect(server.skills.xpOf('ana', 'fishing'), 5);
+        final delta = ana.skillDeltas.last;
+        final index = defaultSkills.schema.placeOf('skill.mining.xp').slot;
+        expect(delta.valueOf(index), 70);
+      },
+    );
+
+    test('counts a skill the game no longer has', () async {
+      await join('Ana');
+
+      final dropped = server.skills.restore('ana', {'mining': 70, 'gone': 9});
+
+      expect(dropped, 1);
+      expect(server.skills.xpOf('ana', 'mining'), 70);
+    });
+
+    test('stops experience at the cap', () async {
+      await join('Ana');
+
+      server.skills.restore('ana', {'mining': 0xFFFFFFFF});
+
+      expect(server.skills.xpOf('ana', 'mining'), curve.xpForLevel(50));
+    });
+
+    test('for a player who is not here drops the lot', () {
+      expect(server.skills.restore('nobody', {'mining': 70}), 1);
+    });
+  });
+
   test('a new player starts at level 1 with no experience', () async {
     await join('Ana');
 

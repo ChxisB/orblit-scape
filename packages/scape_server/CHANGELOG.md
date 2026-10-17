@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.14.0
+
+- Players are kept between visits. `ScapeServer` takes `storage`. A save
+  holds the tile, skills, inventory, equipment, bank, friends and
+  ignored names, and is written through an `orblit_save` queue, so the
+  tick never waits on a disk. A save is made when a player leaves or
+  drops, on a staggered timer, and for everyone when the server stops.
+- A login reads the save before the player joins. A login that arrives
+  while the old session ends gets the newest save, never an older one.
+  A save that cannot be read refuses the login with `unavailable` and is
+  not written over. A saved tile that is now blocked puts the player at
+  the spawn.
+- Accounts are optional. Give `Storage` a `hasher` and a login names an
+  account and its password. `Argon2idHasher` hashes in its own isolate.
+  At most four checks run at once and the rest hear `busy`.
+- A player who drops while fighting stays in the world for 60 seconds.
+- `Skills.experienceOf` and `restore`, `Social.listsOf` and `restore`,
+  `Combat.isFighting` and `Combat.refit`, and `ScapeServer.movement`.
+- `scape_server` takes a third argument, the folder that holds saves, and
+  now ends after Ctrl-C. It used to stay alive on its signal watch.
+
 ## 0.13.0
 
 - `Production` runs recipes. Using an item on another item, or on a

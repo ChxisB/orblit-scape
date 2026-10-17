@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:orblit_progress/orblit_progress.dart';
@@ -72,6 +73,46 @@ final class Skills {
       )
         level,
     ];
+  }
+
+  /// The experience of [player] in each skill where it is above zero, by skill
+  /// id. Empty for a player who is not in the world.
+  Map<String, int> experienceOf(String player) {
+    final table = _tables[player];
+    if (table == null) return const {};
+    return {
+      for (final skill in _set.skills)
+        if (table.get(SkillSet.xpName(skill.id)) > 0)
+          skill.id: table.get(SkillSet.xpName(skill.id)),
+    };
+  }
+
+  /// Sets [player]'s experience from [saved] and tells them every skill that
+  /// is above zero. A skill the game no longer has is left out and counted
+  /// in the result, and experience stops at the level cap.
+  // F5: the count is how the caller tells an operator what a save lost.
+  int restore(String player, Map<String, int> saved) {
+    final held = _tables[player];
+    if (held == null) return saved.length;
+    var table = held;
+    var dropped = 0;
+    for (final MapEntry(key: id, value: xp) in saved.entries) {
+      final def = _set.find(id);
+      if (def == null) {
+        dropped++;
+        continue;
+      }
+      table = table.set(SkillSet.xpName(id), min(xp, _set.maxXp(def))).table;
+    }
+    _tables[player] = table;
+    final changes = table.changesSince(ProgressTable(_set.schema));
+    if (!changes.isEmpty) {
+      _hosting.tell(
+        player,
+        PrivateState(Uint8List.fromList([skillsDeltaTag, ...changes.encode()])),
+      );
+    }
+    return dropped;
   }
 
   SkillDef _def(String skill) =>

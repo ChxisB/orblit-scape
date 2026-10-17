@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.0
+
+- `GameSession.login` takes a `password` and `create`, for a server that
+  has accounts.
+
 ## 0.10.0
 
 - `GameSession.trade` opens a creature's shop. `buy`, `sell`, `deposit`

@@ -20,8 +20,9 @@ final class _Lists {
 /// Public chat, whispers, and each player's friend and ignore lists.
 ///
 /// Lists and mutes are kept by name for as long as the server runs, so a
-/// player who logs out and in again finds them. Names on the wire are
-/// lower case, the same as player keys.
+/// player who logs out and in again finds them. [listsOf] and [restore] let
+/// a save carry the lists across a restart. Names on the wire are lower case,
+/// the same as player keys.
 final class Social {
   Social._(this._hosting, this._standing);
 
@@ -51,6 +52,24 @@ final class Social {
   void unmute(String player) => _muted.remove(nameKey(player));
 
   bool isMuted(String player) => _muted.contains(nameKey(player));
+
+  /// The friends and ignored names of [player], for a save.
+  ({List<String> friends, List<String> ignored}) listsOf(String player) {
+    final lists = _lists[player];
+    return (friends: [...?lists?.friends], ignored: [...?lists?.ignored]);
+  }
+
+  /// Replaces the lists of [player] with a saved pair and sends them.
+  void restore(
+    String player, {
+    required Iterable<String> friends,
+    required Iterable<String> ignored,
+  }) {
+    _lists[player] = _Lists()
+      ..friends.addAll(friends)
+      ..ignored.addAll(ignored);
+    _sendLists(player);
+  }
 
   void _join(String key) {
     _online.add(key);

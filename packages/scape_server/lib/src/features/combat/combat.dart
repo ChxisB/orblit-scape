@@ -147,6 +147,16 @@ final class Combat {
     return fighter == null ? null : (now: fighter.health, max: fighter.max);
   }
 
+  /// Whether [player] swung or was swung at within the last
+  /// [CombatRules.combatTicks] ticks.
+  bool isFighting(String player) {
+    final fighter = _players[player];
+    return fighter != null && _recently(fighter);
+  }
+
+  bool _recently(_Fighter fighter) =>
+      _tick - fighter.lastFight < _rules.combatTicks;
+
   /// The hit points of [npc], or null when it is dead or cannot fight.
   ({int now, int max})? healthOfNpc(PlacedNpc npc) {
     final fighter = _creatures[npc];
@@ -269,11 +279,11 @@ final class Combat {
     for (final level in reached) {
       _notice(player, 'You reached level $level in $skill.');
     }
-    if (reached.isNotEmpty && skill == _rules.healthSkill) _refit(player);
+    if (reached.isNotEmpty && skill == _rules.healthSkill) refit(player);
   }
 
   /// Raises the most hit points to the new level and heals by the rise.
-  void _refit(String player) {
+  void refit(String player) {
     final fighter = _players[player];
     if (fighter == null) return;
     final max = _maxHealth(player);
@@ -399,10 +409,7 @@ final class Combat {
   }
 
   void _heal(int entity, _Fighter fighter) {
-    if (fighter.health >= fighter.max ||
-        _tick - fighter.lastFight < _rules.combatTicks) {
-      return;
-    }
+    if (fighter.health >= fighter.max || _recently(fighter)) return;
     fighter.health++;
     _write(entity, fighter);
   }

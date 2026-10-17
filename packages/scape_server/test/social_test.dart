@@ -209,6 +209,23 @@ void main() {
       expect(ana.lists.ignored, isEmpty);
     });
 
+    test('listsOf and restore carry the lists across a save', () async {
+      final ana = await join('Ana');
+      await ana.send(EditList(list: ListKind.friends, add: true, name: 'Bo'));
+      await ana.send(EditList(list: ListKind.ignored, add: true, name: 'Cy'));
+      await tick();
+
+      final saved = server.social.listsOf('ana');
+      server.social.restore('ana', friends: ['di'], ignored: const []);
+      await tick();
+
+      expect(saved.friends, ['bo']);
+      expect(saved.ignored, ['cy']);
+      expect(ana.lists.friends, [(name: 'di', online: false)]);
+      expect(ana.lists.ignored, isEmpty);
+      expect(server.social.listsOf('nobody').friends, isEmpty);
+    });
+
     test('adding and removing a name sends the list back', () async {
       final ana = await join('Ana');
 

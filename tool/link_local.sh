@@ -37,6 +37,8 @@ dependency_overrides:
     path: $NET
   orblit_progress:
     path: $ENGINE/packages/orblit_progress
+  orblit_save:
+    path: $ENGINE/packages/orblit_save
 YAML
 
 cat > packages/scape_client/pubspec_overrides.yaml <<YAML
@@ -48,6 +50,8 @@ dependency_overrides:
     path: $NET
   orblit_progress:
     path: $ENGINE/packages/orblit_progress
+  orblit_save:
+    path: $ENGINE/packages/orblit_save
   orblit_terrain:
     path: $ENGINE/packages/orblit_terrain
 YAML

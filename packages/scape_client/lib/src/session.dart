@@ -217,7 +217,12 @@ final class GameSession {
       _skills.find(id) ??
       (throw ArgumentError.value(id, 'skill', 'is unknown'));
 
-  void login(String player) => _client.join(encodeClientMessage(Login(player)));
+  /// Joins as [player]. A server with accounts wants the [password], and
+  /// [create] makes the account first.
+  void login(String player, {String password = '', bool create = false}) =>
+      _client.join(
+        encodeClientMessage(Login(player, password: password, create: create)),
+      );
 
   void walkTo(TileCoord tile) =>
       _client.sendMessage(encodeClientMessage(Walk(tile)));

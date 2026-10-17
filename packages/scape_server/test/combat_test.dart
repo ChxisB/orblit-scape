@@ -182,6 +182,38 @@ void main() {
       expect(ana.hits, isEmpty);
     });
 
+    test('is a fight for the combat ticks after a swing', () async {
+      final ana = await join('Ana');
+      final rat = place(1, at(33, 32));
+      await tick(2);
+      expect(server.combat.isFighting('ana'), isFalse);
+
+      await ana.attack(rat.networkId);
+      await tick(2);
+      expect(server.combat.isFighting('ana'), isTrue);
+
+      await tick(40);
+      expect(server.combat.isFighting('ana'), isFalse);
+      expect(server.combat.isFighting('nobody'), isFalse);
+    });
+
+    test('a player who drops in a fight stays in the world longer', () async {
+      start(random: _neverHits());
+      final ana = await join('Ana');
+      final rat = place(1, at(33, 32));
+      await tick(2);
+      await ana.attack(rat.networkId);
+      await tick(2);
+
+      await ana.link.close();
+      await tick(30);
+      expect(server.combat.isFighting('ana'), isTrue);
+      expect(server.movement.tileOf('ana'), isNotNull);
+
+      await tick(80);
+      expect(server.movement.tileOf('ana'), isNull);
+    });
+
     test('a click on nothing does nothing', () async {
       final ana = await join('Ana');
 
