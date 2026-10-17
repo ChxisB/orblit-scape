@@ -16,6 +16,7 @@ const int maxNpcId = 0xFFFF;
 abstract final class NpcOption {
   static const int attack = 0;
   static const int trade = 1;
+  static const int talk = 2;
 }
 
 /// What a creature does when nobody is making it do anything.
@@ -57,11 +58,15 @@ final class NpcDef {
     this.fight,
     this.loot,
     this.shop,
+    this.dialogue,
   }) {
     if (id < 1 || id > maxNpcId) {
       throw ArgumentError.value(id, 'id', 'is outside 1 to $maxNpcId');
     }
     if (name.isEmpty) throw ArgumentError.value(name, 'name', 'is empty');
+    if (dialogue != null && dialogue!.isEmpty) {
+      throw ArgumentError.value(dialogue, 'dialogue', 'is empty');
+    }
   }
 
   final int id;
@@ -76,6 +81,10 @@ final class NpcDef {
 
   /// What it sells, or null for a creature that does not trade.
   final ShopDef? shop;
+
+  /// The key of the conversation it opens, or null for a creature that does
+  /// not talk.
+  final String? dialogue;
 }
 
 /// The creatures a game has.

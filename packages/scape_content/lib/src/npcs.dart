@@ -8,11 +8,13 @@ abstract final class NpcId {
   static const int goblin = 2;
   static const int guard = 3;
   static const int shopkeeper = 4;
+  static const int lamplighter = 5;
 }
 
 /// A chicken wanders, a goblin goes for anyone who comes near and a guard
 /// stands where it is put. The chicken and the goblin drop things when they
-/// die. The shopkeeper stands where it is put and sells tools.
+/// die. The shopkeeper stands where it is put and sells tools. The guard, the
+/// shopkeeper and the lamplighter talk.
 final NpcSet defaultNpcs = NpcSet(
   npcs: [
     NpcDef(
@@ -60,10 +62,12 @@ final NpcSet defaultNpcs = NpcSet(
         rareOneIn: 25,
       ),
     ),
-    NpcDef(id: NpcId.guard, name: 'Guard'),
+    NpcDef(id: NpcId.guard, name: 'Guard', dialogue: 'guard'),
+    NpcDef(id: NpcId.lamplighter, name: 'Brindle', dialogue: 'brindle'),
     NpcDef(
       id: NpcId.shopkeeper,
       name: 'Shopkeeper',
+      dialogue: 'shopkeeper',
       shop: ShopDef(
         lines: [
           ShopLine(item: ItemId.bronzeAxe, cap: 5, restockTicks: 100),

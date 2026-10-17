@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.12.0
+
+- `GameSession.talk` starts a conversation. `line` holds what a creature
+  says and `choices` what the player may pick. `continueTalk` goes on
+  from a line and `choose` picks an option. The quest table is not read
+  yet, so there is no journal.
+
 ## 0.11.0
 
 - `GameSession.login` takes a `password` and `create`, for a server that

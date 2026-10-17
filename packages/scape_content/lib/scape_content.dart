@@ -9,6 +9,7 @@ export 'src/objects.dart' show ObjectId, defaultObjects;
 export 'src/recipes.dart' show defaultRecipes;
 export 'src/shops.dart' show defaultShops;
 export 'src/skills.dart' show defaultSkills;
+export 'src/story.dart' show defaultStory;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeContentVersion = '0.9.0';
+const scapeContentVersion = '0.10.0';

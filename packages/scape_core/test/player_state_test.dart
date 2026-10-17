@@ -14,6 +14,7 @@ List<ItemStack?> slotsOf(ContainerId id, Map<int, ItemStack> held) => [
 PlayerState sample() => PlayerState(
   tile: TileCoord(40, 41, 1),
   skills: {'fighting': 1200, 'cooking': 0},
+  quests: {'lamp': 2, 'crabs': 1},
   containers: {
     ContainerId.inventory: slotsOf(ContainerId.inventory, {
       0: ItemStack(coins, 99),
@@ -38,6 +39,7 @@ void main() {
 
       expect(back.tile, TileCoord(40, 41, 1));
       expect(back.skills, {'fighting': 1200, 'cooking': 0});
+      expect(back.quests, {'lamp': 2, 'crabs': 1});
       expect(back.friends, ['bo', 'cy']);
       expect(back.ignored, ['dee']);
       expect(
@@ -63,6 +65,7 @@ void main() {
       final other = PlayerState(
         tile: TileCoord(40, 41, 1),
         skills: {'cooking': 0, 'fighting': 1200},
+        quests: {'crabs': 1, 'lamp': 2},
         containers: {
           ContainerId.bank: sample().containers[ContainerId.bank]!,
           ContainerId.inventory: sample().containers[ContainerId.inventory]!,
@@ -119,6 +122,21 @@ void main() {
       expect(
         PlayerState(tile: tile, skills: {'a': maxSavedXp}).skills['a'],
         maxSavedXp,
+      );
+    });
+
+    test('refuses a quest stage outside 0 to the 32 bit limit', () {
+      expect(
+        () => PlayerState(tile: tile, quests: {'a': -1}),
+        throwsArgumentError,
+      );
+      expect(
+        () => PlayerState(tile: tile, quests: {'a': maxSavedXp + 1}),
+        throwsArgumentError,
+      );
+      expect(
+        () => PlayerState(tile: tile, quests: {'': 1}),
+        throwsArgumentError,
       );
     });
 
@@ -209,6 +227,18 @@ void main() {
       refuses('fraction', json(good()..['skills'] = {'a': 1.5}));
       refuses('negative', json(good()..['skills'] = {'a': -1}));
       refuses('list', json(good()..['skills'] = [1]));
+    });
+
+    test('refuses a quest stage that is not a whole number', () {
+      refuses('text', json(good()..['quests'] = {'a': 'x'}));
+      refuses('negative', json(good()..['quests'] = {'a': -1}));
+      refuses('list', json(good()..['quests'] = [1]));
+    });
+
+    test('reads a save from before quests as having none', () {
+      final back = PlayerState.decode(json(good()..remove('quests')));
+
+      expect(back.quests, isEmpty);
     });
 
     test('refuses an unknown container and a bad slot', () {

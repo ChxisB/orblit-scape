@@ -38,6 +38,7 @@ Future<void> main(List<String> args) async {
     objects: defaultObjects,
     nodes: defaultNodes,
     npcs: defaultNpcs,
+    story: defaultStory,
     combat: defaultCombat,
     shops: defaultShops,
     recipes: defaultRecipes,

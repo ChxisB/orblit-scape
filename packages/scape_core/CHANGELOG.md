@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.17.0
+
+- `Story` holds a game's quests, dialogues, named steps and rewards, and
+  builds the one progress table every player's quests live in. A step or
+  reward that names a quest or a stage the game lacks throws at start.
+- `Continue` and `Choose` are the two things a player does in a
+  conversation. `ConversationLine` and `ConversationChoices` are what
+  the server shows. A choice holds at most eight options.
+- `NpcOption.talk` and `NpcDef.dialogue`. A creature with a dialogue can
+  be talked to.
+- `PlayerState.quests` keeps each quest's stage by quest key. A save from
+  before reads as having begun none. `playerStateVersion` stays 1.
+- `questsDeltaTag` marks a quest change in a `PrivateState`.
+
 ## 0.16.0
 
 - `PlayerState` is what a server keeps of one player between logins: the

@@ -28,6 +28,9 @@ const int minPasswordBytes = 8;
 /// The most a [PrivateState] delta may hold.
 const int maxDeltaBytes = 4096;
 
+/// The most options one choice in a conversation may offer.
+const int maxChoices = 8;
+
 bool isValidName(String name) => _name.hasMatch(name);
 
 /// What two names must share to be the same player: their letters, whatever
@@ -182,6 +185,20 @@ final class Withdraw extends Intent {
   final int count;
 }
 
+/// Go on from the line a conversation shows.
+final class Continue extends Intent {
+  const Continue();
+}
+
+/// Pick the option at [index] of the choices a conversation last offered.
+final class Choose extends Intent {
+  Choose(this.index) {
+    _inRange(index, 'index', 0xFF);
+  }
+
+  final int index;
+}
+
 /// A message the server sends a client.
 sealed class ServerMessage {
   const ServerMessage();
@@ -332,6 +349,35 @@ final class BankOpen extends ServerMessage {
 /// A shop or bank window is no longer open.
 final class WindowClosed extends ServerMessage {
   const WindowClosed();
+}
+
+/// [speaker] says [text] in the conversation the player has open. The player
+/// answers with [Continue].
+final class ConversationLine extends ServerMessage {
+  ConversationLine({required this.speaker, required this.text}) {
+    if (!isValidText(speaker) || !isValidText(text)) {
+      throw ArgumentError('A conversation line needs a speaker and text.');
+    }
+  }
+
+  final String speaker;
+  final String text;
+}
+
+/// What the player may pick in the conversation they have open. The player
+/// answers with [Choose] and the index of one of [options].
+final class ConversationChoices extends ServerMessage {
+  ConversationChoices(List<String> options)
+    : options = List.unmodifiable(options) {
+    if (options.isEmpty || options.length > maxChoices) {
+      throw ArgumentError.value(options.length, 'options', 'is not 1 to 8');
+    }
+    if (!options.every(isValidText)) {
+      throw ArgumentError.value(options, 'options', 'holds invalid text');
+    }
+  }
+
+  final List<String> options;
 }
 
 /// Why a login was refused. It reaches the client as the text of the

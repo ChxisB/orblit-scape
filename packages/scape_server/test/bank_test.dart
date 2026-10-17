@@ -68,6 +68,7 @@ void main() {
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: defaultNpcs,
+      story: defaultStory,
       combat: defaultCombat,
       shops: defaultShops,
     );

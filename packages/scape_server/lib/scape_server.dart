@@ -32,8 +32,10 @@ export 'src/features/npcs/npcs.dart'
     show Npcs, PlacedNpc, PlayerTiles, wanderChance;
 export 'src/features/objects/objects.dart' show PlacedObject, WorldObjects;
 export 'src/features/production/production.dart' show Production;
+export 'src/features/quests/quests.dart' show Quests;
 export 'src/features/skills/skills.dart' show Skills;
 export 'src/features/social/social.dart' show Social, chatRadius;
+export 'src/features/talk/talk.dart' show Talk;
 export 'src/inbox.dart' show Inbox, PlayerIntent;
 export 'src/persistence/keys.dart' show accountKeyOf, saveKeyOf;
 export 'src/persistence/storage.dart' show Storage;
@@ -41,4 +43,4 @@ export 'src/server.dart' show ScapeServer;
 export 'src/wire.dart' show Wire, WireLink;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeServerVersion = '0.14.0';
+const scapeServerVersion = '0.15.0';

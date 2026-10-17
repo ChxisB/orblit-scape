@@ -15,9 +15,11 @@ import 'features/movement/movement.dart';
 import 'features/npcs/npcs.dart';
 import 'features/objects/objects.dart';
 import 'features/production/production.dart';
+import 'features/quests/quests.dart';
 import 'features/shops/shops.dart';
 import 'features/skills/skills.dart';
 import 'features/social/social.dart';
+import 'features/talk/talk.dart';
 import 'features/windows/windows.dart';
 
 /// What the rest of the server may reach into after the features register.
@@ -29,6 +31,7 @@ typedef Features = ({
   Movement movement,
   Npcs npcs,
   WorldObjects objects,
+  Quests? quests,
   Skills skills,
   Social social,
 });
@@ -48,6 +51,7 @@ Features registerFeatures(
   required Random random,
   RecipeSet? recipes,
   ShopRules? shops,
+  Story? story,
 }) {
   final movement = Movement.register(registry, services, spawn: spawn);
   final social = Social.register(
@@ -150,6 +154,20 @@ Features registerFeatures(
   } else if (npcs.npcs.any((npc) => npc.shop != null)) {
     throw ArgumentError.value(shops, 'shops', 'is needed for a creature shop');
   }
+  final quests = _registerStory(
+    registry,
+    services,
+    story: story,
+    skills: skills,
+    items: items,
+    npcs: npcs,
+    levels: levels,
+    bags: bags,
+    ground: ground,
+    movement: movement,
+    interactions: interactions,
+    windows: windows,
+  );
   return (
     combat: fights,
     ground: ground,
@@ -158,7 +176,51 @@ Features registerFeatures(
     movement: movement,
     npcs: creatures,
     objects: placed,
+    quests: quests,
     skills: levels,
     social: social,
   );
+}
+
+Quests? _registerStory(
+  Registry registry,
+  Services services, {
+  required Story? story,
+  required SkillSet skills,
+  required ItemSet items,
+  required NpcSet npcs,
+  required Skills levels,
+  required Items bags,
+  required GroundItems ground,
+  required Movement movement,
+  required Interactions interactions,
+  required Windows windows,
+}) {
+  if (story == null) {
+    if (npcs.npcs.any((npc) => npc.dialogue != null)) {
+      throw ArgumentError.value(story, 'story', 'is needed for a dialogue');
+    }
+    return null;
+  }
+  final quests = Quests.register(
+    registry,
+    services,
+    story: story,
+    skills: skills,
+    items: items,
+    levels: levels,
+    bags: bags,
+    ground: ground,
+    movement: movement,
+  );
+  Talk.register(
+    registry,
+    services,
+    story: story,
+    npcs: npcs,
+    interactions: interactions,
+    quests: quests,
+    windows: windows,
+  );
+  return quests;
 }

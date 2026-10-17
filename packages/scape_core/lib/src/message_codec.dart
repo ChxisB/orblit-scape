@@ -16,6 +16,8 @@ const int _buy = 7;
 const int _sell = 8;
 const int _deposit = 9;
 const int _withdraw = 10;
+const int _continue = 11;
+const int _choose = 12;
 
 const int _loginOk = 1;
 const int _privateState = 2;
@@ -28,6 +30,8 @@ const int _hit = 8;
 const int _shopView = 9;
 const int _bankOpen = 10;
 const int _windowClosed = 11;
+const int _conversationLine = 12;
+const int _conversationChoices = 13;
 
 /// The most bytes each message may take, by tag. A longer one is refused
 /// before anything is read from it.
@@ -42,6 +46,8 @@ final Map<int, int> _clientCaps = {
   _sell: 7,
   _deposit: 8,
   _withdraw: 7,
+  _continue: 1,
+  _choose: 2,
 };
 
 final Map<int, int> _serverCaps = {
@@ -53,6 +59,8 @@ final Map<int, int> _serverCaps = {
   _shopView: 4 + maxShopLines * 6,
   _bankOpen: 1,
   _windowClosed: 1,
+  _conversationLine: 3 + 2 * maxTextBytes,
+  _conversationChoices: 2 + maxChoices * (1 + maxTextBytes),
   _said: 6 + maxTextBytes,
   _whispered: 3 + maxNameChars + maxTextBytes,
   _socialLists:
@@ -83,6 +91,8 @@ final Map<int, _Reader<ClientMessage>> _clientReaders = {
   _sell: (b) => _readTrade(b, Sell.new),
   _deposit: _readDeposit,
   _withdraw: _readWithdraw,
+  _continue: (b) => b.length == 1 ? const Continue() : null,
+  _choose: (b) => b.length == 2 ? Choose(b[1]) : null,
 };
 
 final Map<int, _Reader<ServerMessage>> _serverReaders = {
@@ -97,6 +107,8 @@ final Map<int, _Reader<ServerMessage>> _serverReaders = {
   _shopView: _readShopView,
   _bankOpen: (b) => b.length == 1 ? const BankOpen() : null,
   _windowClosed: (b) => b.length == 1 ? const WindowClosed() : null,
+  _conversationLine: _readConversationLine,
+  _conversationChoices: _readConversationChoices,
 };
 
 Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
@@ -110,6 +122,8 @@ Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
   Sell(:final item, :final count) => _encodePair(_sell, item, count),
   Deposit() => _encodeDeposit(message),
   Withdraw() => _encodeWithdraw(message),
+  Continue() => Uint8List.fromList([_continue]),
+  Choose(:final index) => Uint8List.fromList([_choose, index]),
 };
 
 Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
@@ -124,6 +138,12 @@ Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
   ShopView() => _encodeShopView(message),
   BankOpen() => Uint8List.fromList([_bankOpen]),
   WindowClosed() => Uint8List.fromList([_windowClosed]),
+  ConversationLine(:final speaker, :final text) => _withTwoTexts(
+    _conversationLine,
+    speaker,
+    text,
+  ),
+  ConversationChoices(:final options) => _encodeChoices(options),
 };
 
 Decoded<ClientMessage> decodeClientMessage(Uint8List bytes) =>
@@ -463,4 +483,37 @@ ShopView? _readShopView(Uint8List bytes) {
         ),
     ],
   );
+}
+
+ConversationLine? _readConversationLine(Uint8List bytes) {
+  final texts = _readTwoTexts(bytes);
+  return texts == null
+      ? null
+      : ConversationLine(speaker: texts.first, text: texts.second);
+}
+
+Uint8List _encodeChoices(List<String> options) {
+  final out = BytesBuilder()
+    ..addByte(_conversationChoices)
+    ..addByte(options.length);
+  for (final option in options) {
+    final text = utf8.encode(option);
+    out
+      ..addByte(text.length)
+      ..add(text);
+  }
+  return out.takeBytes();
+}
+
+ConversationChoices? _readConversationChoices(Uint8List bytes) {
+  if (bytes.length < 2) return null;
+  final options = <String>[];
+  var at = 2;
+  for (var i = 0; i < bytes[1]; i++) {
+    final text = _textAt(bytes, at);
+    if (text == null) return null;
+    options.add(text.text);
+    at = text.next;
+  }
+  return at == bytes.length ? ConversationChoices(options) : null;
 }

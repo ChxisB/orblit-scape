@@ -106,6 +106,7 @@ void main() {
       objects: defaultObjects,
       nodes: nodes ?? defaultNodes,
       npcs: defaultNpcs,
+      story: defaultStory,
       shops: defaultShops,
       combat: defaultCombat,
       random: rolls,

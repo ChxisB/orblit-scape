@@ -32,7 +32,11 @@ export 'src/messages.dart'
         BankOpen,
         Buy,
         Chat,
+        Choose,
         ClientMessage,
+        Continue,
+        ConversationChoices,
+        ConversationLine,
         Decoded,
         Deposit,
         EditList,
@@ -62,6 +66,7 @@ export 'src/messages.dart'
         WindowClosed,
         isValidName,
         isValidText,
+        maxChoices,
         maxDeltaBytes,
         maxListEntries,
         maxNameChars,
@@ -128,6 +133,8 @@ export 'src/skills.dart'
     show SkillDef, SkillSet, XpCurve, maxLevel, skillsDeltaTag;
 export 'src/reach.dart'
     show Beside, Footprint, OnTile, Reach, Within, reachSatisfied;
+export 'src/story.dart'
+    show QuestReward, QuestStep, Story, maxRewardItems, questsDeltaTag;
 export 'src/tick.dart' show tickPeriod;
 export 'src/tile_coord.dart'
     show RegionKey, TileCoord, planeCount, regionSize, regionsAcross, worldSize;
@@ -143,4 +150,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.16.0';
+const scapeCoreVersion = '0.17.0';

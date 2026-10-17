@@ -23,8 +23,12 @@ for package in scape_core scape_content; do
   cat > "packages/$package/pubspec_overrides.yaml" <<YAML
 # Written by tool/link_local.sh. Not committed.
 dependency_overrides:
+  orblit_dialogue:
+    path: $ENGINE/packages/orblit_dialogue
   orblit_progress:
     path: $ENGINE/packages/orblit_progress
+  orblit_quest:
+    path: $ENGINE/packages/orblit_quest
 YAML
 done
 
@@ -33,10 +37,14 @@ cat > packages/scape_server/pubspec_overrides.yaml <<YAML
 dependency_overrides:
   orblit_core:
     path: $ENGINE/packages/orblit_core
+  orblit_dialogue:
+    path: $ENGINE/packages/orblit_dialogue
   orblit_net:
     path: $NET
   orblit_progress:
     path: $ENGINE/packages/orblit_progress
+  orblit_quest:
+    path: $ENGINE/packages/orblit_quest
   orblit_save:
     path: $ENGINE/packages/orblit_save
 YAML
@@ -46,10 +54,14 @@ cat > packages/scape_client/pubspec_overrides.yaml <<YAML
 dependency_overrides:
   orblit_core:
     path: $ENGINE/packages/orblit_core
+  orblit_dialogue:
+    path: $ENGINE/packages/orblit_dialogue
   orblit_net:
     path: $NET
   orblit_progress:
     path: $ENGINE/packages/orblit_progress
+  orblit_quest:
+    path: $ENGINE/packages/orblit_quest
   orblit_save:
     path: $ENGINE/packages/orblit_save
   orblit_terrain:

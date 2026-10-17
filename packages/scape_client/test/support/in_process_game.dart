@@ -56,6 +56,7 @@ final class InProcessGame {
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: defaultNpcs,
+      story: defaultStory,
       combat: defaultCombat,
       shops: defaultShops,
     );

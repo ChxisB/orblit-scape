@@ -165,11 +165,18 @@ final class GameSession {
   List<String> ignored = const [];
 
   /// The shop the player has open, as the server last sent it, or null. A
-  /// bank and a shop are never open together.
+  /// shop, a bank and a conversation are never open together.
   ShopView? shop;
 
   /// Whether the player's bank is open. [itemAt] reads what is in it.
   bool bankOpen = false;
+
+  /// The line a creature is saying in the open conversation, or null.
+  ConversationLine? line;
+
+  /// What the player may pick in the open conversation, in the order the
+  /// server sent. Empty when it is showing a line or none is open.
+  List<String> choices = const [];
 
   List<String> get notices => List.unmodifiable(_notices);
 
@@ -245,6 +252,19 @@ final class GameSession {
   void trade(int networkId) => _interact(
     Interact(kind: InteractKind.npc, id: networkId, option: NpcOption.trade),
   );
+
+  /// Talks to the creature that [networkId] names.
+  void talk(int networkId) => _interact(
+    Interact(kind: InteractKind.npc, id: networkId, option: NpcOption.talk),
+  );
+
+  /// Goes on from the line in the open conversation.
+  void continueTalk() =>
+      _client.sendMessage(encodeClientMessage(const Continue()));
+
+  /// Picks the option at [index] of [choices].
+  void choose(int index) =>
+      _client.sendMessage(encodeClientMessage(Choose(index)));
 
   /// Buys [count] of [item] from the open shop.
   void buy(int item, int count) =>
@@ -405,16 +425,28 @@ final class GameSession {
         case PrivateState(:final delta):
           _applyPrivate(delta);
         case ShopView():
+          _closeWindow();
           shop = message;
-          bankOpen = false;
         case BankOpen():
-          shop = null;
+          _closeWindow();
           bankOpen = true;
+        case ConversationLine():
+          _closeWindow();
+          line = message;
+        case ConversationChoices(:final options):
+          _closeWindow();
+          choices = options;
         case WindowClosed():
-          shop = null;
-          bankOpen = false;
+          _closeWindow();
       }
     }
+  }
+
+  void _closeWindow() {
+    shop = null;
+    bankOpen = false;
+    line = null;
+    choices = const [];
   }
 
   void _applyPrivate(Uint8List delta) {

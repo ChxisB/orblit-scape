@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.10.0
+
+- `defaultStory` has two quests, The Dark Lantern and Goblin Count, and
+  three conversations. The second quest opens when the first is done.
+  Each quest gives experience and coins.
+- Brindle the lamplighter is a creature. The Guard and the Shopkeeper
+  have something to say.
+
 ## 0.9.0
 
 - Four recipes: cook the fish, light the logs, carve the logs and forge

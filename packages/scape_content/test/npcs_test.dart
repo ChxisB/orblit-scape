@@ -9,10 +9,11 @@ void main() {
       NpcId.goblin,
       NpcId.guard,
       NpcId.shopkeeper,
+      NpcId.lamplighter,
     ]) {
       expect(defaultNpcs.find(id), isNotNull);
     }
-    expect(defaultNpcs.npcs, hasLength(4));
+    expect(defaultNpcs.npcs, hasLength(5));
   });
 
   test('the creatures behave as their names say', () {

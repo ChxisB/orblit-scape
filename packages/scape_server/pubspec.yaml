@@ -1,6 +1,6 @@
 name: scape_server
 description: The headless game server, with its tick, sessions, actions and saves.
-version: 0.14.0
+version: 0.15.0
 publish_to: none
 
 environment:
@@ -17,10 +17,20 @@ dependencies:
     git:
       url: https://github.com/ChxisB/orblit-net.git
       ref: main
+  orblit_dialogue:
+    git:
+      url: https://github.com/ChxisB/orblit.git
+      path: packages/orblit_dialogue
+      ref: main
   orblit_progress:
     git:
       url: https://github.com/ChxisB/orblit.git
       path: packages/orblit_progress
+      ref: main
+  orblit_quest:
+    git:
+      url: https://github.com/ChxisB/orblit.git
+      path: packages/orblit_quest
       ref: main
   orblit_save:
     git:

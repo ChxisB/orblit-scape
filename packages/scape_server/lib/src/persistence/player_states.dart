@@ -3,6 +3,7 @@ import 'package:scape_core/scape_core.dart';
 import '../features/combat/combat.dart';
 import '../features/items/items.dart';
 import '../features/movement/movement.dart';
+import '../features/quests/quests.dart';
 import '../features/skills/skills.dart';
 import '../features/social/social.dart';
 
@@ -16,11 +17,13 @@ final class PlayerStates {
     required Social social,
     required Combat combat,
     required TileMap map,
+    Quests? quests,
   }) : _movement = movement,
        _skills = skills,
        _items = items,
        _social = social,
        _combat = combat,
+       _quests = quests,
        _map = map;
 
   final Movement _movement;
@@ -28,6 +31,7 @@ final class PlayerStates {
   final Items _items;
   final Social _social;
   final Combat _combat;
+  final Quests? _quests;
   final TileMap _map;
 
   /// The keys of the players in the world.
@@ -49,12 +53,13 @@ final class PlayerStates {
       },
       friends: lists.friends,
       ignored: lists.ignored,
+      quests: _quests?.stagesOf(player) ?? const {},
     );
   }
 
   /// Puts [state] on [player], who has just joined. A saved tile that is no
   /// longer open ground leaves them at the spawn. Returns how many saved
-  /// skills and stacks the game no longer has.
+  /// skills, stacks and quests the game no longer has.
   // F5: the count is how the caller tells an operator what a save lost.
   int apply(String player, PlayerState state) {
     if (!_map.flagsAt(state.tile).has(TileFlags.blocked | TileFlags.water)) {
@@ -64,6 +69,7 @@ final class PlayerStates {
     for (final MapEntry(key: id, value: slots) in state.containers.entries) {
       dropped += _items.container(player, id)?.restore(slots) ?? slots.length;
     }
+    dropped += _quests?.restore(player, state.quests) ?? state.quests.length;
     _social.restore(player, friends: state.friends, ignored: state.ignored);
     _combat.refit(player);
     return dropped;

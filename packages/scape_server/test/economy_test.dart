@@ -92,6 +92,7 @@ void main() {
       objects: defaultObjects,
       nodes: _trees,
       npcs: defaultNpcs,
+      story: defaultStory,
       combat: defaultCombat,
       shops: defaultShops,
       random: _Lucky(),

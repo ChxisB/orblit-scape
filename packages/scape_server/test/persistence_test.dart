@@ -41,6 +41,7 @@ final class Rig {
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: defaultNpcs,
+      story: defaultStory,
       shops: defaultShops,
       combat: defaultCombat,
       storage: Storage(queue: queue, autosave: autosave),

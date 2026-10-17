@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.15.0
+
+- Quests and conversations. `ScapeServer` takes `story`. `Quests` holds
+  each player's stages in a table and tells only that player when one
+  moves. A save holds the stages, and a stage the game no longer has is
+  counted as dropped.
+- `Talk` opens a conversation when a player talks to a creature that has
+  a `dialogue`. The player goes on with `Continue` and picks with
+  `Choose`. A pick that is not on offer gets a notice and changes
+  nothing.
+- A conversation moves a quest only through a named step, so the quest
+  book checks every move. A finished quest gives its reward. What does
+  not fit in the inventory lands at the player's feet.
+- A conversation ends when the player's quests change under it, and when
+  they walk away.
+- The server refuses to start when a creature names a dialogue the story
+  lacks, when a dialogue writes the table itself, or when a line or an
+  option is text the client cannot show.
+
 ## 0.14.0
 
 - Players are kept between visits. `ScapeServer` takes `storage`. A save

@@ -5,15 +5,15 @@ import '../../engine/registry.dart';
 import '../../engine/services.dart';
 import '../movement/movement.dart';
 
-/// What a window shows. A shop and a bank are the two.
-enum WindowKind { shop, bank }
+/// What a window shows: a shop, a bank or a conversation.
+enum WindowKind { shop, bank, talk }
 
 /// The window a player has open: what it is, which of its kind ([ref] is the
 /// shopkeeper's creature id, and zero for a bank), and where the player has
 /// to stand to keep using it.
 typedef OpenWindow = ({WindowKind kind, int ref, Reach reach});
 
-/// The shop or bank window each player has open. A player has one at a time.
+/// The window each player has open. A player has one at a time.
 /// It closes when they stop being able to reach what it belongs to, however
 /// that came about, and the client is told.
 final class Windows {

@@ -24,6 +24,12 @@ void main() {
       expect(() => NpcDef(id: maxNpcId, name: 'A'), returnsNormally);
       expect(() => NpcDef(id: 1, name: ''), throwsArgumentError);
     });
+
+    test('names a conversation or none, never an empty key', () {
+      expect(NpcDef(id: 1, name: 'A').dialogue, isNull);
+      expect(NpcDef(id: 1, name: 'A', dialogue: 'a').dialogue, 'a');
+      expect(() => NpcDef(id: 1, name: 'A', dialogue: ''), throwsArgumentError);
+    });
   });
 
   group('NpcSet', () {

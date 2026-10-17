@@ -65,6 +65,7 @@ void main() {
       objects: defaultObjects,
       nodes: defaultNodes,
       npcs: npcs ?? defaultNpcs,
+      story: defaultStory,
       combat: defaultCombat,
       shops: defaultShops,
       random: random ?? Random(7),
