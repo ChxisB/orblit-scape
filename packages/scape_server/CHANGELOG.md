@@ -9,6 +9,7 @@
 - `ScapeServer` takes the tile map and the spawn tile.
 - Features reach the host through `Services`. `Registry` holds their
   replicated components and their handlers for intents and joins.
+- `tickPeriod` now comes from `scape_core`, so the client reads the same one.
 
 ## 0.2.0
 

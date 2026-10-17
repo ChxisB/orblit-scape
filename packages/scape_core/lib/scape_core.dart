@@ -41,6 +41,7 @@ export 'src/path.dart'
 export 'src/line_of_sight.dart' show hasClearLine;
 export 'src/reach.dart'
     show Beside, Footprint, OnTile, Reach, Within, reachSatisfied;
+export 'src/tick.dart' show tickPeriod;
 export 'src/tile_coord.dart'
     show RegionKey, TileCoord, planeCount, regionSize, regionsAcross, worldSize;
 export 'src/tile_flags.dart' show TileFlags;

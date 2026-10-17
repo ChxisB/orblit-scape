@@ -5,6 +5,7 @@
 - `TilePosition` is named once: its component name, its layout and the
   functions that write and read it, so a client and a server cannot disagree
   about which float is which.
+- `tickPeriod` moved here from `scape_server`, since a client blends over it.
 
 ## 0.5.0
 

@@ -20,6 +20,3 @@ export 'src/wire.dart' show Wire, WireLink;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
 const scapeServerVersion = '0.3.0';
-
-/// The time between two ticks.
-const tickPeriod = Duration(milliseconds: 600);
