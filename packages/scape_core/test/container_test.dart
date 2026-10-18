@@ -215,6 +215,39 @@ void main() {
     });
   });
 
+  group('swapWith', () {
+    test('wears an item and takes back what was worn', () {
+      final worn = bag(ContainerId.equipment)..add(helmet, 1);
+      final bagged = inventory()..add(sword, 1);
+      expect(bagged.swapWith(worn, 0, 3), Outcome.done);
+      expect(worn.at(3), ItemStack(sword, 1));
+      expect(bagged.at(0), isNull);
+      expect(worn.swapWith(bagged, 0, 5), Outcome.done);
+      expect(bagged.at(5), ItemStack(helmet, 1));
+    });
+
+    test('refuses an item in a slot it may not go, and changes nothing', () {
+      final worn = bag(ContainerId.equipment);
+      final bagged = inventory()..add(coins, 3);
+      expect(bagged.swapWith(worn, 0, 0), Outcome.notAllowed);
+      expect(bagged.at(0), ItemStack(coins, 3));
+      expect(worn.at(0), isNull);
+    });
+
+    test('refuses two empty slots and a missing slot', () {
+      final worn = bag(ContainerId.equipment);
+      final bagged = inventory();
+      expect(bagged.swapWith(worn, 0, 0), Outcome.nothingThere);
+      expect(bagged.swapWith(worn, 0, 99), Outcome.noSuchSlot);
+    });
+
+    test('is a swap in one container', () {
+      final c = inventory()..add(coins, 3);
+      expect(c.swapWith(c, 0, 4), Outcome.done);
+      expect(c.at(4), ItemStack(coins, 3));
+    });
+  });
+
   group('stack', () {
     test('adds one stack to another and empties the source', () {
       final c = inventory()

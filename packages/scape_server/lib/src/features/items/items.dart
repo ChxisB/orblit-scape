@@ -21,6 +21,7 @@ final class Items {
   }) {
     final feature = Items._(services.hosting, items);
     registry
+      ..addIntentHandler(feature._onIntent)
       ..addJoinHandler(feature._join)
       ..addGoneHandler(feature._gone)
       ..addSystem(Phase.outbound, feature._flush);
@@ -33,6 +34,24 @@ final class Items {
 
   /// The container of [player], or null for a player who is not in the world.
   Container? container(String player, ContainerId id) => _bags[player]?[id];
+
+  /// A drag swaps two slots. A refusal leaves both as they were and tells
+  /// the player, so the panel the client draws never moves on its own.
+  void _onIntent(String player, Intent intent) {
+    if (intent is! MoveItem) return;
+    final from = container(player, intent.from);
+    final to = container(player, intent.to);
+    if (from == null || to == null) return;
+    final outcome = from.swapWith(to, intent.fromSlot, intent.toSlot);
+    if (outcome != Outcome.done) {
+      _hosting.tell(player, Notice(_refusal(outcome)));
+    }
+  }
+
+  String _refusal(Outcome outcome) => switch (outcome) {
+    Outcome.notAllowed => 'That does not go there.',
+    _ => 'There is nothing to move there.',
+  };
 
   void _join(String key) => _bags[key] = {
     for (final id in ContainerId.values) id: Container.forId(id, _items),

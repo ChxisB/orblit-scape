@@ -174,6 +174,24 @@ final class Container {
     return Outcome.done;
   }
 
+  /// Exchanges [slot] with [otherSlot] of [other]. One of them may be empty.
+  /// Each item must be allowed where it lands. In the same container this is
+  /// [swap].
+  Outcome swapWith(Container other, int slot, int otherSlot) {
+    if (identical(this, other)) return swap(slot, otherSlot);
+    if (!_has(slot) || !other._has(otherSlot)) return Outcome.noSuchSlot;
+    final mine = _slots[slot];
+    final theirs = other._slots[otherSlot];
+    if (mine == null && theirs == null) return Outcome.nothingThere;
+    if (!other._allowsOrEmpty(otherSlot, mine) ||
+        !_allowsOrEmpty(slot, theirs)) {
+      return Outcome.notAllowed;
+    }
+    _set(slot, theirs);
+    other._set(otherSlot, mine);
+    return Outcome.done;
+  }
+
   /// Moves as much of the stack in [from] onto the same item in [to] as
   /// fits under [maxStack].
   Outcome stack(int from, int to) {

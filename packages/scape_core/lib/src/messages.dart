@@ -194,6 +194,29 @@ final class Withdraw extends Intent {
   final int count;
 }
 
+/// Swap the stack in [fromSlot] of [from] with [toSlot] of [to]. Dragging an
+/// item to an empty slot, to another stack or onto a worn slot is this. The
+/// bank has its own messages.
+final class MoveItem extends Intent {
+  MoveItem({
+    required this.from,
+    required this.fromSlot,
+    required this.to,
+    required this.toSlot,
+  }) {
+    _inRange(fromSlot, 'fromSlot', 0xFFFF);
+    _inRange(toSlot, 'toSlot', 0xFFFF);
+    if (from == ContainerId.bank || to == ContainerId.bank) {
+      throw ArgumentError('The bank is not moved with MoveItem.');
+    }
+  }
+
+  final ContainerId from;
+  final int fromSlot;
+  final ContainerId to;
+  final int toSlot;
+}
+
 /// Offer [count] of [item] in the trade the player has open, in place of
 /// what they offered of it. A count of zero takes it back. Any change sets
 /// both players' accepts back.

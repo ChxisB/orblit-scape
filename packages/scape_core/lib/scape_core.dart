@@ -67,6 +67,7 @@ export 'src/messages.dart'
         Login,
         LoginOk,
         LoginRefusal,
+        MoveItem,
         Notice,
         PrayerView,
         PrivateState,
@@ -178,4 +179,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.19.0';
+const scapeCoreVersion = '0.20.0';

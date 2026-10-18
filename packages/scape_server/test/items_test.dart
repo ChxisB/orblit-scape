@@ -9,6 +9,10 @@ import 'support/no_pacer.dart';
 import 'support/open_world.dart';
 import 'support/test_client.dart';
 
+List<String> notices(TestClient client) => [
+  for (final Notice(:text) in client.messages.whereType<Notice>()) text,
+];
+
 extension on TestClient {
   /// The container changes this player was sent, oldest first.
   List<SlotsDelta> get itemDeltas => [
@@ -158,6 +162,65 @@ void main() {
 
     test('a player who is not in the world has none', () {
       expect(server.items.container('nobody', ContainerId.bank), isNull);
+    });
+  });
+
+  group('moving an item', () {
+    MoveItem drag(ContainerId from, int a, ContainerId to, int b) =>
+        MoveItem(from: from, fromSlot: a, to: to, toSlot: b);
+
+    test('swaps two inventory slots and tells the owner', () async {
+      final ana = await join('Ana');
+      inventory('ana')
+        ..add(ItemId.coins, 5)
+        ..add(ItemId.logs, 1);
+      await tick();
+
+      await ana.send(drag(ContainerId.inventory, 0, ContainerId.inventory, 1));
+      await tick();
+
+      expect(inventory('ana').at(0), ItemStack(ItemId.logs, 1));
+      expect(inventory('ana').at(1), ItemStack(ItemId.coins, 5));
+      expect(ana.itemDeltas.last.changes, hasLength(2));
+    });
+
+    test('wears a helmet dragged to the head slot', () async {
+      final ana = await join('Ana');
+      inventory('ana').add(ItemId.bronzeHelmet, 1);
+      await tick();
+      final head = equipmentSlots.indexOf('head');
+
+      await ana.send(
+        drag(ContainerId.inventory, 0, ContainerId.equipment, head),
+      );
+      await tick();
+
+      final worn = server.items.container('ana', ContainerId.equipment)!;
+      expect(worn.at(head), ItemStack(ItemId.bronzeHelmet, 1));
+      expect(inventory('ana').at(0), isNull);
+    });
+
+    test('a refused drag changes nothing and says why', () async {
+      final ana = await join('Ana');
+      inventory('ana').add(ItemId.coins, 5);
+      await tick();
+      final before = ana.itemDeltas.length;
+
+      await ana.send(drag(ContainerId.inventory, 0, ContainerId.equipment, 0));
+      await tick();
+
+      expect(inventory('ana').at(0), ItemStack(ItemId.coins, 5));
+      expect(ana.itemDeltas, hasLength(before));
+      expect(notices(ana).last, 'That does not go there.');
+    });
+
+    test('a slot that holds nothing is refused', () async {
+      final ana = await join('Ana');
+
+      await ana.send(drag(ContainerId.inventory, 0, ContainerId.inventory, 1));
+      await tick();
+
+      expect(notices(ana).last, 'There is nothing to move there.');
     });
   });
 

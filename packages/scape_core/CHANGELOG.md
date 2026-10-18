@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0
+
+- `MoveItem` drags a stack from one slot to another, between the inventory
+  and the equipment. The bank is not moved this way. `Container.swapWith`
+  swaps two slots across containers and says why it refused.
+
 ## 0.19.0
 
 - Ranged combat, magic and prayer. `CombatStyle` is melee, ranged or magic,

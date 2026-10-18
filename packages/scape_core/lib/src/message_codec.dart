@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'combat.dart';
+import 'container.dart';
 import 'items.dart';
 import 'messages.dart';
 import 'shops.dart';
@@ -25,6 +26,7 @@ const int _tradeAccept = 14;
 const int _tradeDecline = 15;
 const int _cast = 16;
 const int _togglePrayer = 17;
+const int _moveItem = 18;
 
 const int _loginOk = 1;
 const int _privateState = 2;
@@ -63,6 +65,7 @@ final Map<int, int> _clientCaps = {
   _tradeDecline: 1,
   _cast: 7,
   _togglePrayer: 2,
+  _moveItem: 7,
 };
 
 final Map<int, int> _serverCaps = {
@@ -119,6 +122,7 @@ final Map<int, _Reader<ClientMessage>> _clientReaders = {
   _cast: (b) =>
       _readPair(b, (spell, target) => Cast(spell: spell, target: target)),
   _togglePrayer: (b) => b.length == 2 ? TogglePrayer(b[1]) : null,
+  _moveItem: _readMoveItem,
 };
 
 final Map<int, _Reader<ServerMessage>> _serverReaders = {
@@ -162,6 +166,7 @@ Uint8List encodeClientMessage(ClientMessage message) => switch (message) {
   TradeDecline() => Uint8List.fromList([_tradeDecline]),
   Cast(:final spell, :final target) => _encodePair(_cast, spell, target),
   TogglePrayer(:final prayer) => Uint8List.fromList([_togglePrayer, prayer]),
+  MoveItem() => _encodeMoveItem(message),
 };
 
 Uint8List encodeServerMessage(ServerMessage message) => switch (message) {
@@ -527,6 +532,32 @@ Deposit? _readDeposit(Uint8List bytes) {
     slot: data.getUint16(1, Endian.little),
     count: data.getUint32(3, Endian.little),
     tab: bytes[7],
+  );
+}
+
+Uint8List _encodeMoveItem(MoveItem message) {
+  final bytes = Uint8List(7)
+    ..[0] = _moveItem
+    ..[1] = message.from.index
+    ..[2] = message.to.index;
+  ByteData.sublistView(bytes)
+    ..setUint16(3, message.fromSlot, Endian.little)
+    ..setUint16(5, message.toSlot, Endian.little);
+  return bytes;
+}
+
+MoveItem? _readMoveItem(Uint8List bytes) {
+  if (bytes.length != 7 ||
+      bytes[1] >= ContainerId.values.length ||
+      bytes[2] >= ContainerId.values.length) {
+    return null;
+  }
+  final data = ByteData.sublistView(bytes);
+  return MoveItem(
+    from: ContainerId.values[bytes[1]],
+    fromSlot: data.getUint16(3, Endian.little),
+    to: ContainerId.values[bytes[2]],
+    toSlot: data.getUint16(5, Endian.little),
   );
 }
 

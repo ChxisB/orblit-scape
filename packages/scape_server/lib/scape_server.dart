@@ -51,4 +51,4 @@ export 'src/server.dart' show ScapeServer;
 export 'src/wire.dart' show Wire, WireLink;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeServerVersion = '0.17.0';
+const scapeServerVersion = '0.18.0';

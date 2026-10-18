@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0
+
+- `Items` handles `MoveItem`. A drag that works swaps the two slots. A drag
+  that does not, such as a coin onto the head slot, changes nothing and
+  tells the player why.
+
 ## 0.17.0
 
 - Ranged combat, magic and prayer. A bow shoots from up to its range with a
