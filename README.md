@@ -15,6 +15,7 @@ so a new place or a new monster is a file and not a code change.
 | `scape_client` | What a player sees and sends: the session, menus and minimap data. Pure Dart |
 | `scape_panels` | The interface as `orblit_ui` trees, and the widget that draws them. Flutter |
 | `scape_content` | Data files and the art built in code |
+| `scape_bots` | Bots that play over loopback, a probe that reads the server, and the `bots` load command |
 
 ```sh
 git clone https://github.com/ChxisB/orblit.git       # beside this one

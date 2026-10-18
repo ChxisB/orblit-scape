@@ -1,0 +1,25 @@
+name: scape_bots
+description: Bots that log in to a scape server over the wire, and the tools an agent uses to look at one.
+version: 0.1.0
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  orblit_net:
+    git:
+      url: https://github.com/ChxisB/orblit-net.git
+      ref: main
+  scape_client:
+    path: ../scape_client
+  scape_content:
+    path: ../scape_content
+  scape_core:
+    path: ../scape_core
+  scape_server:
+    path: ../scape_server
+
+dev_dependencies:
+  lints: ^5.0.0
+  test: ^1.25.0

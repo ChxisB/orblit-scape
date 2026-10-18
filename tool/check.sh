@@ -11,6 +11,7 @@ PACKAGES=(
   packages/scape_client
   packages/scape_content
   packages/scape_panels
+  packages/scape_bots
 )
 FLUTTER_PACKAGES=(packages/scape_panels)
 
