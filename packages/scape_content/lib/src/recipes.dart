@@ -6,7 +6,8 @@ import 'skills.dart';
 
 /// What a player can make. A raw fish cooks on a fire and burns often at
 /// first, never from level 30. Logs light with a tinderbox, or become arrow
-/// shafts with a knife. A bar becomes a sword at an anvil with a hammer.
+/// shafts with a knife. Copper ore melts to a bar at a furnace, and a bar
+/// becomes a sword at an anvil with a hammer.
 final RecipeSet defaultRecipes = RecipeSet(
   items: defaultItems,
   objects: defaultObjects,
@@ -41,6 +42,15 @@ final RecipeSet defaultRecipes = RecipeSet(
       inputs: [ItemStack(ItemId.logs, 1)],
       tool: ItemId.knife,
       product: Gives(ItemStack(ItemId.arrowShafts, 15)),
+    ),
+    Recipe(
+      name: 'smelt the bar',
+      skill: 'smithing',
+      level: 1,
+      xp: 6,
+      start: const OnObject(ItemId.copperOre, ObjectId.furnace),
+      inputs: [ItemStack(ItemId.copperOre, 1)],
+      product: Gives(ItemStack(ItemId.bronzeBar, 1)),
     ),
     Recipe(
       name: 'forge the sword',

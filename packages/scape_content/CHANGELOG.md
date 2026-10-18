@@ -1,5 +1,21 @@
 # Changelog
 
+## 1.0.0
+
+- `WorldPlan` and `starterIsland()`: the ground, the spawn tile, every object
+  and every creature of the game, as data. The island has a village with a
+  shop, a bank and a two floor tower, a grove, a quarry, fishing spots,
+  chickens and four goblins. Each call gives a new map, since the server
+  writes to its own.
+- `checkContent`, which lists every way the data files disagree. It finds a
+  dialogue a creature opens that does not exist, a quest stage that no
+  dialogue reaches, an item that nothing gives, an object or creature that
+  is never placed, a placement on blocked ground or on another object, stairs
+  that lead nowhere, and anything a player cannot walk to from the spawn
+  tile.
+- `ObjectId.furnace` and the recipe `smelt the bar`. Nothing made bronze
+  bars before, so the checker found the forge recipe could not be used.
+
 ## 0.12.0
 
 - `ModelSet` and `defaultModels`. A creature has a box model by definition

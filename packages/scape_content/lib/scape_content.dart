@@ -1,6 +1,7 @@
 /// The content package of orblit-scape.
 library;
 
+export 'src/check.dart' show checkContent;
 export 'src/combat.dart' show defaultCombat;
 export 'src/items.dart' show ItemId, defaultItems;
 export 'src/magic.dart' show SpellId, defaultSpells;
@@ -15,6 +16,7 @@ export 'src/recipes.dart' show defaultRecipes;
 export 'src/shops.dart' show defaultShops;
 export 'src/skills.dart' show defaultSkills;
 export 'src/story.dart' show defaultStory;
+export 'src/world.dart' show WorldPlan, starterIsland;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeContentVersion = '0.12.0';
+const scapeContentVersion = '1.0.0';
