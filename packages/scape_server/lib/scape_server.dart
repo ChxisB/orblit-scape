@@ -2,6 +2,7 @@
 library;
 
 export 'src/accounts/password_hasher.dart' show Argon2idHasher, PasswordHasher;
+export 'src/config.dart' show LogLevel, ServerConfig;
 export 'src/engine/action.dart'
     show
         ActionKind,
@@ -46,6 +47,7 @@ export 'src/features/quests/quests.dart' show Quests;
 export 'src/features/skills/skills.dart' show Skills;
 export 'src/features/social/social.dart' show Social, chatRadius;
 export 'src/features/talk/talk.dart' show Talk;
+export 'src/health.dart' show healthLine, listenAlive;
 export 'src/inbox.dart' show Inbox, PlayerIntent;
 export 'src/persistence/keys.dart' show accountKeyOf, ledgerKey, saveKeyOf;
 export 'src/persistence/storage.dart' show Storage;
@@ -53,4 +55,4 @@ export 'src/server.dart' show ScapeServer;
 export 'src/wire.dart' show Wire, WireLink;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeServerVersion = '0.20.0';
+const scapeServerVersion = '0.21.0';

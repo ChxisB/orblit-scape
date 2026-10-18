@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.21.0
+
+- Added `ServerConfig`, which reads the server's settings from the
+  environment: `SCAPE_PORT`, `SCAPE_ADDRESS`, `SCAPE_DATA`, `SCAPE_WORLD`,
+  `SCAPE_HEALTH_PORT`, `SCAPE_LOG_LEVEL` and `SCAPE_ADMINS`. A value that
+  does not parse stops startup with exit code 78.
+- The server binary no longer reads arguments. Saves sit in the `SCAPE_WORLD`
+  folder inside `SCAPE_DATA`.
+- Added `healthLine` and `listenAlive`. The binary logs a health line each
+  minute and answers `alive` on `SCAPE_HEALTH_PORT`, 7601 by default.
+- The server ships as a `dart build cli` bundle with `deploy/`, because
+  `dart compile exe` does not support the build hook of `orblit_core`.
+
 ## 0.20.0
 
 - Added `Role` and the `roles` option of `ScapeServer`. A name that holds a
