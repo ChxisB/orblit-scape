@@ -5,7 +5,7 @@ import 'package:scape_core/scape_core.dart';
 /// Where a run happened. A tick time means nothing without it.
 typedef Machine = ({String os, String osVersion, int processors, String dart});
 
-/// The machine this process runs on.
+/// The machine this process runs on. F10: a report names the real machine.
 Machine currentMachine() => (
   os: Platform.operatingSystem,
   osVersion: Platform.operatingSystemVersion,
@@ -36,27 +36,26 @@ final class BotReport {
     required this.seed,
     required List<Duration> tickTimes,
     required List<String> problems,
-    this.transport = 'loopback',
   }) : tickTimes = List.unmodifiable(tickTimes),
+       _sorted = List.unmodifiable([...tickTimes]..sort()),
        problems = List.unmodifiable(problems);
 
   final Machine machine;
 
-  /// How the bots reached the server.
-  final String transport;
   final int bots;
 
   /// How many of the bots were in the world at the end.
   final int joined;
   final int seed;
   final List<Duration> tickTimes;
+  final List<Duration> _sorted;
 
   /// Lines the server logged, and bots that were sent away.
   final List<String> problems;
 
-  Duration get p95 => percentile(_sorted(), 0.95);
+  Duration get p95 => percentile(_sorted, 0.95);
 
-  Duration get slowest => tickTimes.isEmpty ? Duration.zero : _sorted().last;
+  Duration get slowest => _sorted.isEmpty ? Duration.zero : _sorted.last;
 
   /// Whether every bot got in, nothing went wrong, and the p95 tick fit in
   /// the tick period.
@@ -65,10 +64,7 @@ final class BotReport {
   /// 0 when [healthy], 1 when not.
   int get exitCode => healthy ? 0 : 1;
 
-  List<Duration> _sorted() => [...tickTimes]..sort();
-
   Map<String, Object?> toJson() {
-    final sorted = _sorted();
     final total = tickTimes.fold(Duration.zero, (sum, time) => sum + time);
     return {
       'machine': {
@@ -77,7 +73,8 @@ final class BotReport {
         'processors': machine.processors,
         'dart': machine.dart,
       },
-      'transport': transport,
+      'transport': 'loopback',
+      'without': ['storage', 'accounts', 'recipes', 'spells', 'prayers'],
       'bots': bots,
       'joined': joined,
       'seed': seed,
@@ -86,8 +83,8 @@ final class BotReport {
         'average': _ms(
           tickTimes.isEmpty ? Duration.zero : total ~/ tickTimes.length,
         ),
-        'p50': _ms(percentile(sorted, 0.5)),
-        'p95': _ms(percentile(sorted, 0.95)),
+        'p50': _ms(percentile(_sorted, 0.5)),
+        'p95': _ms(percentile(_sorted, 0.95)),
         'max': _ms(slowest),
       },
       'periodMs': tickPeriod.inMilliseconds,

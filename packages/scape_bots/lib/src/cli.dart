@@ -42,7 +42,8 @@ _Options _parse(List<String> args) {
     ticks: _number('--ticks', values['--ticks'], 1, 1000000),
     seed: _number('--seed', values['--seed'], 0, 1 << 30),
     reach: _number('--reach', values['--reach'], 0, 1000),
-    out: values['--out'] ?? '',
+    // Every key starts with a default, so the value is there.
+    out: values['--out']!,
   );
 }
 
@@ -70,10 +71,15 @@ Future<int> runBots(
   try {
     await run.step(options.ticks);
     final report = run.report();
-    save(
-      options.out,
-      '${const JsonEncoder.withIndent('  ').convert(report.toJson())}\n',
-    );
+    final json =
+        '${const JsonEncoder.withIndent('  ').convert(report.toJson())}\n';
+    var saved = true;
+    try {
+      save(options.out, json);
+    } on Exception catch (error) {
+      saved = false;
+      out('Could not save ${options.out}: $error\n$json');
+    }
     out(
       '${report.bots} bots, ${options.ticks} ticks. '
       'p95 ${formatMs(report.p95)}, max ${formatMs(report.slowest)}, '
@@ -86,8 +92,8 @@ Future<int> runBots(
       );
       report.problems.take(5).forEach(out);
     }
-    out('Result in ${options.out}.');
-    return report.exitCode;
+    if (saved) out('Result in ${options.out}.');
+    return saved ? report.exitCode : 1;
   } finally {
     await run.dispose();
   }

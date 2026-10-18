@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:scape_bots/scape_bots.dart';
 import 'package:test/test.dart';
@@ -25,6 +26,19 @@ void main() {
     expect(json['ticks'], 5);
     expect(lines.first, startsWith('3 bots, 5 ticks. p95 '));
     expect(lines.last, 'Result in r.json.');
+  });
+
+  test('prints the result and exits 1 when it cannot be saved', () async {
+    final code = await runBots(
+      ['--bots', '2', '--ticks', '3', '--out', 'r.json'],
+      out: lines.add,
+      save: (path, text) => throw const FileSystemException('disk full'),
+    );
+
+    expect(code, 1);
+    expect(lines.first, contains('Could not save r.json'));
+    expect(lines.first, contains('"bots": 2'));
+    expect(lines.last, isNot(startsWith('Result in')));
   });
 
   test(

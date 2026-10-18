@@ -77,9 +77,13 @@ YAML
 YAML
 } > packages/scape_panels/pubspec_overrides.yaml
 
+# The bots use what the client and the server use.
+cp packages/scape_client/pubspec_overrides.yaml packages/scape_bots/pubspec_overrides.yaml
+
 (cd packages/scape_core && dart pub get > /dev/null)
 (cd packages/scape_content && dart pub get > /dev/null)
 (cd packages/scape_server && dart pub get > /dev/null)
 (cd packages/scape_client && dart pub get > /dev/null)
+(cd packages/scape_bots && dart pub get > /dev/null)
 (cd packages/scape_panels && flutter pub get > /dev/null)
 echo "scape packages -> $ENGINE, $NET"

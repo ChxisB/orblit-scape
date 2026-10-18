@@ -8,4 +8,5 @@
   ticks and sample tick times.
 - Added `BotRun` and the `bots` command. It starts a server, adds bots, steps
   ticks and writes a result file with the machine, the bot count and the tick
-  times.
+  times. The result also lists what the run leaves out: storage, accounts,
+  recipes, spells and prayers.

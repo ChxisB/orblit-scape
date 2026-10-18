@@ -107,6 +107,7 @@ final class ServerProbe {
   /// before a tick and what the tick sent is delivered after it.
   Future<void> step(int ticks) async {
     RangeError.checkNotNegative(ticks, 'ticks');
+    // F10: a tick's real length is what this tool measures.
     final watch = Stopwatch();
     for (var i = 0; i < ticks; i++) {
       await deliver();

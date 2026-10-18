@@ -32,7 +32,13 @@ final class _NoPacer implements Pacer {
 /// app uses, so what they send and read is what a player's client does. The
 /// server runs here, one tick at a time.
 final class BotRun {
-  BotRun._(this.server, this.probe, this.bots, this._problems, this.seed);
+  BotRun._({
+    required this.server,
+    required this.bots,
+    required List<String> problems,
+    required this.seed,
+  }) : probe = ServerProbe(server),
+       _problems = problems;
 
   /// Starts a server on [map] with trees and chickens round the spawn tile,
   /// which must be open ground, and logs in [bots] bots. A bot walks up to
@@ -52,14 +58,13 @@ final class BotRun {
       Random(random.nextInt(1 << 30)),
     );
     return BotRun._(
-      server,
-      ServerProbe(server),
-      [
+      server: server,
+      bots: [
         for (var i = 0; i < bots; i++)
           _join(server, 'bot-${i.toString().padLeft(4, '0')}', reach, random),
       ],
-      problems,
-      seed,
+      problems: problems,
+      seed: seed,
     );
   }
 
@@ -103,6 +108,9 @@ final class BotRun {
         skills: defaultSkills,
         items: defaultItems,
         story: defaultStory,
+        // The server ticks far faster than its period here, so the client's
+        // time follows the tick count or it would show a stale world.
+        clock: () => server.loop.tick * tickPeriod.inMilliseconds / 1000,
       ),
       home: _spawn,
       reach: reach,
@@ -117,23 +125,28 @@ final class BotRun {
   final int seed;
 
   /// Runs [ticks] ticks. Each bot acts, the server ticks, and then each bot
-  /// reads what it was sent.
+  /// reads what it was sent. A tick that throws ends the run early and is
+  /// recorded as a problem, so the ticks measured so far are kept.
   Future<void> step(int ticks) async {
-    for (var i = 0; i < ticks; i++) {
-      for (final bot in bots) {
-        bot.act();
+    try {
+      for (var i = 0; i < ticks; i++) {
+        for (final bot in bots) {
+          bot.act();
+        }
+        await probe.step(1);
+        for (final bot in bots) {
+          bot.session.advance();
+        }
       }
-      await probe.step(1);
-      for (final bot in bots) {
-        bot.session.advance();
-      }
+    } on Object catch (error) {
+      _problems.add('tick ${server.loop.tick} threw: $error');
     }
   }
 
   BotReport report() => BotReport(
     machine: currentMachine(),
     bots: bots.length,
-    joined: bots.where((bot) => bot.isIn).length,
+    joined: bots.where((bot) => probe.player(bot.name) != null).length,
     seed: seed,
     tickTimes: probe.tickTimes,
     problems: [

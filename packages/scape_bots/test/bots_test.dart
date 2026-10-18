@@ -1,5 +1,6 @@
 import 'package:scape_bots/scape_bots.dart';
 import 'package:scape_core/scape_core.dart';
+import 'package:scape_server/scape_server.dart';
 import 'package:test/test.dart';
 
 TileCoord _at(int x, int y) => TileCoord(x, y, 0);
@@ -108,6 +109,40 @@ void main() {
     expect(run.server.npcs.standing, isEmpty);
     expect(run.report().joined, 10);
     expect(run.report().problems, isEmpty);
+  });
+
+  test('a bot sees the world as it is a tick or two ago', () async {
+    final run = await start(bots: 1);
+    await run.step(5);
+    final session = run.bots.single.session;
+    expect(session.npcs, isNotEmpty);
+
+    [...run.server.npcs.standing].forEach(run.server.npcs.kill);
+    await run.step(10);
+
+    expect(session.npcs, isEmpty);
+  });
+
+  test('a bot the server dropped is not counted as joined', () async {
+    final run = await start(bots: 3);
+    await run.step(5);
+    await run.server.host.removeClient('bot-0001');
+    await run.step(15);
+
+    expect(run.report().joined, 2);
+    expect(run.report().healthy, isFalse);
+  });
+
+  test('a tick that throws ends the run and is recorded', () async {
+    final run = await start(bots: 2);
+    await run.step(3);
+    run.server.loop.registry.addSystem(Phase.npcs, () => throw StateError('x'));
+    await run.step(5);
+
+    final report = run.report();
+    expect(report.tickTimes, hasLength(3));
+    expect(report.problems.single, contains('threw'));
+    expect(report.healthy, isFalse);
   });
 
   test('the same seed plays out the same way', () async {

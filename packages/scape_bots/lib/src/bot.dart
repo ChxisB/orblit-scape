@@ -5,8 +5,8 @@ import 'package:scape_core/scape_core.dart';
 
 /// A client program. It logs in over the wire and picks what to do from what
 /// the server told it, as a player's client would. It walks to tiles near
-/// [home] without looking at the map, so some walks end in walls or off the
-/// edge of the world on purpose.
+/// [home] without looking at the map, so some walks end in walls or on tiles
+/// the map does not hold, on purpose.
 final class Bot {
   Bot({
     required this.name,

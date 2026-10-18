@@ -87,6 +87,13 @@ void main() {
       expect(_report(ticks: slow).healthy, isFalse);
     });
 
+    test('reads zero for a run with no ticks', () {
+      final report = _report(ticks: const []);
+
+      expect(report.p95, Duration.zero);
+      expect(report.slowest, Duration.zero);
+    });
+
     test('exits 0 when healthy and 1 when not', () {
       expect(_report().exitCode, 0);
       expect(_report(joined: 1).exitCode, 1);
