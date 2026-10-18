@@ -28,6 +28,9 @@ final RegExp _word = RegExp(r'"([^"]*)"|(\S+)');
 
 final RegExp _control = RegExp(r'[\x00-\x1f\x7f]');
 
+/// Plain digits only, because `int.tryParse` also takes `+5`, `-0` and `0x10`.
+final RegExp _digits = RegExp(r'^\d+$');
+
 /// A command that was written wrong, or asked for what cannot be done.
 final class _Usage implements Exception {
   const _Usage(this.message);
@@ -52,7 +55,8 @@ final class _Call {
 
   int number({int min = 0, int? otherwise}) {
     if (_next >= _words.length && otherwise != null) return otherwise;
-    final value = int.tryParse(word());
+    final text = word();
+    final value = _digits.hasMatch(text) ? int.tryParse(text) : null;
     if (value == null || value < min || value > _maxNumber) {
       throw _Usage('Use $usage');
     }
@@ -246,8 +250,7 @@ final class Admin {
     ];
     final name = words.firstOrNull?.toLowerCase() ?? '';
     final command = _commands[name];
-    if (command == null ||
-        (_roles[by] ?? Role.player).index < command.role.index) {
+    if (command == null || _roleOf(by).index < command.role.index) {
       _log('Admin: $by was refused "$name"');
       return _tell(by, 'Unknown command.');
     }
@@ -258,19 +261,43 @@ final class Admin {
     } on _Usage catch (usage) {
       _log('Admin: $by $name failed: ${usage.message}');
       _tell(by, usage.message);
+    } on Object catch (error) {
+      // A command must never take the server down with it.
+      _log('Admin: $by $name crashed: $error');
+      _tell(by, 'That command failed.');
     }
+  }
+
+  Role _roleOf(String player) => _roles[player] ?? Role.player;
+
+  /// Throws unless [by] holds a higher role than [target], so a moderator
+  /// cannot silence an admin or another moderator.
+  void _mayAct(String by, String target) {
+    if (_roleOf(by).index <= _roleOf(target).index) {
+      throw _Usage('You cannot do that to $target.');
+    }
+  }
+
+  /// The key of the player the next word names.
+  String _target(_Call call) {
+    final word = call.word();
+    final key = nameKey(word);
+    if (!isValidName(key)) throw _Usage('$word is not a valid name.');
+    return key;
   }
 
   _Done _kick(_Call call) {
     final target = _online(call.word());
+    _mayAct(call.by, target);
     final why = call.rest(otherwise: _noReason);
     _tell(target, 'You were kicked: $why');
-    unawaited(_services.hosting.kick(target));
+    unawaited(_kickOut(target));
     return (whom: target, why: why, told: '$target was kicked.');
   }
 
   _Done _sanction(SanctionKind kind, _Call call) {
-    final target = nameKey(call.word());
+    final target = _target(call);
+    _mayAct(call.by, target);
     final minutes = call.number();
     final why = call.rest(otherwise: _noReason);
     _ledger.add(
@@ -283,7 +310,7 @@ final class Admin {
     if (_players.contains(target)) {
       _tell(target, 'You are ${kind.done}: $why');
       if (kind == SanctionKind.ban) {
-        unawaited(_services.hosting.kick(target));
+        unawaited(_kickOut(target));
       } else {
         _syncMute(target);
       }
@@ -297,7 +324,10 @@ final class Admin {
   }
 
   _Done _lift(SanctionKind kind, _Call call) {
-    final target = nameKey(call.word());
+    final target = _target(call);
+    if (target == call.by) {
+      throw const _Usage('You cannot lift a sanction on yourself.');
+    }
     if (_ledger.active(kind, target) == null) {
       throw _Usage('$target is not ${kind.done}.');
     }
@@ -386,7 +416,7 @@ final class Admin {
   }
 
   Future<_Done> _rollbackPlayer(_Call call) async {
-    final target = nameKey(call.word());
+    final target = _target(call);
     final minutes = call.number(min: 1);
     final rollback = _rollback;
     if (rollback == null) {
@@ -398,6 +428,11 @@ final class Admin {
     final told = await rollback(target, minutes);
     return (whom: target, why: '$minutes minutes', told: told);
   }
+
+  Future<void> _kickOut(String player) =>
+      _services.hosting.kick(player).onError((Object error, _) {
+        _log('Admin: kicking $player failed: $error');
+      });
 
   void _tick() {
     _players.forEach(_syncMute);

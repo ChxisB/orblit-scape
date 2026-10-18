@@ -31,6 +31,9 @@ final class Rollback {
   /// Rolls [player] back [minutes] and says what happened. A refusal is an
   /// answer, so this does not throw. The player cannot log in while it runs.
   Future<String> run(String player, int minutes) async {
+    if (_ledger.isLocked(player)) {
+      return 'A rollback of $player is already running.';
+    }
     _ledger.lock(player);
     try {
       return await _restore(player, minutes);

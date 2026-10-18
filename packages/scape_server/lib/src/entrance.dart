@@ -30,7 +30,8 @@ final class Entrance {
     final why = await _screen(player);
     if (why != null) return why;
     await _saves.prepare(player);
-    return null;
+    // A ban or a rollback may have begun while the save was read.
+    return _screen(player);
   }
 
   /// Why the ledger keeps [player] out: a ban, or a lock while their save is

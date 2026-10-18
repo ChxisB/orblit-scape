@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -39,6 +40,30 @@ final class _LimitedPacer implements Pacer {
   Future<void> untilNext() async {
     if (allowed-- <= 0) throw StateError('The loop did not stop.');
   }
+}
+
+/// A store that lets the test act in the middle of a read.
+final class _HookedStore implements SaveStore {
+  _HookedStore(this.inner);
+
+  final SaveStore inner;
+  Future<void> Function(String key)? onRead;
+
+  @override
+  Future<SaveRecord?> read(String key) async {
+    final found = await inner.read(key);
+    await onRead?.call(key);
+    return found;
+  }
+
+  @override
+  Future<void> write(String key, SaveRecord record) => inner.write(key, record);
+
+  @override
+  Future<bool> exists(String key) => inner.exists(key);
+
+  @override
+  Future<List<String>> keys() => inner.keys();
 }
 
 extension on TestClient {
@@ -190,6 +215,36 @@ void main() {
       ]);
     });
 
+    test('a moderator cannot sanction an admin or another moderator', () async {
+      final server = start();
+      final who = await crowd(server, ['Ana', 'Mo']);
+
+      await say(server, who['Mo']!, '/ban ana 0');
+      await say(server, who['Mo']!, '/kick mo');
+      await say(server, who['Mo']!, '/mute ana 5');
+
+      expect(who['Mo']!.notices, [
+        'You cannot do that to ana.',
+        'You cannot do that to mo.',
+        'You cannot do that to ana.',
+      ]);
+      expect(who['Ana']!.goodbyes, isEmpty);
+    });
+
+    test('an admin may sanction a moderator, who cannot lift it', () async {
+      final server = start();
+      final who = await crowd(server, ['Ana', 'Mo']);
+
+      await say(server, who['Ana']!, '/mute mo 5');
+      await say(server, who['Mo']!, '/unmute mo');
+
+      expect(who['Ana']!.notices, ['mo is muted for 5 minutes.']);
+      expect(
+        who['Mo']!.notices.last,
+        'You cannot lift a sanction on yourself.',
+      );
+    });
+
     test('are set by name whatever the case', () async {
       final server = start(roles: {'ANA': Role.admin});
       final who = await crowd(server, ['Ana']);
@@ -211,6 +266,10 @@ void main() {
         ('Mo', '/mute bo soon', 'Use /mute'),
         ('Mo', '/mute bo -5', 'Use /mute'),
         ('Mo', '/mute bo 99999999999999', 'Use /mute'),
+        ('Mo', '/mute bo 0x10', 'Use /mute'),
+        ('Mo', '/mute bo +5', 'Use /mute'),
+        ('Mo', '/mute bo -0', 'Use /mute'),
+        ('Mo', '/ban "Ana 5', 'is not a valid name.'),
         ('Mo', '/kick nobody', 'nobody is not online.'),
         ('Mo', '/unmute bo', 'bo is not muted.'),
         ('Mo', '/unban bo', 'bo is not banned.'),
@@ -381,6 +440,23 @@ void main() {
       expect(allowed.admitted, isTrue);
     });
 
+    test('that land while a login reads the save still stop it', () async {
+      final hooked = _HookedStore(MemorySaveStore());
+      store = hooked;
+      final server = start();
+      final mo = await enter(server, 'Mo', create: true);
+      hooked.onRead = (key) async {
+        if (key != saveKeyOf('bo')) return;
+        hooked.onRead = null;
+        await mo.send(Chat('/ban bo 0'));
+        await tick(server);
+      };
+
+      final bo = await enter(server, 'Bo', create: true);
+
+      expect(bo.goodbyes, [LoginRefusal.banned.name]);
+    });
+
     test('with a length end by themselves', () async {
       final server = start();
       final who = await crowd(server, ['Mo', 'Bo']);
@@ -543,6 +619,19 @@ void main() {
         expect(said, 'bo has no save from 5 minutes ago.');
       },
     );
+
+    test('refuses a second rollback of a name that is locked', () async {
+      final release = Completer<void>();
+      final rollback = make(logOut: (_) => release.future);
+      final first = rollback.run('bo', 5);
+
+      final second = await rollback.run('bo', 20);
+      release.complete();
+      await first;
+
+      expect(second, 'A rollback of bo is already running.');
+      expect(ledger.isLocked('bo'), isFalse);
+    });
 
     test('answers a failure and still unlocks', () async {
       final rollback = make(logOut: (_) async => throw StateError('stuck'));
