@@ -113,3 +113,25 @@ final class ObjectSet {
   ObjectDef require(int id) =>
       _byId[id] ?? (throw ArgumentError.value(id, 'id', 'is not an object'));
 }
+
+/// A place an object is put. [destination] is where climbing it leads.
+final class ObjectPlacement {
+  const ObjectPlacement({
+    required this.object,
+    required this.tile,
+    this.destination,
+  });
+
+  /// The id of the [ObjectDef].
+  final int object;
+
+  /// The south-west tile of its footprint.
+  final TileCoord tile;
+
+  /// Where a player who climbs it is set down, or null for an object that
+  /// cannot be climbed.
+  final TileCoord? destination;
+
+  @override
+  String toString() => 'ObjectPlacement($object at $tile)';
+}

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.23.0
+
+- `ObjectPlacement`, an object id, a tile and the destination of stairs.
+
 ## 0.22.0
 
 - `LoginRefusal.banned`, for a name a moderator banned.

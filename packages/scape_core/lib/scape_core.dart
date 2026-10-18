@@ -141,6 +141,7 @@ export 'src/objects.dart'
         InteractKind,
         ObjectDef,
         ObjectOption,
+        ObjectPlacement,
         ObjectSet,
         maxObjectId,
         worldObjectInts,
@@ -195,4 +196,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.22.0';
+const scapeCoreVersion = '0.23.0';
