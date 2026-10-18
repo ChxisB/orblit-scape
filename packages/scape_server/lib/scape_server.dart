@@ -12,6 +12,7 @@ export 'src/engine/action.dart'
         CancelsNothing,
         CancelsOnly;
 export 'src/engine/phase.dart' show Phase;
+export 'src/engine/summary_text.dart' show healthLine;
 export 'src/engine/registry.dart' show IntentHandler, Registry;
 export 'src/engine/services.dart' show Hosting, Services;
 export 'src/engine/tick_loop.dart' show ClockPacer, Pacer, TickLoop;
@@ -47,7 +48,7 @@ export 'src/features/quests/quests.dart' show Quests;
 export 'src/features/skills/skills.dart' show Skills;
 export 'src/features/social/social.dart' show Social, chatRadius;
 export 'src/features/talk/talk.dart' show Talk;
-export 'src/health.dart' show healthLine, listenAlive;
+export 'src/health.dart' show listenAlive;
 export 'src/inbox.dart' show Inbox, PlayerIntent;
 export 'src/persistence/keys.dart' show accountKeyOf, ledgerKey, saveKeyOf;
 export 'src/persistence/storage.dart' show Storage;

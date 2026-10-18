@@ -2,6 +2,17 @@ import 'package:orblit_net/orblit_net.dart';
 
 String _ms(Duration d) => '${(d.inMicroseconds / 1000).toStringAsFixed(1)} ms';
 
+/// The line the server logs each minute: who is on, how big the world is and
+/// how the last ticks ran.
+String healthLine({
+  required int players,
+  required int regions,
+  required PhaseSummary summary,
+}) =>
+    'Health: $players players, $regions regions, '
+    'tick average ${_ms(summary.tickAverage)}, max ${_ms(summary.tickMax)} '
+    'over ${summary.ticks} ticks';
+
 /// A late tick as lines of text, the worst phase of the window first.
 String describeLateTick(PhaseSummary summary) {
   final phases = summary.phases.entries.toList()

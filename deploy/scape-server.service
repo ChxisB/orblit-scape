@@ -1,11 +1,18 @@
 [Unit]
 Description=Scape server
 After=network.target
+# A start that keeps failing stops after five tries in two minutes, since
+# RestartSec alone would spread them past systemd's default window.
+StartLimitIntervalSec=120
+StartLimitBurst=5
 
 [Service]
 User=scape
 Group=scape
 WorkingDirectory=/opt/scape
+# The file overrides this default, and a file without SCAPE_DATA still saves
+# to the one folder the unit may write.
+Environment=SCAPE_DATA=/var/lib/scape
 EnvironmentFile=/etc/scape/server.env
 ExecStart=/opt/scape/bundle/bin/scape_server
 Restart=on-failure
@@ -13,8 +20,11 @@ RestartSec=5
 # The server saves every player when it gets SIGTERM, so give it time.
 KillSignal=SIGTERM
 TimeoutStopSec=30
-# A bad setting stops startup with exit code 78. Restarting cannot fix it.
-RestartPreventExitStatus=78
+# 64 is an argument, 78 is a setting or a port that cannot be used. A restart
+# cannot fix either.
+RestartPreventExitStatus=64 78
+# Saves hold password hashes.
+UMask=0077
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true

@@ -79,10 +79,15 @@ jobs:
         working-directory: orblit-scape
         run: ./deploy/smoke.sh "$RUNNER_TEMP/build/bundle"
 
+      # The artifact action zips files and drops their permissions, so the
+      # bundle goes up as a tarball that keeps the executable bit.
+      - name: Pack
+        run: tar -czf "$RUNNER_TEMP/scape-server-linux.tar.gz" -C "$RUNNER_TEMP/build" bundle
+
       - uses: actions/upload-artifact@v4
         with:
           name: scape-server-linux
-          path: ${{ runner.temp }}/build/bundle
+          path: ${{ runner.temp }}/scape-server-linux.tar.gz
 
   # Checks each commit on a pull request against commitlint.config.mjs.
   # Pull requests only, since a push to main has no range to check.

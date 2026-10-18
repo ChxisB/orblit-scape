@@ -56,62 +56,110 @@ ScapeServer _serverFor(ServerConfig config, TileMap map) {
 /// How often the health line is logged.
 const _healthEvery = Duration(minutes: 1);
 
-/// How many ticks the health line averages over, about a minute of them.
-const _healthTicks = 100;
+/// How many ticks the health line averages over, the ticks in one interval.
+final _healthTicks = _healthEvery.inMicroseconds ~/ tickPeriod.inMicroseconds;
+
+/// Stops with 78, the code for a bad setting. The unit does not restart a
+/// server that stopped with it, since a restart cannot fix a setting.
+Never _refuse(String message) {
+  stderr.writeln('scape_server: $message');
+  exit(78);
+}
+
+ServerConfig _configOrExit() {
+  try {
+    return ServerConfig.fromEnvironment(Platform.environment);
+  } on FormatException catch (error) {
+    _refuse(error.message);
+  }
+}
+
+/// A folder the server cannot write lets players register and then lose
+/// their work, so a server that cannot write it does not start.
+void _requireWritable(ServerConfig config) {
+  try {
+    Directory(config.saves).createSync(recursive: true);
+    File('${config.saves}/.writable')
+      ..writeAsStringSync('')
+      ..deleteSync();
+  } on FileSystemException catch (error) {
+    _refuse('SCAPE_DATA ${config.data} is not writable: ${error.message}');
+  }
+}
+
+Future<T> _bind<T>(String name, Future<T> Function() open) async {
+  try {
+    return await open();
+  } on SocketException catch (error) {
+    _refuse('cannot listen for $name: $error');
+  }
+}
+
+Timer _logHealth(ScapeServer server, TileMap map) => Timer.periodic(
+  _healthEvery,
+  (_) => stdout.writeln(
+    healthLine(
+      players: server.movement.players.length,
+      regions: map.regionCount,
+      summary: server.host.summary(last: _healthTicks),
+    ),
+  ),
+);
+
+/// A service manager stops a server with SIGTERM, and a stop that skips the
+/// save loses what players did since their last autosave.
+List<StreamSubscription<ProcessSignal>> _stopOnSignals(ScapeServer server) => [
+  for (final signal in [ProcessSignal.sigint, ProcessSignal.sigterm])
+    signal.watch().listen((_) => server.loop.stop()),
+];
 
 /// Reads its settings from the environment: `SCAPE_PORT`, `SCAPE_ADDRESS`,
 /// `SCAPE_DATA`, `SCAPE_WORLD`, `SCAPE_HEALTH_PORT`, `SCAPE_LOG_LEVEL` and
 /// `SCAPE_ADMINS`. See [ServerConfig]. It listens on the local machine only
-/// unless an address says otherwise.
-Future<void> main() async {
-  final ServerConfig config;
-  try {
-    config = ServerConfig.fromEnvironment(Platform.environment);
-  } on FormatException catch (error) {
-    stderr.writeln('scape_server: ${error.message}');
-    exit(78);
+/// unless an address says otherwise. Earlier versions took the port, the
+/// address and the save folder as arguments, so an argument stops it with 64
+/// and not a quiet start on the wrong settings.
+Future<void> main(List<String> args) async {
+  if (args.isNotEmpty) {
+    stderr.writeln('scape_server takes no arguments. Set SCAPE_PORT and the');
+    stderr.writeln('other variables instead. See deploy/server.env.example.');
+    exit(64);
   }
+  final config = _configOrExit();
+  _requireWritable(config);
   final info = config.logLevel == LogLevel.info;
   final map = _openWorld();
   final server = _serverFor(config, map);
-  final sockets = await server.listen(
-    port: config.port,
-    address: config.address,
+  final sockets = await _bind(
+    'SCAPE_PORT ${config.port} on SCAPE_ADDRESS ${config.address}',
+    () => server.listen(port: config.port, address: config.address),
   );
   final alive = config.healthPort == 0
       ? null
-      : await listenAlive(address: config.address, port: config.healthPort);
-  final health = info
-      ? Timer.periodic(
-          _healthEvery,
-          (_) => stdout.writeln(
-            healthLine(
-              players: server.movement.players.length,
-              regions: map.regionCount,
-              summary: server.host.summary(last: _healthTicks),
-            ),
-          ),
-        )
-      : null;
-  // A service manager stops a server with SIGTERM, and a stop that skips the
-  // save loses what players did since their last autosave.
-  final stops = [
-    for (final signal in [ProcessSignal.sigint, ProcessSignal.sigterm])
-      signal.watch().listen((_) => server.loop.stop()),
-  ];
+      : await _bind(
+          'SCAPE_HEALTH_PORT ${config.healthPort}',
+          () => listenAlive(address: config.address, port: config.healthPort),
+        );
+  final health = info ? _logHealth(server, map) : null;
+  final stops = _stopOnSignals(server);
   if (info) {
     stdout.writeln(
       'scape_server: world ${config.world}, ${sockets.url}, '
       'a tick every ${tickPeriod.inMilliseconds} ms',
     );
   }
-  await server.loop.run();
-  // A watched signal keeps the process alive, so stop watching to let it end.
-  for (final stop in stops) {
-    await stop.cancel();
+  try {
+    await server.loop.run();
+  } finally {
+    // A tick that throws must still save every player before the process ends.
+    health?.cancel();
+    await alive?.close();
+    await sockets.close();
+    await server.dispose();
+    // A watched signal keeps the process alive. The watchers go last so that
+    // a second signal during the save does not kill the process mid-save.
+    for (final stop in stops) {
+      await stop.cancel();
+    }
   }
-  health?.cancel();
-  await alive?.close();
-  await sockets.close();
-  await server.dispose();
 }

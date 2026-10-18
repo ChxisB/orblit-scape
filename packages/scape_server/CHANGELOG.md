@@ -5,9 +5,15 @@
 - Added `ServerConfig`, which reads the server's settings from the
   environment: `SCAPE_PORT`, `SCAPE_ADDRESS`, `SCAPE_DATA`, `SCAPE_WORLD`,
   `SCAPE_HEALTH_PORT`, `SCAPE_LOG_LEVEL` and `SCAPE_ADMINS`. A value that
-  does not parse stops startup with exit code 78.
-- The server binary no longer reads arguments. Saves sit in the `SCAPE_WORLD`
-  folder inside `SCAPE_DATA`.
+  does not parse stops startup with exit code 78. The two ports must differ,
+  and admin names must be valid player names, once each. `ServerConfig` has
+  no public constructor, so every instance has passed these checks.
+- The server binary no longer reads arguments, and an argument stops it with
+  exit code 64. Saves sit in the `SCAPE_WORLD` folder inside `SCAPE_DATA`,
+  and there is no move from the old layout.
+- A port that cannot be bound, or a save folder that cannot be written, stops
+  startup with exit code 78. A tick that throws saves every player before
+  the process ends.
 - Added `healthLine` and `listenAlive`. The binary logs a health line each
   minute and answers `alive` on `SCAPE_HEALTH_PORT`, 7601 by default.
 - The server ships as a `dart build cli` bundle with `deploy/`, because

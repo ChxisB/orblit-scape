@@ -1,22 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:orblit_net/orblit_net.dart' show PhaseSummary;
-
-/// The line the server logs each minute: who is on, how big the world is and
-/// how the last ticks ran.
-String healthLine({
-  required int players,
-  required int regions,
-  required PhaseSummary summary,
-}) {
-  String ms(Duration time) =>
-      '${(time.inMicroseconds / 1000).toStringAsFixed(1)} ms';
-  return 'Health: $players players, $regions regions, '
-      'tick average ${ms(summary.tickAverage)}, max ${ms(summary.tickMax)} '
-      'over ${summary.ticks} ticks';
-}
-
 /// Answers every connection with `alive` and closes it. It runs on the
 /// server's own isolate, so a stalled tick stalls the answer, and a monitor
 /// sees that as a dead server.

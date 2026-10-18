@@ -60,6 +60,11 @@ void main() {
     ('SCAPE_ADMINS', 'ana'),
     ('SCAPE_ADMINS', 'ana=owner'),
     ('SCAPE_ADMINS', 'ana=admin=x'),
+    ('SCAPE_ADMINS', 'ana!=admin'),
+    ('SCAPE_ADMINS', 'abcdefghijklm=admin'),
+    ('SCAPE_ADMINS', 'ana=admin,Ana=moderator'),
+    ('SCAPE_PORT', '7601'),
+    ('SCAPE_HEALTH_PORT', '7600'),
   ]) {
     test('stops startup for $name=$value', () {
       expect(
@@ -79,11 +84,20 @@ void main() {
     final config = ServerConfig.fromEnvironment({
       'SCAPE_WORLD': 'a' * 32,
       'SCAPE_PORT': '65535',
-      'SCAPE_HEALTH_PORT': '65535',
+      'SCAPE_HEALTH_PORT': '65534',
     });
 
     expect(config.world, hasLength(32));
     expect(config.port, 65535);
-    expect(config.healthPort, 65535);
+    expect(config.healthPort, 65534);
+  });
+
+  test('reads admin names with spaces and capitals as lower-case keys', () {
+    final config = ServerConfig.fromEnvironment({
+      'SCAPE_ADMINS': 'Ana = admin, bo=moderator',
+    });
+
+    expect(config.roles.keys, ['ana', 'bo']);
+    expect(config.roles['ana'], Role.admin);
   });
 }
