@@ -68,8 +68,18 @@ dependency_overrides:
     path: $ENGINE/packages/orblit_terrain
 YAML
 
+# The panels take the client's overrides and the interface package.
+{
+  cat packages/scape_client/pubspec_overrides.yaml
+  cat <<YAML
+  orblit_ui:
+    path: $ENGINE/packages/orblit_ui
+YAML
+} > packages/scape_panels/pubspec_overrides.yaml
+
 (cd packages/scape_core && dart pub get > /dev/null)
 (cd packages/scape_content && dart pub get > /dev/null)
 (cd packages/scape_server && dart pub get > /dev/null)
 (cd packages/scape_client && dart pub get > /dev/null)
+(cd packages/scape_panels && flutter pub get > /dev/null)
 echo "scape packages -> $ENGINE, $NET"

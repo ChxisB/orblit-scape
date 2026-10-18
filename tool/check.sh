@@ -3,12 +3,16 @@
 set -uo pipefail
 cd "$(dirname "$0")/.."
 
+# The Dart packages are checked with dart. A Flutter package needs flutter,
+# and flutter analyze would rewrite the analysis options of a Dart one.
 PACKAGES=(
   packages/scape_core
   packages/scape_server
   packages/scape_client
   packages/scape_content
+  packages/scape_panels
 )
+FLUTTER_PACKAGES=(packages/scape_panels)
 
 failures=0
 
@@ -23,15 +27,17 @@ done
 
 for package in "${PACKAGES[@]}"; do
   echo "== $package =="
-  (cd "$package" && dart pub get > /dev/null 2>&1)
+  tool=dart
+  case " ${FLUTTER_PACKAGES[*]} " in *" $package "*) tool=flutter ;; esac
+  (cd "$package" && "$tool" pub get > /dev/null 2>&1)
 
-  if (cd "$package" && dart analyze --fatal-infos > /tmp/orblit_scape_analyze.log 2>&1); then
+  if (cd "$package" && "$tool" analyze --fatal-infos > /tmp/orblit_scape_analyze.log 2>&1); then
     echo "  ok    analyze"
   else
     echo "  FAIL  analyze"; tail -20 /tmp/orblit_scape_analyze.log; failures=$((failures+1))
   fi
 
-  if (cd "$package" && dart test > /tmp/orblit_scape_test.log 2>&1); then
+  if (cd "$package" && "$tool" test > /tmp/orblit_scape_test.log 2>&1); then
     summary=$(tr '\r' '\n' < /tmp/orblit_scape_test.log | tail -1 \
       | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/^[0-9:]* //')
     echo "  ok    $summary"

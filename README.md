@@ -12,7 +12,8 @@ so a new place or a new monster is a file and not a code change.
 | --- | --- |
 | `scape_core` | Tile coordinates, flags, paths and the rules both sides share. Pure Dart |
 | `scape_server` | The headless tick, sessions, actions and saves. Built on `orblit_core` and `orblit_net` |
-| `scape_client` | The app: drawing, input and panels |
+| `scape_client` | What a player sees and sends: the session, menus and minimap data. Pure Dart |
+| `scape_panels` | The interface as `orblit_ui` trees, and the widget that draws them. Flutter |
 | `scape_content` | Data files and the art built in code |
 
 ```sh

@@ -26,11 +26,14 @@ jobs:
           repository: ChxisB/orblit-net
           path: orblit-net
 
-      - uses: dart-lang/setup-dart@v1
+      # Flutter 3.47.0 carries Dart 3.13.0. Both are pinned: a formatter that
+      # moves under the repository turns an unrelated SDK release into a red
+      # build. scape_panels is a Flutter package, and its goldens are drawn
+      # with the Ahem test font, so one platform draws what another does.
+      - uses: subosito/flutter-action@v2
         with:
-          # Pinned: a formatter that moves under the repository turns an
-          # unrelated SDK release into a red build.
-          sdk: 3.13.0
+          flutter-version: 3.47.0
+          cache: true
 
       - name: Link the engine and networking
         working-directory: orblit-scape
