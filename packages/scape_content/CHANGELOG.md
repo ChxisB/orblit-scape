@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0
+
+- `ModelSet` and `defaultModels`. A creature has a box model by definition
+  id. `ModelSet.player` builds a person from a `Look`: the body in their
+  colours and one part for each worn item. Names carry a version, as in
+  `person.v1`.
+- `poseOf` gives how a rig is turned for a state at a moment, and
+  `actSeconds` how long an act takes. Poses come from sine curves until
+  the drawing app has authored clips.
+
 ## 0.11.0
 
 - Magic and prayer are skills, so there are eleven.
