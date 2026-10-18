@@ -110,15 +110,14 @@ final class Gathering {
   }
 
   void _try(String player, NodeDef node, PlacedObject object) {
+    final actor = _actorOf(player);
+    if (actor == null) return;
     final refusal = _refusal(player, node, object);
     if (refusal != null) {
       _notice(player, refusal);
       return;
     }
-    _act(
-      _actorOf(player)!,
-      ActorState.gather,
-    ); // the action was queued for them
+    _act(actor, ActorState.gather);
     final level = _skills.levelOf(player, node.skill);
     if (_random.nextDouble() < node.chanceAt(level)) {
       _succeed(player, node, object);

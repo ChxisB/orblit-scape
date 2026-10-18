@@ -39,8 +39,12 @@ final class ActorAnimator {
     return poseOf(anim.base, now + id * _phaseStep);
   }
 
-  /// Drops what is known about [id], for an actor that left view.
-  void forget(int id) => _tracks.remove(id);
+  /// Keeps what is known about the actors in [ids] and drops the rest, so an
+  /// actor that left view is treated as new when it returns.
+  void retain(Iterable<int> ids) {
+    final keep = ids.toSet();
+    _tracks.removeWhere((id, _) => !keep.contains(id));
+  }
 
   _Track _seen(int id, Anim anim, double now) {
     final known = _tracks[id];

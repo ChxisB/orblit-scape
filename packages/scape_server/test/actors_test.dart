@@ -72,7 +72,7 @@ void main() {
     return client;
   }
 
-  void start({Random? random, NpcSet? npcs}) {
+  void start({Random? random, NpcSet? npcs, RecipeSet? recipes}) {
     server = ScapeServer(
       clock: TickClock(period: tickPeriod, now: FakeTime().read),
       pacer: NoPacer(),
@@ -85,6 +85,7 @@ void main() {
       nodes: defaultNodes,
       npcs: npcs ?? _foes(),
       combat: defaultCombat,
+      recipes: recipes,
       random: random ?? _Dice(hit: 0, damage: 1),
     );
   }
@@ -186,6 +187,32 @@ void main() {
     });
   });
 
+  group('a creature out of the phase', () {
+    test('has no steps left over from when it last walked', () async {
+      start(
+        npcs: NpcSet(
+          npcs: [NpcDef(id: 1, name: 'Hen', behaviour: const Wander())],
+        ),
+      );
+      final ana = await join('Ana');
+      final chicken = server.npcs.spawn(
+        NpcSpawn(npc: 1, tile: at(40, 32), radius: 20),
+      );
+      for (var i = 0; i < 10 && chicken.stepsLastTick == 0; i++) {
+        await tick();
+      }
+      expect(chicken.stepsLastTick, 1);
+
+      server.movement.teleport('ana', at(100, 32));
+      // A cell stays simulated for ten ticks after the last player leaves.
+      // The walk is long enough that it never ends before the creature sleeps.
+      await tick(14);
+
+      expect(chicken.stepsLastTick, 0);
+      expect(ana.animOf(chicken.networkId), isNull);
+    });
+  });
+
   group('resting state', () {
     test('is idle for a player who stands', () async {
       final ana = await join('Ana');
@@ -261,6 +288,22 @@ void main() {
 
       final seen = await watch(ana, ana.avatar, gatherTicks + 2);
       expect(seen.map((anim) => anim.act), contains(ActorState.gather));
+    });
+
+    test('cooking at a fire plays make', () async {
+      start(recipes: defaultRecipes);
+      final ana = await join('Ana');
+      server.items
+          .container('ana', ContainerId.inventory)!
+          .add(ItemId.rawFish, 1);
+      final fire = server.objects.place(ObjectId.fire, at(33, 32));
+
+      await ana.send(
+        Interact(kind: InteractKind.useOnObject, id: fire.networkId, option: 0),
+      );
+
+      final seen = await watch(ana, ana.avatar, 6);
+      expect(seen.map((anim) => anim.act), contains(ActorState.make));
     });
 
     test('a click on a tree with no axe plays nothing', () async {

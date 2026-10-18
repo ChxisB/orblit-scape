@@ -8,6 +8,9 @@
 - `ActorAnimator` turns an actor's `Anim` into a pose for each frame. An act
   plays once from the frame its count changes. An actor seen for the first
   time shows a death but does not replay an act that is over.
+- `GameSession.poseOf` gives the pose to draw an actor in now. The session
+  owns the `ActorAnimator` and drops what it knows of an actor once it
+  leaves view, in `advance`.
 - `scape_content` is a dependency, for `Pose`.
 
 ## 0.15.0

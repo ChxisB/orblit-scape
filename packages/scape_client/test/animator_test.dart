@@ -123,16 +123,26 @@ void main() {
       expect(animator.sample(1, dead, 100).lie, 1);
     });
 
-    test('forgetting an actor treats it as new', () {
+    test('an actor that left view is treated as new', () {
       final dead = Anim(act: ActorState.death, seq: 9);
       animator.sample(1, dead, 0);
 
-      animator.forget(1);
+      animator.retain([2]);
       final swung = Anim(act: ActorState.attack, seq: 9);
       final pose = animator.sample(1, swung, 5.25);
 
       expect(pose.armR.abs(), lessThan(0.05));
     });
+  });
+
+  test('retaining an actor keeps its act', () {
+    animator.sample(1, Anim(), 0);
+    final swung = Anim().playing(ActorState.attack);
+    animator.sample(1, swung, 1);
+
+    animator.retain([1, 2]);
+
+    expect(animator.sample(1, swung, 1.25).armR, lessThan(-2));
   });
 
   test('a hundred actors for ten seconds of frames is cheap', () {

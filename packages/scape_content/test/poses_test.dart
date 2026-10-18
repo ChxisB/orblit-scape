@@ -40,6 +40,14 @@ void main() {
     expect(poseOf(ActorState.attack, length).armR, closeTo(0, 1e-9));
   });
 
+  test('making bobs both hands and rests at the ends', () {
+    final length = actSeconds(ActorState.make)!;
+
+    expect(poseOf(ActorState.make, 0).armR, closeTo(0, 1e-9));
+    expect(poseOf(ActorState.make, length / 4).armR, lessThan(-0.8));
+    expect(poseOf(ActorState.make, length).armR, closeTo(0, 1e-9));
+  });
+
   test('a hurt actor leans back', () {
     final length = actSeconds(ActorState.hurt)!;
 

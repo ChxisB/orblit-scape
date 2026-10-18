@@ -58,7 +58,7 @@ void main() {
     test('is the body alone with nothing worn', () {
       final model = defaultModels.player(dressed({}));
 
-      expect(model.name, 'person.v1');
+      expect(model.name, startsWith('person.v1.'));
       expect(model.boxes, hasLength(7));
     });
 
@@ -71,6 +71,17 @@ void main() {
       expect(armed.boxes.length, bare.boxes.length + 1);
       final sword = armed.boxes.last;
       expect(sword.bone, ModelBone.armR);
+    });
+
+    test('has a name for each look, so a cache keyed by name is right', () {
+      final bare = defaultModels.player(dressed({}));
+      final armed = defaultModels.player(
+        dressed({'weapon': ItemId.bronzeSword}),
+      );
+      final again = defaultModels.player(dressed({}));
+
+      expect(armed.name, isNot(bare.name));
+      expect(again.name, bare.name);
     });
 
     test('is drawn in the colours of the look', () {

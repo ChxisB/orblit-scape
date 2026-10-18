@@ -43,7 +43,8 @@ final class ModelBox {
 }
 
 /// A shape built in code. The version in [name] goes up when the shape
-/// changes, so a client that cached the old one knows to draw it again.
+/// changes, so a client that cached the old one knows to draw it again. A
+/// person's name also holds their look, so two looks never share a name.
 /// [pivots] says where each bone turns: the hip, the neck and the shoulders
 /// of a person.
 final class ActorModel {
@@ -69,7 +70,7 @@ final class ModelSet {
 
   /// The person [look] describes: the body in their colours, then the part
   /// each worn item shows.
-  ActorModel player(Look look) => ActorModel(_personName, [
+  ActorModel player(Look look) => ActorModel(_nameOf(look), [
     ..._person(skin: look.skin, hair: look.hair, cloth: look.cloth),
     for (final (slot, item) in look.worn.indexed)
       if (item != 0) ..._worn(equipmentSlots[slot], item),
@@ -77,6 +78,12 @@ final class ModelSet {
 }
 
 const String _personName = 'person.v1';
+
+String _nameOf(Look look) => [
+  _personName,
+  for (final part in [look.skin, look.hair, look.cloth, ...look.worn])
+    part.toRadixString(16),
+].join('.');
 
 Vec3 _v(double x, double y, double z) => (x: x, y: y, z: z);
 

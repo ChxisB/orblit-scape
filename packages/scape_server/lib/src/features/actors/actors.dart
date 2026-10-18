@@ -27,13 +27,17 @@ const List<int> _cloths = [
 /// the clips.
 final class Actors {
   Actors._(
-    this._services,
-    this._movement,
-    this._bags,
-    this._npcs,
-    this._look,
-    this._anim,
-  );
+    this._services, {
+    required Movement movement,
+    required Items bags,
+    required Npcs npcs,
+    required ComponentType look,
+    required ComponentType anim,
+  }) : _movement = movement,
+       _bags = bags,
+       _npcs = npcs,
+       _look = look,
+       _anim = anim;
 
   /// Adds the components to [registry] and returns the feature, so a feature
   /// that swings or works can start an act.
@@ -58,7 +62,14 @@ final class Actors {
     registry
       ..replicate(look)
       ..replicate(anim);
-    final feature = Actors._(services, movement, bags, npcs, look, anim);
+    final feature = Actors._(
+      services,
+      movement: movement,
+      bags: bags,
+      npcs: npcs,
+      look: look,
+      anim: anim,
+    );
     registry
       ..addJoinHandler(feature._join)
       ..addSystem(Phase.outbound, feature._sync);
@@ -119,6 +130,8 @@ final class Actors {
     if (now.base != base) writeAnim(bytes, now.withBase(base));
   }
 
+  // shortcut: this reads every player's look every tick. Move it to an
+  // equipment change hook when a tick with many players measures slow.
   void _dress(String player, int entity) {
     final bytes = _services.world.bytesOf(entity, _look)!; // _join adds it
     final now = tryReadLook(bytes);

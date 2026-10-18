@@ -29,6 +29,7 @@ double? actSeconds(ActorState state) => switch (state) {
   ActorState.hurt => 0.4,
   ActorState.death => 1.0,
   ActorState.gather => 0.8,
+  ActorState.make => 0.8,
   _ => null,
 };
 
@@ -44,6 +45,7 @@ Pose poseOf(ActorState state, double seconds) => switch (state) {
   ActorState.hurt => _recoil(_progress(state, seconds)),
   ActorState.death => _fall(_progress(state, seconds)),
   ActorState.gather => _work(_progress(state, seconds)),
+  ActorState.make => _craft(_progress(state, seconds)),
 };
 
 // The `!` is safe because every state that reaches here is an act.
@@ -84,6 +86,11 @@ Pose _recoil(double progress) {
 Pose _fall(double progress) {
   final left = 1 - progress;
   return Pose(lie: 1 - left * left);
+}
+
+Pose _craft(double progress) {
+  final beat = sin(progress * pi * 2).abs();
+  return Pose(armL: -0.9 * beat, armR: -0.9 * beat, lean: 0.2);
 }
 
 Pose _work(double progress) {

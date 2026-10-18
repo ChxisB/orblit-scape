@@ -5,9 +5,10 @@
 - `ModelSet` and `defaultModels`. A creature has a box model by definition
   id. `ModelSet.player` builds a person from a `Look`: the body in their
   colours and one part for each worn item. Names carry a version, as in
-  `person.v1`.
+  `chicken.v1`. A person's name adds their colours and worn items in hex, so
+  two looks never share a name.
 - `poseOf` gives how a rig is turned for a state at a moment, and
-  `actSeconds` how long an act takes. Poses come from sine curves until
+  `actSeconds` how long an act takes. Make bobs both hands. Poses come from sine curves until
   the drawing app has authored clips.
 
 ## 0.11.0

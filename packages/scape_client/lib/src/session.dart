@@ -3,7 +3,10 @@ import 'dart:typed_data';
 import 'package:orblit_core/orblit_core.dart';
 import 'package:orblit_net/orblit_net.dart';
 import 'package:orblit_progress/orblit_progress.dart';
+import 'package:scape_content/scape_content.dart' show Pose;
 import 'package:scape_core/scape_core.dart';
+
+import 'animator.dart';
 
 /// A little over one tick, so the client always holds a state on each side
 /// of the time it draws.
@@ -176,6 +179,7 @@ final class GameSession {
   ProgressTable _skillXp;
   ({Story story, ProgressTable table})? _quests;
   final double Function() _now;
+  final ActorAnimator _animator = ActorAnimator();
   final World _world;
   late final ComponentType _position;
   late final ComponentType _ground;
@@ -293,6 +297,13 @@ final class GameSession {
     final entity = _client.entityFor(networkId);
     final bytes = entity == null ? null : _world.bytesOf(entity, _anim);
     return bytes == null ? null : tryReadAnim(bytes);
+  }
+
+  /// The pose to draw the actor [networkId] in now, or null for one that is not
+  /// in view. Ask once a frame, after [advance], for each actor drawn.
+  Pose? poseOf(int networkId) {
+    final anim = animOf(networkId);
+    return anim == null ? null : _animator.sample(networkId, anim, _now());
   }
 
   /// Private messages received, oldest first.
@@ -450,7 +461,10 @@ final class GameSession {
 
   /// Blends the world towards where the server was a moment ago. Call once a
   /// frame.
-  void advance() => _client.advance();
+  void advance() {
+    _client.advance();
+    _animator.retain(_client.networkIds);
+  }
 
   /// Every actor in view, with the position it is drawn at now.
   List<Actor> get actors => [

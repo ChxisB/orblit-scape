@@ -12,7 +12,8 @@ enum ActorState {
   attack,
   hurt,
   death,
-  gather;
+  gather,
+  make;
 
   /// Whether this state plays once, started by an event.
   bool get isAct => index > run.index;

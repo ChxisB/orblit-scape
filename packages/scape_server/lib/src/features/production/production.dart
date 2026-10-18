@@ -135,15 +135,14 @@ final class Production {
   }
 
   void _make(String player, Recipe recipe, PlacedObject? station) {
+    final actor = _actorOf(player);
+    if (actor == null) return;
     final refusal = _refusal(player, recipe, station);
     if (refusal != null) {
       _notice(player, refusal);
       return;
     }
-    _act(
-      _actorOf(player)!,
-      ActorState.gather,
-    ); // the action was queued for them
+    _act(actor, ActorState.make);
     final level = _skills.levelOf(player, recipe.skill);
     final failed = _random.nextDouble() < recipe.failChanceAt(level);
     final done = failed ? _fail(player, recipe) : _succeed(player, recipe);

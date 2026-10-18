@@ -44,6 +44,7 @@ final class PlacedNpc {
   bool _asleep = false;
   bool _hunting = false;
   bool _engaged = false;
+  int _steps = 0;
   int? _respawnAt;
 
   /// The entity standing in the world now. A creature that dies and returns
@@ -55,8 +56,9 @@ final class PlacedNpc {
   /// Whether it is dead and waiting to stand again.
   bool get isDead => _respawnAt != null;
 
-  /// How many tiles it entered on the last creature phase.
-  int get stepsLastTick => _mover.stepsLastTick.length;
+  /// How many tiles it entered on the last creature phase. A creature that
+  /// did not take part in it entered none.
+  int get stepsLastTick => _steps;
 
   /// Whether it is following a player.
   bool get isHunting => _hunting;
@@ -206,6 +208,7 @@ final class Npcs {
     _clearDead();
     final players = _playerTiles().toList();
     for (final npc in _all) {
+      npc._steps = 0;
       if (npc.isDead) {
         _maybeReturn(npc);
       } else if (!_isActive(npc)) {
@@ -220,10 +223,11 @@ final class Npcs {
 
   void _clearDead() {
     final tick = _actions.tick;
-    for (final dead in _dying.where((dying) => dying.until <= tick)) {
-      _services.hosting.despawn(dead.entity);
-    }
-    _dying.removeWhere((dying) => dying.until <= tick);
+    _dying.removeWhere((dying) {
+      if (dying.until > tick) return false;
+      _services.hosting.despawn(dying.entity);
+      return true;
+    });
   }
 
   bool _isActive(PlacedNpc npc) =>
@@ -248,7 +252,8 @@ final class Npcs {
   void _move(PlacedNpc npc, List<TileCoord> players) {
     _decide(npc, players);
     npc._mover.advance(_services.map);
-    if (npc._mover.stepsLastTick.isNotEmpty) _write(npc);
+    npc._steps = npc._mover.stepsLastTick.length;
+    if (npc._steps > 0) _write(npc);
   }
 
   void _decide(PlacedNpc npc, List<TileCoord> players) {

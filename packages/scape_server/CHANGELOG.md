@@ -14,9 +14,12 @@
   not hurt.
 - Combat, `Gathering` and `Production` take a required `act` function. A
   swing or a cast plays attack, a landed hit plays hurt, a kill plays death,
-  and a try at a node or a recipe plays gather.
+  a try at a node plays gather and a make at a recipe plays make. A click
+  that is refused plays nothing.
 - A killed creature stays in the world for `deathTicks` (3) so the death can
   play. It cannot be attacked in that time.
+- `PlacedNpc.stepsLastTick` is zero for a creature asleep or dead, and not
+  the count from the last tick it walked.
 - A client has to list `Look` and `Anim` in its `ReplicationSet`. The set is
   ordered by name, so both ends must name the same components.
 

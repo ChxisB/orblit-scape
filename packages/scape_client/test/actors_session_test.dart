@@ -57,6 +57,7 @@ void main() {
 
     expect(ana.lookOf(9999), isNull);
     expect(ana.animOf(9999), isNull);
+    expect(ana.poseOf(9999), isNull);
   });
 
   test('a swing shows up as a pose the animator draws', () async {
@@ -65,8 +66,6 @@ void main() {
       NpcSpawn(npc: NpcId.chicken, tile: TileCoord(33, 32, 0)),
     );
     await tickAndDraw(ana, 2);
-    final animator = ActorAnimator();
-    animator.sample(ana.avatar!, ana.animOf(ana.avatar!)!, game.seconds);
 
     ana.attack(chicken.networkId);
     await pump();
@@ -74,14 +73,13 @@ void main() {
     for (var i = 0; i < 6; i++) {
       await tickAndDraw(ana);
       // Frames come far faster than ticks.
+      final tickTime = game.seconds;
       for (var frame = 0; frame < 6; frame++) {
-        final pose = animator.sample(
-          ana.avatar!,
-          ana.animOf(ana.avatar!)!,
-          game.seconds + frame * 0.1,
-        );
+        game.seconds = tickTime + frame * 0.1;
+        final pose = ana.poseOf(ana.avatar!)!;
         if (pose.armR < lifted) lifted = pose.armR;
       }
+      game.seconds = tickTime;
     }
 
     expect(lifted, lessThan(-0.1));
