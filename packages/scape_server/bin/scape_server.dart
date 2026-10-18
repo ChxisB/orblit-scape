@@ -7,19 +7,28 @@ import 'package:scape_content/scape_content.dart';
 import 'package:scape_core/scape_core.dart';
 import 'package:scape_server/scape_server.dart';
 
-/// Flat open ground until the starter island exists.
-TileMap _openWorld() {
-  final map = TileMap();
-  for (var y = 0; y < 2; y++) {
-    for (var x = 0; x < 2; x++) {
-      map.addRegion(FlagRegion.open(RegionKey(x, y, 0)));
-    }
+/// The starter island. A server whose data files disagree with each other
+/// stops with 78, since players would meet the fault one at a time and a
+/// restart cannot fix it.
+WorldPlan _worldOrExit() {
+  final world = starterIsland();
+  final problems = checkContent(
+    items: defaultItems,
+    objects: defaultObjects,
+    nodes: defaultNodes,
+    npcs: defaultNpcs,
+    recipes: defaultRecipes,
+    story: defaultStory,
+    world: world,
+  );
+  if (problems.isNotEmpty) {
+    _refuse('the game data disagrees with itself:\n  ${problems.join('\n  ')}');
   }
-  return map;
+  return world;
 }
 
 /// The server with its saves on disk and every part of the world wired in.
-ScapeServer _serverFor(ServerConfig config, TileMap map) {
+ScapeServer _serverFor(ServerConfig config, WorldPlan world) {
   final clock = TickClock(period: tickPeriod);
   final history = HistoryStore.files(config.saves);
   final queue = SaveQueue.spawn(
@@ -27,12 +36,12 @@ ScapeServer _serverFor(ServerConfig config, TileMap map) {
     clock: DateTime.now,
     onFailure: (key, error) => stderr.writeln('Save of $key failed: $error'),
   );
-  return ScapeServer(
+  final server = ScapeServer(
     clock: clock,
     pacer: ClockPacer(clock),
     log: stderr.writeln,
-    map: map,
-    spawn: TileCoord(32, 32, 0),
+    map: world.map,
+    spawn: world.spawn,
     skills: defaultSkills,
     items: defaultItems,
     objects: defaultObjects,
@@ -51,6 +60,7 @@ ScapeServer _serverFor(ServerConfig config, TileMap map) {
     ),
     roles: config.roles,
   );
+  return server..stock(objects: world.objects, npcs: world.npcs);
 }
 
 /// How often the health line is logged.
@@ -126,10 +136,10 @@ Future<void> main(List<String> args) async {
     exit(64);
   }
   final config = _configOrExit();
+  final world = _worldOrExit();
   _requireWritable(config);
   final info = config.logLevel == LogLevel.info;
-  final map = _openWorld();
-  final server = _serverFor(config, map);
+  final server = _serverFor(config, world);
   final sockets = await _bind(
     'SCAPE_PORT ${config.port} on SCAPE_ADDRESS ${config.address}',
     () => server.listen(port: config.port, address: config.address),
@@ -140,7 +150,7 @@ Future<void> main(List<String> args) async {
           'SCAPE_HEALTH_PORT ${config.healthPort}',
           () => listenAlive(address: config.address, port: config.healthPort),
         );
-  final health = info ? _logHealth(server, map) : null;
+  final health = info ? _logHealth(server, world.map) : null;
   final stops = _stopOnSignals(server);
   if (info) {
     stdout.writeln(

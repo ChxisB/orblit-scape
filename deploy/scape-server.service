@@ -20,8 +20,8 @@ RestartSec=5
 # The server saves every player when it gets SIGTERM, so give it time.
 KillSignal=SIGTERM
 TimeoutStopSec=30
-# 64 is an argument, 78 is a setting or a port that cannot be used. A restart
-# cannot fix either.
+# 64 is an argument, 78 is a setting, a port that cannot be used or game data
+# that disagrees with itself. A restart cannot fix any of them.
 RestartPreventExitStatus=64 78
 # Saves hold password hashes.
 UMask=0077

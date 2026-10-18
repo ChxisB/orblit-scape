@@ -297,6 +297,24 @@ final class ScapeServer {
     return sockets;
   }
 
+  /// Puts [objects] and [npcs] in the world. Throws [ArgumentError] for a
+  /// placement the world refuses, as [WorldObjects.place] and [Npcs.spawn]
+  /// do. Call it once, before players join. A throw leaves the placements
+  /// before it in the world, and a second call adds the creatures again.
+  void stock({
+    required Iterable<ObjectPlacement> objects,
+    required Iterable<NpcSpawn> npcs,
+  }) {
+    for (final placement in objects) {
+      this.objects.place(
+        placement.object,
+        placement.tile,
+        destination: placement.destination,
+      );
+    }
+    npcs.forEach(this.npcs.spawn);
+  }
+
   void _deliverIntents() {
     for (final (:player, :intent) in inbox.drain()) {
       registry.deliver(player, intent);

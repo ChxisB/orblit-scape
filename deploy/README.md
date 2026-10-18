@@ -35,8 +35,9 @@ sudo systemctl enable --now scape-server
 ```
 
 Edit `/etc/scape/server.env` first. Every line is optional. A value that
-does not parse, a port that cannot be bound and a save folder that cannot be
-written stop the server with exit code 78 and a line on stderr. An argument
+does not parse, a port that cannot be bound, a save folder that cannot be
+written and game data that disagrees with itself stop the server with exit
+code 78 and a line on stderr. An argument
 stops it with 64. The unit does not restart on either, and gives up after
 five failed starts in two minutes.
 

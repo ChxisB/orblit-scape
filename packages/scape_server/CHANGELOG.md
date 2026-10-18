@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.22.0
+
+- `ScapeServer.stock` puts a list of `ObjectPlacement` and `NpcSpawn` in the
+  world. It throws `ArgumentError` for a placement the world refuses.
+- The server binary starts on `starterIsland()` and runs `checkContent` on
+  the default data first. Any problem stops startup with exit code 78 and
+  one line each.
+
 ## 0.21.0
 
 - Added `ServerConfig`, which reads the server's settings from the
