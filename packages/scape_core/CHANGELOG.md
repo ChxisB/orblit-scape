@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0
+
+- `LoginRefusal.banned`, for a name a moderator banned.
+- `commandMarker`, the `/` that starts a chat line the server reads as a
+  command.
+
 ## 0.21.0
 
 - `ActorState`, `Anim` and `Look`, with the bytes of the `Anim` and `Look`

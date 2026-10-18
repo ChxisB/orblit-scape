@@ -55,6 +55,10 @@ bool isValidText(String text) {
   return !text.runes.any((r) => r < 0x20 || r == 0x7f);
 }
 
+/// A chat line that starts with this is a command for the server and not
+/// something to say.
+const String commandMarker = '/';
+
 /// A message a client sends the server.
 sealed class ClientMessage {
   const ClientMessage();
@@ -571,7 +575,10 @@ enum LoginRefusal {
 
   /// The server could not load the account or its character. Nothing was
   /// changed, so trying again later is safe.
-  unavailable;
+  unavailable,
+
+  /// A moderator banned this name. The reason stays with the moderators.
+  banned;
 
   static LoginRefusal? fromWire(String reason) => values.asNameMap()[reason];
 }

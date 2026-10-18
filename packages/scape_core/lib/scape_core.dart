@@ -106,6 +106,7 @@ export 'src/messages.dart'
         Whispered,
         Withdraw,
         WindowClosed,
+        commandMarker,
         isValidName,
         isValidText,
         maxActivePrayers,
@@ -194,4 +195,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.21.0';
+const scapeCoreVersion = '0.22.0';
