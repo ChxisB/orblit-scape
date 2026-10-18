@@ -43,6 +43,47 @@ jobs:
         working-directory: orblit-scape
         run: ./tool/check.sh
 
+  # Builds the server as a bundle, starts it, and stops it with SIGTERM. The
+  # bundle holds the executable and the native library it loads, so it runs
+  # on a machine with no Dart. It is kept as an artifact for a deploy.
+  bundle:
+    name: Server bundle
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: orblit-scape
+      - uses: actions/checkout@v4
+        with:
+          repository: ChxisB/orblit
+          path: orblit
+      - uses: actions/checkout@v4
+        with:
+          repository: ChxisB/orblit-net
+          path: orblit-net
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: 3.47.0
+          cache: true
+
+      - name: Link the engine and networking
+        working-directory: orblit-scape
+        run: ./tool/link_local.sh ../orblit ../orblit-net
+
+      - name: Build
+        working-directory: orblit-scape/packages/scape_server
+        run: dart build cli -t bin/scape_server.dart -o "$RUNNER_TEMP/build"
+
+      - name: Smoke
+        working-directory: orblit-scape
+        run: ./deploy/smoke.sh "$RUNNER_TEMP/build/bundle"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scape-server-linux
+          path: ${{ runner.temp }}/build/bundle
+
   # Checks each commit on a pull request against commitlint.config.mjs.
   # Pull requests only, since a push to main has no range to check.
   commits:

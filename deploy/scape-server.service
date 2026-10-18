@@ -1,0 +1,25 @@
+[Unit]
+Description=Scape server
+After=network.target
+
+[Service]
+User=scape
+Group=scape
+WorkingDirectory=/opt/scape
+EnvironmentFile=/etc/scape/server.env
+ExecStart=/opt/scape/bundle/bin/scape_server
+Restart=on-failure
+RestartSec=5
+# The server saves every player when it gets SIGTERM, so give it time.
+KillSignal=SIGTERM
+TimeoutStopSec=30
+# A bad setting stops startup with exit code 78. Restarting cannot fix it.
+RestartPreventExitStatus=78
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/scape
+
+[Install]
+WantedBy=multi-user.target

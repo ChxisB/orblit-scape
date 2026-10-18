@@ -24,6 +24,8 @@ git clone https://github.com/ChxisB/orblit-net.git   # beside this one
 ./tool/check.sh
 ```
 
+To run the server on a machine, see [deploy/README.md](deploy/README.md).
+
 ## Licence
 
 MPL-2.0, © 2026 Chris Beckett. See [LICENSE](LICENSE).
