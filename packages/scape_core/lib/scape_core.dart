@@ -1,6 +1,21 @@
 /// Tile coordinates, flags, paths and the rules a server and a client share.
 library;
 
+export 'src/actor.dart'
+    show
+        ActorState,
+        Anim,
+        Look,
+        animInts,
+        animName,
+        lookColours,
+        lookInts,
+        lookName,
+        maxAnimSeq,
+        tryReadAnim,
+        tryReadLook,
+        writeAnim,
+        writeLook;
 export 'src/combat.dart'
     show
         CombatBonus,
@@ -179,4 +194,4 @@ export 'src/tile_position.dart'
 export 'src/tile_map.dart' show TileMap, Walker;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeCoreVersion = '0.20.0';
+const scapeCoreVersion = '0.21.0';

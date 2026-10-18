@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.21.0
+
+- `ActorState`, `Anim` and `Look`, with the bytes of the `Anim` and `Look`
+  components. `Anim` holds how an actor rests, the act it last played and a
+  count of acts. `Look` holds three colours and the item worn in each
+  equipment slot.
+
 ## 0.20.0
 
 - `MoveItem` drags a stack from one slot to another, between the inventory
