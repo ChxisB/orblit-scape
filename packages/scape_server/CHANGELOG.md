@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.19.0
+
+- `Actors` adds two replicated components. `Look` holds a player's three
+  colours and the item in each equipment slot. `Anim` holds what any player
+  or creature is doing: a resting state of idle, walk or run, the act it last
+  played, and a count of acts. The count goes up with each act, so a second
+  swing is still a change a client can see.
+- The resting state follows the steps an actor took this tick. Colours come
+  from the player's name.
+- An act is one slot. When two land on an actor in one tick, the later one
+  shows. A creature that swings back in the tick it is hit shows attack and
+  not hurt.
+- Combat, `Gathering` and `Production` take a required `act` function. A
+  swing or a cast plays attack, a landed hit plays hurt, a kill plays death,
+  and a try at a node or a recipe plays gather.
+- A killed creature stays in the world for `deathTicks` (3) so the death can
+  play. It cannot be attacked in that time.
+- A client has to list `Look` and `Anim` in its `ReplicationSet`. The set is
+  ordered by name, so both ends must name the same components.
+
 ## 0.18.0
 
 - `Items` handles `MoveItem`. A drag that works swaps the two slots. A drag

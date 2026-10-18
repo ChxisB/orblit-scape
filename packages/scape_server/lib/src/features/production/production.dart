@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:scape_core/scape_core.dart';
 
+import '../../engine/act.dart';
 import '../../engine/action.dart';
 import '../../engine/phase.dart';
 import '../../engine/registry.dart';
@@ -27,13 +28,15 @@ final class Production {
     required int? Function(String) actorOf,
     required TileCoord? Function(String) tileOf,
     required Random random,
+    required Act act,
   }) : _items = items,
        _objects = objects,
        _skills = skills,
        _bags = bags,
        _actorOf = actorOf,
        _tileOf = tileOf,
-       _random = random;
+       _random = random,
+       _act = act;
 
   /// Adds the recipes of [recipes] to [registry]. Each is a use on an item or
   /// an object, so [interactions] decides when it starts.
@@ -49,6 +52,7 @@ final class Production {
     required int? Function(String) actorOf,
     required TileCoord? Function(String) tileOf,
     required Random random,
+    required Act act,
   }) {
     final feature = Production._(
       registry,
@@ -60,6 +64,7 @@ final class Production {
       actorOf: actorOf,
       tileOf: tileOf,
       random: random,
+      act: act,
     );
     for (final recipe in recipes.recipes) {
       feature._listen(interactions, recipe);
@@ -81,6 +86,7 @@ final class Production {
   final int? Function(String) _actorOf;
   final TileCoord? Function(String) _tileOf;
   final Random _random;
+  final Act _act;
 
   /// One action kind for each number of ticks a make can take, since a kind
   /// has one delay.
@@ -134,6 +140,10 @@ final class Production {
       _notice(player, refusal);
       return;
     }
+    _act(
+      _actorOf(player)!,
+      ActorState.gather,
+    ); // the action was queued for them
     final level = _skills.levelOf(player, recipe.skill);
     final failed = _random.nextDouble() < recipe.failChanceAt(level);
     final done = failed ? _fail(player, recipe) : _succeed(player, recipe);

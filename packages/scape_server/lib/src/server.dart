@@ -15,6 +15,7 @@ import 'features.dart';
 import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
+import 'features/actors/actors.dart';
 import 'features/combat/combat.dart';
 import 'features/movement/movement.dart';
 import 'features/npcs/npcs.dart';
@@ -137,6 +138,7 @@ final class ScapeServer {
     this.items = features.items;
     this.npcs = features.npcs;
     this.combat = features.combat;
+    actors = features.actors;
     movement = features.movement;
     ground = features.ground;
     this.objects = features.objects;
@@ -230,6 +232,7 @@ final class ScapeServer {
   late final Items items;
   late final Npcs npcs;
   late final Combat combat;
+  late final Actors actors;
   late final GroundItems ground;
   late final WorldObjects objects;
   late final Interactions interactions;

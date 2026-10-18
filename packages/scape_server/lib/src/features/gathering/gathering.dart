@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:scape_core/scape_core.dart';
 
+import '../../engine/act.dart';
 import '../../engine/action.dart';
 import '../../engine/phase.dart';
 import '../../engine/registry.dart';
@@ -29,13 +30,15 @@ final class Gathering {
     required Items bags,
     required int? Function(String) actorOf,
     required Random random,
+    required Act act,
   }) : _nodes = nodes,
        _items = items,
        _objects = objects,
        _skills = skills,
        _bags = bags,
        _actorOf = actorOf,
-       _random = random;
+       _random = random,
+       _act = act;
 
   /// Adds gathering to [registry]. Gathering is the `gather` option of an
   /// object, so [interactions] decides when it starts.
@@ -50,6 +53,7 @@ final class Gathering {
     required Items bags,
     required int? Function(String) actorOf,
     required Random random,
+    required Act act,
   }) {
     final feature = Gathering._(
       registry,
@@ -61,6 +65,7 @@ final class Gathering {
       bags: bags,
       actorOf: actorOf,
       random: random,
+      act: act,
     );
     interactions.addObjectAction('gather', feature._begin);
     registry
@@ -77,6 +82,7 @@ final class Gathering {
   final Items _bags;
   final int? Function(String) _actorOf;
   final Random _random;
+  final Act _act;
   final ActionKind _gather = ActionKind('gather', delay: gatherTicks);
 
   /// The tick each dry node fills again. It is a tick, not a count down, so
@@ -109,6 +115,10 @@ final class Gathering {
       _notice(player, refusal);
       return;
     }
+    _act(
+      _actorOf(player)!,
+      ActorState.gather,
+    ); // the action was queued for them
     final level = _skills.levelOf(player, node.skill);
     if (_random.nextDouble() < node.chanceAt(level)) {
       _succeed(player, node, object);

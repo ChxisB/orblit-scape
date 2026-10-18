@@ -44,9 +44,19 @@ final class TestClient {
       kind: ComponentKind.int32,
       arity: healthInts,
     );
+    look = world.registerComponent(
+      lookName,
+      kind: ComponentKind.int32,
+      arity: lookInts,
+    );
+    anim = world.registerComponent(
+      animName,
+      kind: ComponentKind.int32,
+      arity: animInts,
+    );
     client = NetClient(
       world: world,
-      set: ReplicationSet([position, ground, object, npc, health]),
+      set: ReplicationSet([position, ground, object, npc, health, look, anim]),
       networkId: networkId,
       transport: link.client,
       onMessage: (body) => received.add(decodeServerMessage(body)),
@@ -62,6 +72,8 @@ final class TestClient {
   late final ComponentType object;
   late final ComponentType npc;
   late final ComponentType health;
+  late final ComponentType look;
+  late final ComponentType anim;
   late final NetClient client;
   final List<Decoded<ServerMessage>> received = [];
   final List<String> goodbyes = [];
@@ -119,6 +131,21 @@ final class TestClient {
       now: data.getInt32(0, Endian.little),
       max: data.getInt32(4, Endian.little),
     );
+  }
+
+  /// How the entity with [networkId] looks as this client sees it, or null.
+  Look? lookOf(int networkId) {
+    final entity = client.entityFor(networkId);
+    final bytes = entity == null ? null : world.bytesOf(entity, look);
+    return bytes == null ? null : tryReadLook(bytes);
+  }
+
+  /// What the entity with [networkId] is doing as this client sees it, or
+  /// null.
+  Anim? animOf(int networkId) {
+    final entity = client.entityFor(networkId);
+    final bytes = entity == null ? null : world.bytesOf(entity, anim);
+    return bytes == null ? null : tryReadAnim(bytes);
   }
 
   /// The tile the entity with [networkId] stands on, as this client sees it.

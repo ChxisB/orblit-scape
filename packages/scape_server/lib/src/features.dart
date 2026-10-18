@@ -4,6 +4,7 @@ import 'package:scape_core/scape_core.dart';
 
 import 'engine/registry.dart';
 import 'engine/services.dart';
+import 'features/actors/actors.dart';
 import 'features/bank/bank.dart';
 import 'features/combat/combat.dart';
 import 'features/gathering/gathering.dart';
@@ -27,6 +28,7 @@ import 'features/windows/windows.dart';
 
 /// What the rest of the server may reach into after the features register.
 typedef Features = ({
+  Actors actors,
   Combat combat,
   GroundItems ground,
   Interactions interactions,
@@ -83,6 +85,13 @@ Features registerFeatures(
     playerTiles: () => movement.tiles,
     random: random,
   );
+  final actors = Actors.register(
+    registry,
+    services,
+    movement: movement,
+    bags: bags,
+    npcs: creatures,
+  );
   final placed = WorldObjects.register(registry, services, objects: objects);
   final levels = Skills.register(registry, services, skills: skills);
   final interactions = Interactions.register(
@@ -105,6 +114,7 @@ Features registerFeatures(
     bags: bags,
     actorOf: movement.actorOf,
     random: random,
+    act: actors.play,
   );
   if (recipes != null) {
     Production.register(
@@ -119,6 +129,7 @@ Features registerFeatures(
       actorOf: movement.actorOf,
       tileOf: movement.tileOf,
       random: random,
+      act: actors.play,
     );
   }
   final prayer = prayers == null
@@ -136,6 +147,7 @@ Features registerFeatures(
     npcs: creatures,
     random: random,
     spawn: spawn,
+    act: actors.play,
     boost: prayer?.percentOf,
   );
   if (spells != null) {
@@ -207,6 +219,7 @@ Features registerFeatures(
     windows: windows,
   );
   return (
+    actors: actors,
     combat: fights,
     ground: ground,
     interactions: interactions,

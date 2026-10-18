@@ -118,9 +118,27 @@ final class GameSession {
       kind: ComponentKind.int32,
       arity: healthInts,
     );
+    _look = _world.registerComponent(
+      lookName,
+      kind: ComponentKind.int32,
+      arity: lookInts,
+    );
+    _anim = _world.registerComponent(
+      animName,
+      kind: ComponentKind.int32,
+      arity: animInts,
+    );
     _client = NetClient(
       world: _world,
-      set: ReplicationSet([_position, _ground, _object, _npc, _health]),
+      set: ReplicationSet([
+        _position,
+        _ground,
+        _object,
+        _npc,
+        _health,
+        _look,
+        _anim,
+      ]),
       networkId: networkId,
       transport: transport,
       interpolationDelay: interpolationDelay,
@@ -164,6 +182,8 @@ final class GameSession {
   late final ComponentType _object;
   late final ComponentType _npc;
   late final ComponentType _health;
+  late final ComponentType _look;
+  late final ComponentType _anim;
   late final NetClient _client;
   final List<String> _notices = [];
   final List<Heard> _whispers = [];
@@ -257,6 +277,22 @@ final class GameSession {
       now: data.getInt32(0, Endian.little),
       max: data.getInt32(4, Endian.little),
     );
+  }
+
+  /// How the actor [networkId] names looks, or null for one that is not in
+  /// view or is not a player.
+  Look? lookOf(int networkId) {
+    final entity = _client.entityFor(networkId);
+    final bytes = entity == null ? null : _world.bytesOf(entity, _look);
+    return bytes == null ? null : tryReadLook(bytes);
+  }
+
+  /// What the actor [networkId] names is doing, or null for one that is not in
+  /// view.
+  Anim? animOf(int networkId) {
+    final entity = _client.entityFor(networkId);
+    final bytes = entity == null ? null : _world.bytesOf(entity, _anim);
+    return bytes == null ? null : tryReadAnim(bytes);
   }
 
   /// Private messages received, oldest first.

@@ -15,6 +15,9 @@ typedef PlayerTiles = Iterable<TileCoord> Function();
 /// The chance each tick that a creature with nothing to do sets off.
 const double wanderChance = 0.1;
 
+/// Ticks a creature that died stays in view, so its death can be shown.
+const int deathTicks = 3;
+
 /// A creature standing in the world.
 final class PlacedNpc {
   PlacedNpc._({required this.def, required this.home, required this.radius})
@@ -51,6 +54,9 @@ final class PlacedNpc {
 
   /// Whether it is dead and waiting to stand again.
   bool get isDead => _respawnAt != null;
+
+  /// How many tiles it entered on the last creature phase.
+  int get stepsLastTick => _mover.stepsLastTick.length;
 
   /// Whether it is following a player.
   bool get isHunting => _hunting;
@@ -123,6 +129,7 @@ final class Npcs {
   final ComponentType _npc;
   final List<PlacedNpc> _all = [];
   final Map<int, PlacedNpc> _standing = {};
+  final List<({int entity, int until})> _dying = [];
   final List<void Function(PlacedNpc)> _standHandlers = [];
 
   /// How many creatures are placed, dead ones included.
@@ -140,13 +147,17 @@ final class Npcs {
       _standHandlers.add(handler);
 
   /// Takes [npc] out of the world until its respawn time has passed and a
-  /// player is near. Does nothing for a creature already dead.
+  /// player is near. It stays in view for [deathTicks], or until it would
+  /// stand again if that is sooner, and nothing can act on it meanwhile.
+  /// Does nothing for a creature already dead.
   void kill(PlacedNpc npc) {
     if (npc.isDead) return;
-    _services.hosting.despawn(npc.entity);
     _standing.remove(npc.networkId);
+    final tick = _actions.tick;
+    final respawnAt = tick + (npc.def.fight?.respawnTicks ?? 1);
+    _dying.add((entity: npc.entity, until: min(tick + deathTicks, respawnAt)));
     npc
-      .._respawnAt = _actions.tick + (npc.def.fight?.respawnTicks ?? 1)
+      .._respawnAt = respawnAt
       .._engaged = false
       .._hunting = false;
   }
@@ -192,6 +203,7 @@ final class Npcs {
   }
 
   void _step() {
+    _clearDead();
     final players = _playerTiles().toList();
     for (final npc in _all) {
       if (npc.isDead) {
@@ -204,6 +216,14 @@ final class Npcs {
         _move(npc, players);
       }
     }
+  }
+
+  void _clearDead() {
+    final tick = _actions.tick;
+    for (final dead in _dying.where((dying) => dying.until <= tick)) {
+      _services.hosting.despawn(dead.entity);
+    }
+    _dying.removeWhere((dying) => dying.until <= tick);
   }
 
   bool _isActive(PlacedNpc npc) =>

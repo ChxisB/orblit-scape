@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:orblit_core/orblit_core.dart';
 import 'package:scape_core/scape_core.dart';
 
+import '../../engine/act.dart';
 import '../../engine/action.dart';
 import '../../engine/phase.dart';
 import '../../engine/registry.dart';
@@ -84,6 +85,7 @@ final class Combat {
     required TileCoord spawn,
     required ComponentType health,
     required Boost boost,
+    required Act act,
   }) : _rules = rules,
        _skills = skills,
        _items = items,
@@ -93,7 +95,8 @@ final class Combat {
        _random = random,
        _spawn = spawn,
        _health = health,
-       _boost = boost;
+       _boost = boost,
+       _act = act;
 
   /// Adds combat to [registry] and returns the feature, so loot can listen
   /// for a kill.
@@ -109,6 +112,7 @@ final class Combat {
     required Npcs npcs,
     required Random random,
     required TileCoord spawn,
+    required Act act,
     Boost? boost,
   }) {
     // These throw at startup when the rules name a skill that is not there.
@@ -134,6 +138,7 @@ final class Combat {
       spawn: spawn,
       health: health,
       boost: boost ?? _noBoost,
+      act: act,
     );
     interactions.addNpcAction(
       NpcOption.attack,
@@ -162,6 +167,7 @@ final class Combat {
   final TileCoord _spawn;
   final ComponentType _health;
   final Boost _boost;
+  final Act _act;
   final Map<String, _Fighter> _players = {};
   final Map<PlacedNpc, _Fighter> _creatures = {};
   final Map<PlacedNpc, String> _opponent = {};
@@ -257,7 +263,10 @@ final class Combat {
         _carry(player, to);
     }
     fighter.readyAt = _tick + spell.speed;
-    if (spell.effect is! SpellTeleport) fighter.lastFight = _tick;
+    if (spell.effect is! SpellTeleport) {
+      fighter.lastFight = _tick;
+      _act(_movement.actorOf(player)!, ActorState.attack); // they are casting
+    }
   }
 
   void _hurt(String player, PlacedNpc npc, int most, int level) {
@@ -350,6 +359,10 @@ final class Combat {
     fighter
       ..readyAt = _tick + gear.speed
       ..lastFight = _tick;
+    _act(
+      _movement.actorOf(player)!,
+      ActorState.attack,
+    ); // _round read their tile
     if (gear.range == null) {
       _land(player, npc, damage);
     } else {
@@ -395,7 +408,13 @@ final class Combat {
     _services.hosting.tell(player, Hit(target: npc.networkId, damage: damage));
     target.health = max(0, target.health - damage);
     _write(npc.entity, target);
+    _flinch(npc.entity, damage);
     if (target.health == 0) _defeat(player, npc);
+  }
+
+  /// A hit that took something off makes its target recoil.
+  void _flinch(int entity, int damage) {
+    if (damage > 0) _act(entity, ActorState.hurt);
   }
 
   /// Makes [player] the opponent of [npc], which then swings back if it is
@@ -422,6 +441,7 @@ final class Combat {
 
   void _defeat(String player, PlacedNpc npc) {
     final fight = npc.def.fight!;
+    _act(npc.entity, ActorState.death);
     _npcs.kill(npc);
     _opponent.remove(npc);
     _creatures.remove(npc);
@@ -554,12 +574,15 @@ final class Combat {
       ..readyAt = _tick + fight.speed
       ..lastFight = _tick;
     target.lastFight = _tick;
+    _act(npc.entity, ActorState.attack);
+    final actor = _movement.actorOf(player)!; // _beside found their tile
     _services.hosting.tell(
       player,
       Hit(target: _movement.standing(player)!.networkId, damage: damage),
     );
     target.health = max(0, target.health - damage);
-    _write(_movement.actorOf(player)!, target);
+    _write(actor, target);
+    _flinch(actor, damage);
     if (target.health == 0) _die(player, target);
   }
 

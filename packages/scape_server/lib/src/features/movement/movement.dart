@@ -73,6 +73,10 @@ final class Movement {
 
   bool isMoving(String player) => _players[player]?.mover.isMoving ?? false;
 
+  /// How many tiles [player] entered on the last movement phase.
+  int stepsLastTick(String player) =>
+      _players[player]?.mover.stepsLastTick.length ?? 0;
+
   /// Sets [player] walking along [steps], each beside the one before, or
   /// stops them when it is empty.
   void follow(String player, List<TileCoord> steps) =>

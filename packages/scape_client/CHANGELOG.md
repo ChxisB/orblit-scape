@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.0
+
+- `GameSession.lookOf` and `animOf` give how an actor looks and what it is
+  doing. The session lists `Look` and `Anim` in its replication set, which
+  a server from `scape_server` 0.19.0 sends.
+- `ActorAnimator` turns an actor's `Anim` into a pose for each frame. An act
+  plays once from the frame its count changes. An actor seen for the first
+  time shows a death but does not replay an act that is over.
+- `scape_content` is a dependency, for `Pose`.
+
 ## 0.15.0
 
 - `GameSession.moveItem` sends a drag. The slots change when the server

@@ -1,6 +1,7 @@
 /// The client package of orblit-scape.
 library;
 
+export 'src/animator.dart' show ActorAnimator;
 export 'src/menu.dart' show MenuEntry, Menus;
 export 'src/minimap.dart' show Dot, DotKind, minimapDots;
 export 'src/orbit_view.dart'
@@ -24,4 +25,4 @@ export 'src/session.dart'
 export 'src/tile_pick.dart' show pickTile, standingPoint;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeClientVersion = '0.15.0';
+const scapeClientVersion = '0.16.0';
