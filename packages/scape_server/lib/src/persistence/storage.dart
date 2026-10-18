@@ -10,14 +10,29 @@ import '../accounts/password_hasher.dart';
 /// identity, which suits a test or a private game. With one, a login names an
 /// account and gives its password.
 final class Storage {
-  Storage({required this.queue, this.hasher, Random? salt, AutoSave? autosave})
-    : salt = salt ?? Random.secure(),
-      autosave =
-          autosave ??
-          AutoSave(perTick: 100, every: 500, jitter: 100, random: Random());
+  Storage({
+    required this.queue,
+    this.hasher,
+    this.history,
+    DateTime Function()? now,
+    Random? salt,
+    AutoSave? autosave,
+  }) : now = now ?? DateTime.now,
+       salt = salt ?? Random.secure(),
+       autosave =
+           autosave ??
+           AutoSave(perTick: 100, every: 500, jitter: 100, random: Random());
 
   final SaveQueue queue;
   final PasswordHasher? hasher;
+
+  /// The store the queue writes through, when it keeps a history. A rollback
+  /// reads old saves from it. Without one there is no rollback.
+  final HistoryStore? history;
+
+  /// The wall clock, for when a mute or ban ends. Give the queue the same
+  /// clock, so a save and a rollback agree on the time.
+  final DateTime Function() now;
 
   /// The dice for an account's salt.
   final Random salt;

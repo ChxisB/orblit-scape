@@ -15,3 +15,7 @@ String tradeKeyOf(String a, String b) {
   final names = [a, b].map((n) => n.replaceAll(' ', '.')).toList()..sort();
   return 't-${names[0].length}-${names[0]}-${names[1]}';
 }
+
+/// The store key of the mutes and bans. One record holds them all, and the
+/// `l-` prefix keeps it from a save, an account or a trade journal.
+const String ledgerKey = 'l-sanctions';

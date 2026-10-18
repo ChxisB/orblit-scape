@@ -15,6 +15,7 @@ export 'src/engine/registry.dart' show IntentHandler, Registry;
 export 'src/engine/services.dart' show Hosting, Services;
 export 'src/engine/tick_loop.dart' show ClockPacer, Pacer, TickLoop;
 export 'src/features/actors/actors.dart' show Actors;
+export 'src/features/admin/admin.dart' show Role;
 export 'src/features/combat/combat.dart' show Boost, Combat, KillHandler;
 export 'src/features/gathering/gathering.dart' show gatherTicks;
 export 'src/features/interactions/interactions.dart'
@@ -46,10 +47,10 @@ export 'src/features/skills/skills.dart' show Skills;
 export 'src/features/social/social.dart' show Social, chatRadius;
 export 'src/features/talk/talk.dart' show Talk;
 export 'src/inbox.dart' show Inbox, PlayerIntent;
-export 'src/persistence/keys.dart' show accountKeyOf, saveKeyOf;
+export 'src/persistence/keys.dart' show accountKeyOf, ledgerKey, saveKeyOf;
 export 'src/persistence/storage.dart' show Storage;
 export 'src/server.dart' show ScapeServer;
 export 'src/wire.dart' show Wire, WireLink;
 
 /// The version in `pubspec.yaml`. A test keeps the two equal.
-const scapeServerVersion = '0.19.0';
+const scapeServerVersion = '0.20.0';

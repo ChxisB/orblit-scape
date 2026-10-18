@@ -11,6 +11,10 @@ abstract interface class Hosting {
   void despawn(int entity);
 
   void tell(String player, ServerMessage message);
+
+  /// Ends the session of [player] at once, as if they had logged out. Their
+  /// save is written as for any leave. Completes when the session is gone.
+  Future<void> kick(String player);
 }
 
 /// The parts of the server a feature may use while it registers.

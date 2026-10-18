@@ -45,7 +45,12 @@ final class Social {
   final Standing _standing;
   final Set<String> _online = {};
   final Set<String> _muted = {};
+  String? _reserved;
   final Map<String, _Lists> _lists = {};
+
+  /// Chat lines that start with [marker] are not said, so a feature can read
+  /// them as commands.
+  void reserve(String marker) => _reserved = marker;
 
   void mute(String player) => _muted.add(nameKey(player));
 
@@ -85,7 +90,7 @@ final class Social {
   void _onIntent(String player, Intent intent) {
     if (!_online.contains(player)) return;
     switch (intent) {
-      case Chat(:final text):
+      case Chat(:final text) when !_isReserved(text):
         _say(player, text);
       case Whisper(:final to, :final text):
         _whisper(player, to, text);
@@ -94,6 +99,11 @@ final class Social {
       case _:
         return;
     }
+  }
+
+  bool _isReserved(String text) {
+    final marker = _reserved;
+    return marker != null && text.startsWith(marker);
   }
 
   void _say(String player, String text) {

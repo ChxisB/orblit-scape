@@ -326,6 +326,9 @@ final class _Recorder implements Hosting {
   @override
   void tell(String player, ServerMessage message) =>
       (told[player] ??= []).add(message);
+
+  @override
+  Future<void> kick(String player) async {}
 }
 
 void planeTests() {

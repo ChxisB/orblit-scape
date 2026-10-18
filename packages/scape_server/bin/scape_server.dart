@@ -17,13 +17,28 @@ TileMap _openWorld() {
   return map;
 }
 
+/// The roles in `SCAPE_ADMINS`, written `ana=admin,bo=moderator`. Anything
+/// else stops the server, so a typo never leaves a role unset.
+Map<String, Role> _rolesOf(String? text) {
+  final roles = <String, Role>{};
+  for (final pair in (text ?? '').split(',').where((p) => p.isNotEmpty)) {
+    final parts = pair.split('=');
+    final role = parts.length == 2 ? Role.values.asNameMap()[parts[1]] : null;
+    if (role == null) throw FormatException('SCAPE_ADMINS has "$pair"');
+    roles[parts[0]] = role;
+  }
+  return roles;
+}
+
 /// `scape_server [port] [address] [saves]`. It listens on the local machine
 /// only unless an address says otherwise, and keeps players in the `saves`
-/// folder, `scape-saves` by default.
+/// folder, `scape-saves` by default. `SCAPE_ADMINS` names who may run
+/// commands.
 Future<void> main(List<String> args) async {
   final clock = TickClock(period: tickPeriod);
+  final history = HistoryStore.files(args.length > 2 ? args[2] : 'scape-saves');
   final queue = SaveQueue.spawn(
-    HistoryStore.files(args.length > 2 ? args[2] : 'scape-saves'),
+    history,
     clock: DateTime.now,
     onFailure: (key, error) => stderr.writeln('Save of $key failed: $error'),
   );
@@ -44,7 +59,12 @@ Future<void> main(List<String> args) async {
     recipes: defaultRecipes,
     spells: defaultSpells,
     prayers: defaultPrayers,
-    storage: Storage(queue: queue, hasher: const Argon2idHasher()),
+    storage: Storage(
+      queue: queue,
+      hasher: const Argon2idHasher(),
+      history: history,
+    ),
+    roles: _rolesOf(Platform.environment['SCAPE_ADMINS']),
   );
   final sockets = await server.listen(
     port: args.isEmpty ? 7600 : int.parse(args.first),

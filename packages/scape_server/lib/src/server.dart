@@ -12,6 +12,9 @@ import 'engine/services.dart';
 import 'engine/summary_text.dart';
 import 'engine/tick_loop.dart';
 import 'features.dart';
+import 'features/admin/admin.dart';
+import 'features/admin/ledger.dart';
+import 'features/admin/rollback.dart';
 import 'features/interactions/interactions.dart';
 import 'features/items/ground.dart';
 import 'features/items/items.dart';
@@ -77,6 +80,9 @@ final class _HostBridge implements WireLink, Hosting {
   @override
   void tell(String player, ServerMessage message) =>
       send(player, encodeServerMessage(message));
+
+  @override
+  Future<void> kick(String player) => host.removeClient(player);
 }
 
 /// The world, the host and the loop, wired together.
@@ -99,8 +105,16 @@ final class ScapeServer {
     SpellSet? spells,
     PrayerSet? prayers,
     Storage? storage,
+    Map<String, Role> roles = const {},
     Random? random,
   }) {
+    if (roles.isNotEmpty && storage?.hasher == null) {
+      throw ArgumentError.value(
+        roles,
+        'roles',
+        'need accounts, since a name proves nothing without a password',
+      );
+    }
     final networkId = world.registerComponent(
       'NetworkId',
       kind: ComponentKind.int64,
@@ -114,9 +128,15 @@ final class ScapeServer {
       clock: () => tickPeriod * registry.actions.tick,
     );
     registry.addSystem(Phase.inbound, _deliverIntents);
+    final services = Services(
+      world: world,
+      map: map,
+      hosting: bridge,
+      active: active,
+    );
     final features = registerFeatures(
       registry,
-      Services(world: world, map: map, hosting: bridge, active: active),
+      services,
       spawn: spawn,
       skills: skills,
       items: items,
@@ -145,6 +165,29 @@ final class ScapeServer {
     interactions = features.interactions;
     quests = features.quests;
     this.prayers = features.prayers;
+    final ledger = storage == null
+        ? null
+        : Ledger(queue: storage.queue, now: storage.now);
+    if (storage != null && ledger != null) {
+      Admin.register(
+        registry,
+        services,
+        roles: {
+          for (final MapEntry(:key, :value) in roles.entries)
+            nameKey(key): value,
+        },
+        ledger: ledger,
+        social: features.social,
+        movement: features.movement,
+        skills: features.skills,
+        skillSet: skills,
+        bags: features.items,
+        items: items,
+        rollback: _rollbackOf(storage, ledger, bridge),
+        stop: () => loop.stop(),
+        log: log,
+      );
+    }
     final saves = storage == null
         ? null
         : Saves(
@@ -173,7 +216,7 @@ final class ScapeServer {
       link: bridge,
       inbox: inbox,
       log: log,
-      gate: saves == null ? null : _entranceOf(storage!, saves).check,
+      gate: saves == null ? null : _entranceOf(storage!, saves, ledger).check,
     );
     final set = ReplicationSet(registry.replicated);
     final nearby = GridInterest(
@@ -268,8 +311,28 @@ final class ScapeServer {
   }
 }
 
-Entrance _entranceOf(Storage storage, Saves saves) => Entrance(
+/// The rollback an admin command runs, or null when the store keeps no
+/// history to roll back to.
+Future<String> Function(String player, int minutes)? _rollbackOf(
+  Storage storage,
+  Ledger ledger,
+  _HostBridge bridge,
+) {
+  final history = storage.history;
+  if (history == null) return null;
+  return Rollback(
+    history: history,
+    queue: storage.queue,
+    ledger: ledger,
+    logOut: bridge.kick,
+    isOnline: (player) => bridge.host.sessionState(player) != null,
+    now: storage.now,
+  ).run;
+}
+
+Entrance _entranceOf(Storage storage, Saves saves, Ledger? ledger) => Entrance(
   saves: saves,
+  ledger: ledger,
   accounts: switch (storage.hasher) {
     final hasher? => Accounts(
       queue: storage.queue,

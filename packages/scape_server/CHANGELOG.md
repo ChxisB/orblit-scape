@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.20.0
+
+- Added `Role` and the `roles` option of `ScapeServer`. A name that holds a
+  role may type commands that start with `/`: kick, mute, unmute, ban, unban,
+  teleport, give, skill, broadcast, shutdown, cancelshutdown and rollback.
+  Roles need accounts.
+- Mutes and bans are kept in one saved record under `ledgerKey`, so they hold
+  across a restart. A ban refuses the login with `LoginRefusal.banned`.
+- `/rollback` logs the player out, puts their save back from the history and
+  locks them out of login while it runs.
+- Every command writes one `Admin:` log line.
+- `Hosting` gains `kick`. Anything that implements `Hosting` must add it.
+- `Storage` takes a `now` clock.
+- `Social.reserve` keeps chat lines that start with a marker from being said.
+- The server binary reads `SCAPE_ADMINS`, for example `ana=admin,bo=moderator`,
+  and keeps a save history on disk.
+
 ## 0.19.0
 
 - `Actors` adds two replicated components. `Look` holds a player's three
