@@ -223,7 +223,7 @@ void main() {
       await settle(tester, 6);
       expect(find.text('Bank'), findsOneWidget);
 
-      controller.handle('slot:inventory:0');
+      await tester.tap(find.text('Feathers x8'));
       await settle(tester, 3);
       expect(ana.itemAt(ContainerId.bank, 0), ItemStack(ItemId.feathers, 1));
 
@@ -249,12 +249,61 @@ void main() {
       await settle(tester);
       expect(find.text('Trading with bo'), findsOneWidget);
 
-      controller.handle('slot:inventory:0');
+      await tester.tap(find.text('Logs').first);
       await settle(tester, 3);
-      controller.handle('slot:inventory:0');
+      await tester.tap(find.text('Logs').first);
       await settle(tester, 3);
 
       expect(ana.playerTrade!.mine, [ItemStack(ItemId.logs, 2)]);
+    });
+  });
+
+  group('a long bank', () {
+    testWidgets('scrolls and keeps the inventory in reach on a phone', (
+      tester,
+    ) async {
+      final vault = game.server.items.container('ana', ContainerId.bank)!;
+      vault.add(ItemId.bronzeAxe, 40, tab: 0);
+      final booth = game.server.objects.place(
+        ObjectId.bankBooth,
+        TileCoord(33, 32, 0),
+      );
+      await show(tester, width: 360);
+      await settle(tester, 2);
+      ana.useObject(booth.networkId, 0);
+      await settle(tester, 6);
+
+      expect(find.byType(Scrollable), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
+  group('a tap', () {
+    testWidgets('does not redraw for the same hover text', (tester) async {
+      var draws = 0;
+      controller.addListener(() => draws++);
+
+      controller
+        ..hover('Take Logs')
+        ..hover('Take Logs');
+
+      expect(draws, 1);
+    });
+
+    testWidgets('puts a picked stack down when the server empties its slot', (
+      tester,
+    ) async {
+      bag().add(ItemId.logs, 1);
+      await show(tester);
+      await settle(tester, 2);
+      await tester.tap(find.text('Logs'));
+      await tester.pump();
+      expect(controller.state.picked, isNotNull);
+
+      bag().take(0);
+      await settle(tester);
+
+      expect(controller.state.picked, isNull);
     });
   });
 

@@ -10,6 +10,11 @@ const int _chatLines = 6;
 /// How many tiles the minimap shows each way, and how many pixels it is wide.
 const int _mapRadius = 16;
 const double _mapSize = 100;
+const double _dot = 4;
+
+/// The corner a dot of [_dot] pixels is drawn from to sit centred on [at] and
+/// stay inside the map.
+double _corner(double at) => (at - _dot / 2).clamp(0, _mapSize - _dot);
 
 UiNode _text(String text, [String classes = '']) =>
     UiNode(type: 'text', text: text, classes: classes);
@@ -67,7 +72,9 @@ final class Panels {
     const scale = _mapSize / (_mapRadius * 2);
     UiNode dot(double x, double y, String colour) => UiNode(
       type: 'box',
-      classes: 'left-[$x] top-[$y] w-[4] h-[4] bg-[$colour]',
+      classes:
+          'left-[${_corner(x)}] top-[${_corner(y)}] w-[$_dot] h-[$_dot] '
+          'bg-[$colour]',
     );
     return UiNode(
       type: 'stack',
@@ -90,8 +97,18 @@ final class Panels {
   UiNode _side(PanelState state) => UiNode(
     type: 'column',
     classes: 'gap-1 p-2 w-full md:w-[320] bg-slate-800',
-    children: [_tabs(state), _window() ?? _body(state), _chat(state)],
+    children: [
+      _tabs(state),
+      _window() ?? _body(state),
+      if (_takesInventoryTaps) _grid(ContainerId.inventory, state),
+      _chat(state),
+    ],
   );
+
+  /// A bank and a trade are fed by taps on the inventory, so it stays on
+  /// screen under their window.
+  bool get _takesInventoryTaps =>
+      session.bankOpen || session.playerTrade != null;
 
   UiNode _tabs(PanelState state) => _row([
     for (final tab in SideTab.values)
@@ -132,9 +149,12 @@ final class Panels {
   }
 
   String _label(ItemStack stack) {
-    final name = items.require(stack.item).name;
+    final name = _name(stack.item);
     return stack.count > 1 ? '$name x${stack.count}' : name;
   }
+
+  /// A client with older content can be sent an item it has no name for.
+  String _name(int item) => items.find(item)?.name ?? 'Item $item';
 
   UiNode _gear(PanelState state) => _column([
     for (final (slot, name) in equipmentSlots.indexed)
@@ -192,7 +212,7 @@ final class Panels {
           ),
       ]),
       for (final line in lines.skip(
-        lines.length - _chatLines.clamp(0, lines.length),
+        (lines.length - _chatLines).clamp(0, lines.length),
       ))
         _text(line, 'text-xs'),
     ], 'p-1 rounded bg-slate-900');
@@ -228,19 +248,22 @@ final class Panels {
   UiNode _shop(ShopView shop) => _column([
     _text('Shop', 'font-bold'),
     for (final (:item, :count) in shop.lines)
-      _button(
-        '${items.require(item).name} ($count left)',
-        'buy:$item',
-        'text-left',
-      ),
+      _button('${_name(item)} ($count left)', 'buy:$item', 'text-left'),
   ]);
 
   // shortcut: the first bank tab only, add a tab strip when a bank needs it.
   UiNode _bank() => _column([
     _text('Bank', 'font-bold'),
-    for (var slot = 0; slot < bankTabSize; slot++)
-      if (session.itemAt(ContainerId.bank, slot) case final stack?)
-        _button(_label(stack), 'withdraw:$slot', 'text-left'),
+    UiNode(
+      type: 'column',
+      classes: 'gap-1 h-[120]',
+      css: 'overflow-y: auto',
+      children: [
+        for (var slot = 0; slot < bankTabSize; slot++)
+          if (session.itemAt(ContainerId.bank, slot) case final stack?)
+            _button(_label(stack), 'withdraw:$slot', 'text-left'),
+      ],
+    ),
   ]);
 
   UiNode _line(ConversationLine line) => _column([
