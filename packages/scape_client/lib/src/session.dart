@@ -58,6 +58,16 @@ typedef Health = ({int now, int max});
 /// A private message from the player called [from].
 typedef Heard = ({String from, String text});
 
+/// A line of public chat, as the listener heard it.
+typedef Spoken = ({int speaker, String text});
+
+/// The tabs of the chat box. Game is what the server tells the player, public
+/// is what players near them said, and private is whispers.
+enum ChatTab { game, public, private }
+
+/// A quest the player has begun, with the text for the stage they are in.
+typedef JournalEntry = ({String title, String text, bool done});
+
 /// The client's side of one login: what it sends, what it has been told and
 /// the actors it can see. It holds no rules and draws what it is sent.
 final class GameSession {
@@ -65,10 +75,14 @@ final class GameSession {
     required Transport transport,
     required SkillSet skills,
     required ItemSet items,
+    Story? story,
     double Function()? clock,
   }) : _transport = transport,
        _skills = skills,
        _items = items,
+       _quests = story == null
+           ? null
+           : (story: story, table: ProgressTable(story.schema)),
        _skillXp = ProgressTable(skills.schema),
        _containers = {
          for (final id in ContainerId.values) id: Container.forId(id, items),
@@ -122,11 +136,13 @@ final class GameSession {
     Uri url, {
     required SkillSet skills,
     required ItemSet items,
+    Story? story,
     double Function()? clock,
   }) async => GameSession(
     transport: await SocketTransport.connect(url),
     skills: skills,
     items: items,
+    story: story,
     clock: clock,
   );
 
@@ -140,6 +156,7 @@ final class GameSession {
   final ItemSet _items;
   final Map<ContainerId, Container> _containers;
   ProgressTable _skillXp;
+  ({Story story, ProgressTable table})? _quests;
   final double Function() _now;
   final World _world;
   late final ComponentType _position;
@@ -150,6 +167,7 @@ final class GameSession {
   late final NetClient _client;
   final List<String> _notices = [];
   final List<Heard> _whispers = [];
+  final List<Spoken> _said = [];
   final List<Splat> _splats = [];
   final List<Shot> _shots = [];
   final Map<int, ({String text, double until})> _bubbles = {};
@@ -193,6 +211,34 @@ final class GameSession {
   List<String> choices = const [];
 
   List<String> get notices => List.unmodifiable(_notices);
+
+  /// The lines of [tab], oldest first, as the chat box shows them. The server
+  /// sends no names with public chat, so a line reads "You" or "Someone".
+  List<String> chat(ChatTab tab) => switch (tab) {
+    ChatTab.game => notices,
+    ChatTab.private => [for (final (:from, :text) in _whispers) '$from: $text'],
+    ChatTab.public => [
+      for (final (:speaker, :text) in _said)
+        '${speaker == avatar ? 'You' : 'Someone'}: $text',
+    ],
+  };
+
+  /// The quests the player has begun, with the text for the stage they are in.
+  /// Empty when the session was made without a story.
+  List<JournalEntry> get journal {
+    final held = _quests;
+    if (held == null) return const [];
+    final book = held.story.book;
+    return [
+      for (final quest in book.quests)
+        if (book.isStarted(held.table, quest.key))
+          (
+            title: quest.title,
+            text: book.journal(held.table, quest.key),
+            done: book.isComplete(held.table, quest.key),
+          ),
+    ];
+  }
 
   /// Swings that landed or missed, oldest first.
   List<Splat> get splats => List.unmodifiable(_splats);
@@ -339,6 +385,16 @@ final class GameSession {
     Interact(kind: InteractKind.useOnItem, id: onSlot, option: slot),
   );
 
+  /// Drags the stack in [fromSlot] of [from] onto [toSlot] of [to]. Nothing
+  /// changes here. The slots change when the server sends them, so a move it
+  /// refuses leaves the panel as it was.
+  void moveItem(ContainerId from, int fromSlot, ContainerId to, int toSlot) =>
+      _client.sendMessage(
+        encodeClientMessage(
+          MoveItem(from: from, fromSlot: fromSlot, to: to, toSlot: toSlot),
+        ),
+      );
+
   void _interact(Interact click) =>
       _client.sendMessage(encodeClientMessage(click));
 
@@ -460,6 +516,7 @@ final class GameSession {
           _keep(_notices, text);
         case Said(:final speaker, :final text):
           _bubbles[speaker] = (text: text, until: _now() + bubbleSeconds);
+          _keep(_said, (speaker: speaker, text: text));
         case Hit(:final target, :final damage):
           _keep(_splats, (target: target, damage: damage));
         case Projectile(:final from, :final to, :final ticks, :final style):
@@ -508,10 +565,21 @@ final class GameSession {
       case skillsDeltaTag:
         final changes = Changes.tryDecode(_skills.schema, delta.sublist(1));
         if (changes != null) _skillXp = _skillXp.apply(changes);
+      case questsDeltaTag:
+        _applyQuests(delta.sublist(1));
       case itemsDeltaTag:
         if (tryDecodeSlots(delta, _items) case final slots?) {
           _containers[slots.container]!.mirror(slots.changes);
         }
+    }
+  }
+
+  void _applyQuests(Uint8List bytes) {
+    final held = _quests;
+    if (held == null) return;
+    final changes = Changes.tryDecode(held.story.schema, bytes);
+    if (changes != null) {
+      _quests = (story: held.story, table: held.table.apply(changes));
     }
   }
 

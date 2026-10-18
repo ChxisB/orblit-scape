@@ -38,6 +38,7 @@ TileMap openWorld() {
       map.addRegion(FlagRegion.open(RegionKey(x, y, 0)));
     }
   }
+  map.addRegion(FlagRegion.open(RegionKey(0, 0, 1)));
   return map;
 }
 
@@ -80,6 +81,7 @@ final class InProcessGame {
       transport: link.client,
       skills: defaultSkills,
       items: defaultItems,
+      story: defaultStory,
       clock: () => seconds,
     );
     _sessions.add(session);

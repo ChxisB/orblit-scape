@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.0
+
+- `GameSession.moveItem` sends a drag. The slots change when the server
+  sends them, so a refused drag leaves the panel as it was.
+- `chat` gives the lines of the game, public and private tabs. `journal`
+  lists the quests begun and the text for each stage. It needs the `story`
+  the game was made with.
+- `Menus` gives the right-click entries for a creature, object, ground item
+  or player. `minimapDots` gives the players and creatures near the player.
+
 ## 0.14.0
 
 - `GameSession.cast` and `togglePrayer` send the intents. `shots` holds the
