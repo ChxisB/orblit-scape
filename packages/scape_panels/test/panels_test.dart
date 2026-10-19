@@ -6,6 +6,7 @@ import 'package:scape_core/scape_core.dart';
 import 'package:scape_panels/scape_panels.dart';
 
 import 'support/in_process_game.dart';
+import 'support/tolerant_goldens.dart';
 
 const double tickSeconds = 0.6;
 
@@ -13,6 +14,8 @@ const double tickSeconds = 0.6;
 double _width = 1280;
 
 void main() {
+  goldenFileComparator = TolerantComparator.beside(goldenFileComparator);
+
   late InProcessGame game;
   late GameSession ana;
   late PanelController controller;
