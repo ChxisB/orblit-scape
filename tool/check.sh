@@ -43,7 +43,7 @@ for package in "${PACKAGES[@]}"; do
       | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/^[0-9:]* //')
     echo "  ok    $summary"
   else
-    echo "  FAIL  tests"; tail -25 /tmp/orblit_scape_test.log; failures=$((failures+1))
+    echo "  FAIL  tests"; grep -iE "pixel|golden|differ|%|Expected|Actual" /tmp/orblit_scape_test.log | head -30; tail -25 /tmp/orblit_scape_test.log; failures=$((failures+1))
   fi
 
   if (cd "$package" && dart format --output=none --set-exit-if-changed lib test > /dev/null 2>&1); then
