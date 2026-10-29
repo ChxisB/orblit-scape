@@ -324,7 +324,7 @@ internal sealed partial class Admin
     private Done Shutdown(Call call)
     {
         var seconds = call.Number(min: 1);
-        var ticks = (long)Math.Ceiling(seconds * 1000 / GameTick.Period.TotalMilliseconds);
+        var ticks = (long)Math.Ceiling(TimeSpan.FromSeconds(seconds) / GameTick.Period);
         _stopAt = _registry.Actions.Tick + ticks;
         _warned = seconds;
         Announce($"The server shuts down in {Seconds(seconds)}.");

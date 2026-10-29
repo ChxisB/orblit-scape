@@ -112,12 +112,16 @@ internal sealed class Ledger(SaveQueue queue, Func<DateTimeOffset> now)
         }
     }
 
-    /// <summary>Keeps <paramref name="player"/> from logging in until <see cref="Unlock"/>.</summary>
-    public void Lock(string player)
+    /// <summary>
+    /// Keeps <paramref name="player"/> from logging in until <see cref="Unlock"/>. False when they
+    /// were locked already.
+    /// </summary>
+    // F5: the check and the lock are one step, or two rollbacks could both take it.
+    public bool Lock(string player)
     {
         lock (_gate)
         {
-            _locked.Add(player);
+            return _locked.Add(player);
         }
     }
 

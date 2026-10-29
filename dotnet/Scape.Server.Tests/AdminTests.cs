@@ -449,6 +449,18 @@ public sealed class AdminTests : IAsyncDisposable
     }
 
     [Fact]
+    public async Task ShutdownOfTheLongestTimeDoesNotStopAtOnce()
+    {
+        var test = Start();
+        var who = await CrowdAsync(test, ["Ana"]);
+        await SayAsync(test, who["Ana"], "/shutdown 1073741824");
+
+        _pacer.Allowed = 20;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(test.Server.Loop.RunAsync);
+    }
+
+    [Fact]
     public async Task ShutdownDoesNotStopOnceItIsCancelled()
     {
         var test = Start();

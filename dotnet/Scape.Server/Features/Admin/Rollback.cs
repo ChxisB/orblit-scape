@@ -37,12 +37,11 @@ internal sealed class Rollback(RollbackOptions options)
     // race another rollback.
     public async Task<string> RunAsync(string player, int minutes)
     {
-        if (options.Ledger.IsLocked(player))
+        if (!options.Ledger.Lock(player))
         {
             return $"A rollback of {player} is already running.";
         }
 
-        options.Ledger.Lock(player);
         try
         {
             return await RestoreAsync(player, minutes);
