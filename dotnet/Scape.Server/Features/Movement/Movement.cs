@@ -47,8 +47,54 @@ public sealed class Movement
         return movement;
     }
 
+    /// <summary>The key of each player in the world.</summary>
+    public IEnumerable<string> Players => _players.Keys;
+
+    /// <summary>The tile each player in the world stands on.</summary>
+    public IReadOnlyList<TileCoord> Tiles => [.. _players.Values.Select(player => player.Mover.Position)];
+
+    /// <summary>The tile <paramref name="player"/> stands on, or null when they are not in the world.</summary>
+    public TileCoord? TileOf(string player) => _players.TryGetValue(player, out var found) ? found.Mover.Position : null;
+
     /// <summary>The player whose avatar has <paramref name="networkId"/>, or null.</summary>
     public string? PlayerWith(ulong networkId) => _byNetworkId.GetValueOrDefault(networkId);
+
+    /// <summary>
+    /// The key actions of <paramref name="player"/> are queued under, or null when they are not in
+    /// the world.
+    /// </summary>
+    public ulong? ActorOf(string player) => _players.TryGetValue(player, out var found) ? found.Entity : null;
+
+    public bool IsMoving(string player) => _players.TryGetValue(player, out var found) && found.Mover.IsMoving;
+
+    /// <summary>How many tiles <paramref name="player"/> entered on the last movement phase.</summary>
+    public int StepsLastTick(string player) =>
+        _players.TryGetValue(player, out var found) ? found.Mover.StepsLastTick.Count : 0;
+
+    /// <summary>
+    /// Sets <paramref name="player"/> walking along <paramref name="steps"/>, each beside the one
+    /// before, or stops them when it is empty.
+    /// </summary>
+    public void Follow(string player, IReadOnlyList<TileCoord> steps)
+    {
+        if (_players.TryGetValue(player, out var found))
+        {
+            found.Mover.SetPath(steps);
+        }
+    }
+
+    /// <summary>Puts <paramref name="player"/> on <paramref name="tile"/> with no walk between, such as up a stair.</summary>
+    public void Teleport(string player, TileCoord tile)
+    {
+        if (!_players.TryGetValue(player, out var found))
+        {
+            return;
+        }
+
+        found.Mover.ClearPath();
+        found.Mover.Position = tile;
+        Write(found.Entity, tile);
+    }
 
     /// <summary>
     /// The replicated entity and the tile of <paramref name="player"/>, or null when they are not

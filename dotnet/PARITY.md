@@ -66,3 +66,17 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_content/test/check_test.dart` | `CheckTests` | 28 | 28 | 28 | 1 | done. The added test needs three makes from the shop, so `Obtainable` must loop |
 | none, the fixture `scape_content/island.json` | `IslandParityTests` | 0 | 0 | 0 | 3: 18 region, 1 plan and 104 problems cases | added. Each region key from (0, 0, 0) to (2, 2, 1) gives its flag bytes or null. The problems cases break the island at random: a new spawn tile, flags, dropped and added placements and spawns, and dropped shop lines, recipes and dialogues. Three more are written out: the spawn tile on a solid object, stairs that land on one and on blocked dry ground, and logs and the axe gone from the shop |
 | none, the fixture `scape_server/saves.json` | none yet | 0 | 0 | 0 | 9: 7 key, 49 trade, 22 journalWrite, 20 journalRead, 8 hash, 8 create, 19 verify, 27 ledgerWrite and 29 ledgerRead cases | exported. Row 3 adds the C# test. A Dart save, account or ledger must load in the C# server. The cases cover a version of `1.0`, an `until` that must be a whole number up to 8640000000000000, base64 without padding, a byte order mark and repeated keys. The 8 hash cases match libsodium's Argon2id |
+| `scape_server/test/action_test.dart` | `ActionTests` | 14 | 14 | 14 | 0 | done |
+| `scape_server/test/registry_test.dart` | `RegistryTests` | 3 | 3 | 3 | 0 | done |
+| `scape_server/test/tick_loop_test.dart` | `TickLoopTests` | 6 | 6 | 6 | 0 | done. The phase order test also records that due actions run in the actions phase, because a mutant that moved them to the creature phase passed |
+| `scape_server/test/inbox_test.dart` | `InboxTests` | 5 | 5 | 5 | 0 | done |
+| `scape_server/test/health_test.dart` | `HealthTests` | 3 | 3 | 3 | 1 | done. The added test pins the late tick line to list the slowest phase first, because a mutant that sorted it quickest first passed |
+| `scape_server/test/wire_test.dart` | `WireTests` | 12 | 12 | 12 | 0 | done |
+| `scape_server/test/interest_test.dart` | `InterestTests` | 6 | 6 | 6 | 0 | done |
+| `scape_server/test/movement_test.dart` | `MovementTests` | 11 | 11 | 11 | 0 | done |
+| `scape_server/test/social_test.dart` | `SocialTests` | 18 | 18 | 18 | 0 | done. The Dart test for a name already on a list never ran a tick, so the port ticks |
+| `scape_server/test/items_test.dart` | `ItemsTests` | 31 | 31 | 31 | 0 | done |
+| `scape_server/test/npcs_test.dart` | `NpcsTests` | 24 | 24 | 24 | 0 | done |
+| `scape_server/test/actors_test.dart` | `ActorsTests` | 17 | 17 | 8 | 0 | partly. The nine act tests play attack, hurt, death, gather and make. Three wait on gathering and production in part 3c, and six on combat in part 3d |
+| `scape_server/test/objects_test.dart` | `ObjectsTests` | 8 | 8 | 8 | 0 | done |
+| `scape_server/test/interactions_test.dart` | `InteractionsTests` | 27 | 27 | 27 | 0 | done |

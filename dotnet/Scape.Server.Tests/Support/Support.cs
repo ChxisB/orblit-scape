@@ -37,3 +37,12 @@ internal static class OpenWorld
         return map;
     }
 }
+
+/// <summary>Dice that answer from a list, over and over.</summary>
+internal sealed class Rolls(params double[] values) : Random
+{
+    /// <summary>How many times the dice were rolled.</summary>
+    public int Drawn { get; private set; }
+
+    public override double NextDouble() => values[Drawn++ % values.Length];
+}

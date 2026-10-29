@@ -1,4 +1,5 @@
 using Orblit.Net;
+using Scape.Content;
 using Scape.Core;
 
 namespace Scape.Server.Tests;
@@ -8,7 +9,9 @@ internal sealed class TestServer : IAsyncDisposable
 {
     private readonly List<TestClient> _clients = [];
 
-    public TestServer()
+    /// <param name="npcs">The creatures, or the default content's.</param>
+    /// <param name="random">The chance creatures and drops get, or one seeded with 7.</param>
+    public TestServer(NpcSet? npcs = null, Random? random = null)
     {
         Server = new ScapeServer(new ScapeServerOptions
         {
@@ -17,6 +20,10 @@ internal sealed class TestServer : IAsyncDisposable
             Log = _ => { },
             Map = Map,
             Spawn = OpenWorld.SpawnTile,
+            Items = DefaultItems.All,
+            Objects = DefaultObjects.All,
+            Npcs = npcs ?? DefaultNpcs.All,
+            Random = random ?? new Random(7),
         });
     }
 

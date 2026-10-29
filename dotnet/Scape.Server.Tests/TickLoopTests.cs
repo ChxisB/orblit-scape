@@ -1,4 +1,5 @@
 using Orblit.Net;
+using Scape.Content;
 
 namespace Scape.Server.Tests;
 
@@ -22,6 +23,9 @@ public sealed class TickLoopTests : IDisposable
             Log = _lines.Add,
             Map = OpenWorld.Map(),
             Spawn = OpenWorld.SpawnTile,
+            Items = DefaultItems.All,
+            Objects = DefaultObjects.All,
+            Npcs = DefaultNpcs.All,
         });
         pacer.Loop = _server.Loop;
         return _server;

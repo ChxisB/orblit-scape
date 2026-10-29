@@ -16,6 +16,15 @@ public sealed record ScapeServerOptions
     public required TileMap Map { get; init; }
 
     public required TileCoord Spawn { get; init; }
+
+    public required ItemSet Items { get; init; }
+
+    public required ObjectSet Objects { get; init; }
+
+    public required NpcSet Npcs { get; init; }
+
+    /// <summary>Where creatures and drops get their chance. A test passes a seeded one.</summary>
+    public Random Random { get; init; } = new();
 }
 
 /// <summary>The world, the host and the loop, wired together.</summary>
@@ -49,9 +58,15 @@ public sealed class ScapeServer : IDisposable
         var grid = new Grid(CellTiles);
         Active = new ActiveCells(grid, ActiveRadius, GameTick.Period * ActiveHoldTicks, () => GameTick.Period * Registry.Actions.Tick);
         Registry.AddSystem(Phase.Inbound, DeliverIntents);
-        var features = Features.Register(Registry, new Services(World, options.Map, bridge, Active), options.Spawn);
+        var features = Features.Register(Registry, new Services(World, options.Map, bridge, Active), options);
         Movement = features.Movement;
         Social = features.Social;
+        Items = features.Items;
+        Ground = features.Ground;
+        Npcs = features.Npcs;
+        Actors = features.Actors;
+        Objects = features.Objects;
+        Interactions = features.Interactions;
         Wire = new ClientWire(bridge, Inbox);
         var set = new ReplicationSet(Registry.Replicated);
         var nearby = new GridInterest(set, Registry.Replicated.First(c => c.Name == TilePosition.Name), grid, InterestRing);
@@ -62,7 +77,7 @@ public sealed class ScapeServer : IDisposable
             Set = set,
             NetworkId = networkId,
             Clock = options.Clock,
-            Interest = nearby,
+            Interest = new FilteredInterest(nearby, Ground.CanSee),
             OnOverrun = summary => options.Log(SummaryText.DescribeLateTick(summary)),
             Sessions = Sessions(),
             Budget = new InboundBudget(
@@ -86,6 +101,18 @@ public sealed class ScapeServer : IDisposable
     public Movement Movement { get; }
 
     public Social Social { get; }
+
+    public Items Items { get; }
+
+    public GroundItems Ground { get; }
+
+    public Npcs Npcs { get; }
+
+    public Actors Actors { get; }
+
+    public WorldObjects Objects { get; }
+
+    public Interactions Interactions { get; }
 
     public ClientWire Wire { get; }
 

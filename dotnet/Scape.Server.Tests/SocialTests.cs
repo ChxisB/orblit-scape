@@ -342,10 +342,6 @@ file static class SocialReading
 
         public IReadOnlyList<Whispered> Whispers => [.. client.Messages.OfType<Whispered>()];
 
-        public IReadOnlyList<string> Notices => [.. client.Messages.OfType<Notice>().Select(notice => notice.Text)];
-
         public SocialLists Lists => client.Messages.OfType<SocialLists>().Last();
-
-        public long Avatar => client.Messages.OfType<Avatar>().Single().NetworkId;
     }
 }

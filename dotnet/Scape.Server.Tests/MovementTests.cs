@@ -1,4 +1,5 @@
 using Orblit.Net;
+using Scape.Content;
 using Scape.Core;
 
 namespace Scape.Server.Tests;
@@ -169,6 +170,9 @@ public sealed class MovementTests : IAsyncDisposable
             Log = _ => { },
             Map = map,
             Spawn = OpenWorld.SpawnTile,
+            Items = DefaultItems.All,
+            Objects = DefaultObjects.All,
+            Npcs = DefaultNpcs.All,
         }));
     }
 }

@@ -5,6 +5,7 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Scape.Content\Scape.Content.csproj" />
     <ProjectReference Include="..\Scape.Server\Scape.Server.csproj" />
   </ItemGroup>
 </Project>
