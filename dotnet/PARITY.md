@@ -28,11 +28,11 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_core/test/objects_test.dart` | `ObjectsTests` | 11 | 11 | 11 | 0 | done |
 | none, the fixture `scape_core/world.json` | `WorldParityTests` | 0 | 0 | 0 | 7: 120 path, 30 sight, 2 encode, 10 decode, 3 position, 3 read and 7 nearest cases | added. The path steps pin the order the search tries its neighbours in, and the decode refusals compare the reader's messages |
 | `scape_core/test/skills_test.dart` | `SkillsTests` | 9 | 9 | 9 | 0 | done |
-| `scape_core/test/combat_test.dart` | `CombatTests` | 16 | 16 | 16 | 1: a style outside the enum beats nothing | done |
+| `scape_core/test/combat_test.dart` | `CombatTests` | 16 | 16 | 16 | 2: a style outside the enum beats nothing, and a huge bonus rolls high and is not wrapped | done. A roll is a `long` where the Dart multiplies past an int |
 | `scape_core/test/items_test.dart` | `ItemsTests` | 8 | 8 | 8 | 0 | done. An int cannot hold a count above `ItemStack.MaxCount`, so that half of one test has no twin |
 | `scape_core/test/actor_test.dart` | `ActorTests` | 12 | 12 | 12 | 0 | done. The test of bad Anim bytes is a theory of 6 rows |
 | `scape_core/test/loot_test.dart` | `LootTests` | 15 | 15 | 15 | 0 | done |
-| `scape_core/test/shops_test.dart` | `ShopsTests` | 8 | 8 | 8 | 0 | done |
+| `scape_core/test/shops_test.dart` | `ShopsTests` | 8 | 8 | 8 | 1: the dearest item's price is not wrapped | done. A price is a `long` where the Dart multiplies past an int |
 | `scape_core/test/npcs_test.dart` | `NpcsTests` | 9 | 9 | 9 | 0 | done |
 | `scape_core/test/nodes_test.dart` | `NodesTests` | 7 | 7 | 7 | 0 | done |
 | `scape_core/test/recipes_test.dart` | `RecipesTests` | 17 | 17 | 17 | 0 | done |

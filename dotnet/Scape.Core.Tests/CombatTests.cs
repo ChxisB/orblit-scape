@@ -81,6 +81,16 @@ public class CombatTests
         Assert.Equal(21, Rules().MaxHit(new Rating(50, 50)));
     }
 
+    // C# only: the roll passes an int here, and wrapped it would turn the best gear into the worst.
+    [Fact]
+    public void AHugeBonusRollsHighAndIsNotWrapped()
+    {
+        var huge = new Rating(SkillDef.MaxLevel, 25_000_000);
+
+        Assert.Equal(0.95, Rules().HitChance(huge, new Rating(1, 0)));
+        Assert.Equal(10_000_026, Rules().MaxHit(huge));
+    }
+
     [Fact]
     public void WholeHealthIsTheBasePlusTheHealthLevel()
     {

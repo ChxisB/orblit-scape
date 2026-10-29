@@ -19,6 +19,16 @@ public class ShopsTests
         Assert.Equal(1, Rules.SellPrice(item));
     }
 
+    // C# only: the dearest item's price passes an int, and wrapped it would cost a coin.
+    [Fact]
+    public void TheDearestItemsPriceIsNotWrapped()
+    {
+        var item = new ItemDef(Logs, "Crown", value: int.MaxValue);
+
+        Assert.Equal(2_791_728_741, Rules.BuyPrice(item));
+        Assert.Equal(858_993_458, Rules.SellPrice(item));
+    }
+
     [Fact]
     public void AWorthlessItemStillCostsACoin()
     {

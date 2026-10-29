@@ -86,6 +86,6 @@ public sealed class Mover(TileCoord position, Walker walker = Walker.Player)
             taken.Add(next);
         }
 
-        StepsLastTick = taken;
+        StepsLastTick = taken.AsReadOnly();
     }
 }

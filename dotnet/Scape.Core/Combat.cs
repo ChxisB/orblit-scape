@@ -300,7 +300,7 @@ public sealed class CombatRules
     }
 
     /// <summary>The most one hit by <paramref name="strength"/> does.</summary>
-    public int MaxHit(Rating strength) => 1 + Roll(strength) / HitDivisor;
+    public int MaxHit(Rating strength) => Wire.Narrow(1 + Roll(strength) / HitDivisor);
 
     /// <summary>The damage of one swing: zero for a miss.</summary>
     // F2: callers name the ratings at every call, so three of one type cannot swap.
@@ -320,5 +320,6 @@ public sealed class CombatRules
         return 1 + random.Next(most);
     }
 
-    private int Roll(Rating rating) => (rating.Level + EffortBase) * (rating.Bonus + GearBase);
+    // In 64 bits, since a large gear bonus times a level passes an int.
+    private long Roll(Rating rating) => ((long)rating.Level + EffortBase) * ((long)rating.Bonus + GearBase);
 }

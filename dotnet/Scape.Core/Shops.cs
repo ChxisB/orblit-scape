@@ -29,10 +29,11 @@ public sealed class ShopRules
     public int SellPercent { get; }
 
     /// <summary>What a player pays for one <paramref name="item"/>.</summary>
-    public int BuyPrice(ItemDef item) => Math.Max(1, item.Value * BuyPercent / 100);
+    // A long, since a dear item's value times the percent passes an int.
+    public long BuyPrice(ItemDef item) => Math.Max(1, (long)item.Value * BuyPercent / 100);
 
     /// <summary>What a player is paid for one <paramref name="item"/>.</summary>
-    public int SellPrice(ItemDef item) => Math.Max(1, item.Value * SellPercent / 100);
+    public long SellPrice(ItemDef item) => Math.Max(1, (long)item.Value * SellPercent / 100);
 }
 
 /// <summary>
