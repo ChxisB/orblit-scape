@@ -9,23 +9,33 @@ internal sealed class TestServer : IAsyncDisposable
 {
     private readonly List<TestClient> _clients = [];
 
-    /// <param name="npcs">The creatures, or the default content's.</param>
-    /// <param name="random">The chance creatures and drops get, or one seeded with 7.</param>
-    public TestServer(NpcSet? npcs = null, Random? random = null)
+    /// <param name="change">Changes the default <see cref="Options"/>, such as to other creatures or dice.</param>
+    public TestServer(Func<ScapeServerOptions, ScapeServerOptions>? change = null)
     {
-        Server = new ScapeServer(new ScapeServerOptions
-        {
-            Clock = new TickClock(GameTick.Period, Time.Read),
-            Pacer = new NoPacer(),
-            Log = _ => { },
-            Map = Map,
-            Spawn = OpenWorld.SpawnTile,
-            Items = DefaultItems.All,
-            Objects = DefaultObjects.All,
-            Npcs = npcs ?? DefaultNpcs.All,
-            Random = random ?? new Random(7),
-        });
+        var options = Options(Map, new TickClock(GameTick.Period, Time.Read));
+        Server = new ScapeServer(change is null ? options : change(options));
     }
+
+    /// <summary>
+    /// A server on <paramref name="map"/> at <see cref="OpenWorld.SpawnTile"/> with the default
+    /// content, no pacing, no log and dice seeded with 7. Recipes are left out, as the server's
+    /// own default leaves them.
+    /// </summary>
+    public static ScapeServerOptions Options(TileMap map, TickClock clock) => new()
+    {
+        Clock = clock,
+        Pacer = new NoPacer(),
+        Log = _ => { },
+        Map = map,
+        Spawn = OpenWorld.SpawnTile,
+        Items = DefaultItems.All,
+        Objects = DefaultObjects.All,
+        Npcs = DefaultNpcs.All,
+        Skills = DefaultSkills.All,
+        Nodes = DefaultNodes.All,
+        Shops = DefaultShops.Rules,
+        Random = new Random(7),
+    };
 
     public FakeTime Time { get; } = new();
 

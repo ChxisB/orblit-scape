@@ -77,6 +77,11 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_server/test/social_test.dart` | `SocialTests` | 18 | 18 | 18 | 0 | done. The Dart test for a name already on a list never ran a tick, so the port ticks |
 | `scape_server/test/items_test.dart` | `ItemsTests` | 31 | 31 | 31 | 0 | done |
 | `scape_server/test/npcs_test.dart` | `NpcsTests` | 24 | 24 | 24 | 0 | done |
-| `scape_server/test/actors_test.dart` | `ActorsTests` | 17 | 17 | 8 | 0 | partly. The nine act tests play attack, hurt, death, gather and make. Three wait on gathering and production in part 3c, and six on combat in part 3d |
+| `scape_server/test/actors_test.dart` | `ActorsTests` | 17 | 17 | 11 | 0 | partly. The six act tests that play attack, hurt and death wait on combat in part 3d |
 | `scape_server/test/objects_test.dart` | `ObjectsTests` | 8 | 8 | 8 | 0 | done |
 | `scape_server/test/interactions_test.dart` | `InteractionsTests` | 27 | 27 | 27 | 0 | done |
+| `scape_server/test/skills_test.dart` | `SkillsTests` | 15 | 15 | 15 | 2: a grant near the long limit stops at the cap, and a player who is gone holds no experience | done |
+| `scape_server/test/gathering_test.dart` | `GatheringTests` | 20 | 21 | 21 | 0 | done. One Dart test runs for rock and fishing spot, so the port is a theory with two rows |
+| `scape_server/test/production_test.dart` | `ProductionTests` | 24 | 24 | 24 | 0 | done |
+| `scape_server/test/bank_test.dart` | `BankTests` | 9 | 9 | 9 | 1: nothing moves while a shop is open | done |
+| `scape_server/test/shops_test.dart` | `ShopsTests` | 21 | 21 | 21 | 7: the bank window does not trade, exact coins buy, another shop's viewers hear nothing, an unchanged shop sends no view, restock lands one interval after the last, and coins or a line dearer than a stack of coins fail at startup | done |

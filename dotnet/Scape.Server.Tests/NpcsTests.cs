@@ -25,7 +25,7 @@ public sealed class NpcsTests(ITestOutputHelper output) : IAsyncDisposable
     private async Task StartAsync(NpcSet? npcs = null, Random? random = null)
     {
         await _test.DisposeAsync();
-        _test = new TestServer(npcs, random);
+        _test = new TestServer(options => options with { Npcs = npcs ?? options.Npcs, Random = random ?? options.Random });
     }
 
     private PlacedNpc Place(int npc, TileCoord tile, int radius = 0) => Server.Npcs.Spawn(new NpcSpawn(npc, tile, radius));

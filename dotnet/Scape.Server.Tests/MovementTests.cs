@@ -163,16 +163,6 @@ public sealed class MovementTests : IAsyncDisposable
         var map = OpenWorld.Map();
         map.SetFlags(OpenWorld.SpawnTile, TileFlags.Blocked);
 
-        Assert.Throws<ArgumentException>(() => new ScapeServer(new ScapeServerOptions
-        {
-            Clock = new TickClock(GameTick.Period, new FakeTime().Read),
-            Pacer = new NoPacer(),
-            Log = _ => { },
-            Map = map,
-            Spawn = OpenWorld.SpawnTile,
-            Items = DefaultItems.All,
-            Objects = DefaultObjects.All,
-            Npcs = DefaultNpcs.All,
-        }));
+        Assert.Throws<ArgumentException>(() => new ScapeServer(TestServer.Options(map, new TickClock(GameTick.Period, new FakeTime().Read))));
     }
 }

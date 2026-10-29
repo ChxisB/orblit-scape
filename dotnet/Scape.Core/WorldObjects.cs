@@ -24,7 +24,7 @@ public static class InteractKind
     /// <summary>An inventory item used on another. The id is the slot of the item used on, the option the slot of the item used.</summary>
     public const int UseOnItem = 3;
 
-    /// <summary>A creature. The id is its network id. The option is unused, and the click is an attack.</summary>
+    /// <summary>A creature. The id is its network id. The option is one of <see cref="NpcOption"/>.</summary>
     public const int Npc = 4;
 
     /// <summary>Another player. The id is their network id. The option is unused, and the click asks to trade.</summary>

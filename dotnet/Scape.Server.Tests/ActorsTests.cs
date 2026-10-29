@@ -92,7 +92,7 @@ public sealed class ActorsTests : IAsyncDisposable
     public async Task ACreatureOutOfThePhaseHasNoStepsLeftOverFromWhenItLastWalked()
     {
         await _test.DisposeAsync();
-        _test = new TestServer(new NpcSet([new NpcDef(1, "Hen", new Wander())]));
+        _test = new TestServer(options => options with { Npcs = new NpcSet([new NpcDef(1, "Hen", new Wander())]) });
         var ana = await _test.JoinAsync("Ana");
         var chicken = Server.Npcs.Spawn(new NpcSpawn(1, new TileCoord(40, 32, 0), radius: 20));
         for (var i = 0; i < 10 && chicken.StepsLastTick == 0; i++)
@@ -134,5 +134,63 @@ public sealed class ActorsTests : IAsyncDisposable
         await _test.TickAsync(4);
 
         Assert.Equal(ActorState.Idle, ana.AnimOf(ana.Avatar)!.Base);
+    }
+
+    // Acts.
+
+    /// <summary>What <paramref name="viewer"/> sees <paramref name="networkId"/> doing after each of the next <paramref name="ticks"/> ticks.</summary>
+    private async Task<List<Anim>> WatchAsync(TestClient viewer, long networkId, int ticks)
+    {
+        var seen = new List<Anim>();
+        for (var i = 0; i < ticks; i++)
+        {
+            await _test.TickAsync();
+            if (viewer.AnimOf(networkId) is { } anim)
+            {
+                seen.Add(anim);
+            }
+        }
+
+        return seen;
+    }
+
+    [Fact]
+    public async Task ChoppingATreePlaysGather()
+    {
+        var ana = await _test.JoinAsync("Ana");
+        Of("ana", ContainerId.Inventory).Add(ItemId.BronzeAxe, 1);
+        var tree = Server.Objects.Place(ObjectId.Tree, new TileCoord(33, 32, 0));
+
+        await ana.ClickAsync(InteractKind.PlacedObject, (long)tree.NetworkId);
+
+        var seen = await WatchAsync(ana, ana.Avatar, Gathering.Ticks + 2);
+        Assert.Contains(ActorState.Gather, seen.Select(anim => anim.Act));
+    }
+
+    [Fact]
+    public async Task CookingAtAFirePlaysMake()
+    {
+        await _test.DisposeAsync();
+        _test = new TestServer(options => options with { Recipes = DefaultRecipes.All });
+        var ana = await _test.JoinAsync("Ana");
+        Of("ana", ContainerId.Inventory).Add(ItemId.RawFish, 1);
+        var fire = Server.Objects.Place(ObjectId.Fire, new TileCoord(33, 32, 0));
+
+        await ana.ClickAsync(InteractKind.UseOnObject, (long)fire.NetworkId);
+
+        var seen = await WatchAsync(ana, ana.Avatar, 6);
+        Assert.Contains(ActorState.Make, seen.Select(anim => anim.Act));
+    }
+
+    [Fact]
+    public async Task AClickOnATreeWithNoAxePlaysNothing()
+    {
+        var ana = await _test.JoinAsync("Ana");
+        var tree = Server.Objects.Place(ObjectId.Tree, new TileCoord(33, 32, 0));
+
+        await ana.ClickAsync(InteractKind.PlacedObject, (long)tree.NetworkId);
+
+        var seen = await WatchAsync(ana, ana.Avatar, Gathering.Ticks + 2);
+        Assert.All(seen, anim => Assert.Null(anim.Act));
     }
 }

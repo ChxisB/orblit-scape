@@ -16,16 +16,10 @@ public sealed class TickLoopTests : IDisposable
     private ScapeServer Build(int ticks)
     {
         var pacer = new CountingPacer(ticks);
-        _server = new ScapeServer(new ScapeServerOptions
+        _server = new ScapeServer(TestServer.Options(OpenWorld.Map(), new TickClock(Period, _time.Read)) with
         {
-            Clock = new TickClock(Period, _time.Read),
             Pacer = pacer,
             Log = _lines.Add,
-            Map = OpenWorld.Map(),
-            Spawn = OpenWorld.SpawnTile,
-            Items = DefaultItems.All,
-            Objects = DefaultObjects.All,
-            Npcs = DefaultNpcs.All,
         });
         pacer.Loop = _server.Loop;
         return _server;

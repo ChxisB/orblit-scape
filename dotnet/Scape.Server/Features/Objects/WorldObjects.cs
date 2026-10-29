@@ -68,6 +68,10 @@ public sealed class WorldObjects
     /// <summary>The object standing on <paramref name="tile"/>, or null.</summary>
     public PlacedObject? At(TileCoord tile) => _byTile.GetValueOrDefault(tile);
 
+    /// <summary>Whether the object <paramref name="id"/> could stand with its south-west tile on <paramref name="origin"/>.</summary>
+    /// <exception cref="ArgumentException">The object does not exist.</exception>
+    public bool CanPlace(int id, TileCoord origin) => IsFree(_objects.Require(id).FootprintAt(origin));
+
     /// <summary>Stands the object <paramref name="id"/> with its south-west tile on <paramref name="origin"/>.</summary>
     /// <returns>The object, which is how a caller finds what it just placed.</returns>
     /// <exception cref="ArgumentException">The object does not exist, or a tile is blocked, water or taken.</exception>
@@ -99,6 +103,26 @@ public sealed class WorldObjects
         Write(placed);
         SetBlocking(placed, def.BlocksIn(placed.State));
         return placed;
+    }
+
+    /// <summary>Takes <paramref name="placed"/> out of the world and frees its tiles. An object already gone is left alone.</summary>
+    public void Remove(PlacedObject placed)
+    {
+        if (!_placed.Remove(placed.NetworkId))
+        {
+            return;
+        }
+
+        _services.Hosting.Despawn(placed.Entity);
+        foreach (var tile in placed.Footprint.Tiles)
+        {
+            _byTile.Remove(tile);
+        }
+
+        if (placed.Def.BlocksIn(placed.State))
+        {
+            SetBlocking(placed, false);
+        }
     }
 
     /// <summary>

@@ -16,7 +16,7 @@ public sealed record ActorsOptions
 /// <summary>
 /// What every actor in view looks like and is doing: the <see cref="Look"/> of a player, from
 /// what they wear, and the <see cref="Anim"/> of a player or a creature, from how it moved this
-/// tick.
+/// tick and what it was told to play.
 /// </summary>
 /// <remarks>The server sends item ids and states. The client builds the parts and plays the clips.</remarks>
 public sealed class Actors
@@ -48,6 +48,15 @@ public sealed class Actors
         registry.AddSystem(Phase.Outbound, feature.Sync);
         options.Npcs.AddStandHandler(feature.Stood);
         return feature;
+    }
+
+    /// <summary>Starts <paramref name="act"/> on the actor <paramref name="entity"/>. An entity that is gone is left alone.</summary>
+    public void Play(ulong entity, ActorState act)
+    {
+        if (_world.TryGetBytes(entity, _anim, out var bytes))
+        {
+            Anim.Write(bytes, (Anim.TryRead(bytes) ?? new Anim()).Playing(act));
+        }
     }
 
     /// <summary>FNV-1a, because the string hash may differ between runs.</summary>

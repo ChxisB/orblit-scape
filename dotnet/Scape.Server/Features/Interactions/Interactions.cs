@@ -12,6 +12,8 @@ public sealed record InteractionsOptions
     public required GroundItems Ground { get; init; }
 
     public required Items Items { get; init; }
+
+    public required Npcs Npcs { get; init; }
 }
 
 /// <summary>
@@ -30,6 +32,7 @@ public sealed class Interactions
     private readonly Dictionary<string, Action<string, PlacedObject>> _objectActions = [];
     private readonly Dictionary<(int Item, int Object), Action<string, int, PlacedObject>> _useOnObject = [];
     private readonly Dictionary<(int, int), Action<string, int, int>> _useOnItem = [];
+    private readonly Dictionary<int, Action<string, PlacedNpc>> _npcActions = [];
 
     private Interactions(Registry registry, Services services, InteractionsOptions options)
     {
@@ -98,6 +101,20 @@ public sealed class Interactions
         }
     }
 
+    /// <summary>
+    /// Runs <paramref name="action"/> with the player and the creature when a player picks
+    /// <paramref name="option"/> on a creature, once they stand beside it. The option is one of
+    /// <see cref="NpcOption"/>, and one feature owns each.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The option already has an action.</exception>
+    public void AddNpcAction(int option, Action<string, PlacedNpc> action)
+    {
+        if (!_npcActions.TryAdd(option, action))
+        {
+            throw new InvalidOperationException("That creature option already has an action.");
+        }
+    }
+
     private static (int, int) Pair(int a, int b) => a < b ? (a, b) : (b, a);
 
     private static string PickUpNotice(Outcome outcome) => outcome switch
@@ -129,7 +146,20 @@ public sealed class Interactions
             case InteractKind.UseOnItem:
                 Submit(player, _ => RunUseOnItem(player, click));
                 break;
+            case InteractKind.Npc:
+                ClickNpc(player, click);
+                break;
         }
+    }
+
+    private void ClickNpc(string player, Interact click)
+    {
+        if (_options.Npcs.Find((ulong)click.Id) is not { } npc || !_npcActions.TryGetValue(click.Option, out var action))
+        {
+            return;
+        }
+
+        Start(player, new Beside(Footprint.OfTile(npc.Tile)), () => action(player, npc));
     }
 
     private void ClickObject(string player, Interact click)

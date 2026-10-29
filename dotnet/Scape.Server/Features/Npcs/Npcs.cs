@@ -106,6 +106,9 @@ public sealed class Npcs
     /// <summary>The creatures standing in the world now.</summary>
     public IEnumerable<PlacedNpc> Standing => _standing.Values;
 
+    /// <summary>The creature standing with <paramref name="networkId"/>, or null.</summary>
+    public PlacedNpc? Find(ulong networkId) => _standing.GetValueOrDefault(networkId);
+
     /// <summary>Calls <paramref name="handler"/> each time a creature enters the world.</summary>
     public void AddStandHandler(Action<PlacedNpc> handler) => _standHandlers.Add(handler);
 

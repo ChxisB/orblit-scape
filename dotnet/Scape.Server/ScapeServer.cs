@@ -23,7 +23,17 @@ public sealed record ScapeServerOptions
 
     public required NpcSet Npcs { get; init; }
 
-    /// <summary>Where creatures and drops get their chance. A test passes a seeded one.</summary>
+    public required SkillSet Skills { get; init; }
+
+    public required NodeSet Nodes { get; init; }
+
+    /// <summary>What players can make. A server without recipes makes nothing.</summary>
+    public RecipeSet? Recipes { get; init; }
+
+    /// <summary>What shops charge and pay. Required when a creature keeps a shop.</summary>
+    public ShopRules? Shops { get; init; }
+
+    /// <summary>Where creatures, drops, gathering and making get their chance. A test passes a seeded one.</summary>
     public Random Random { get; init; } = new();
 }
 
@@ -66,6 +76,7 @@ public sealed class ScapeServer : IDisposable
         Npcs = features.Npcs;
         Actors = features.Actors;
         Objects = features.Objects;
+        Skills = features.Skills;
         Interactions = features.Interactions;
         Wire = new ClientWire(bridge, Inbox);
         var set = new ReplicationSet(Registry.Replicated);
@@ -111,6 +122,8 @@ public sealed class ScapeServer : IDisposable
     public Actors Actors { get; }
 
     public WorldObjects Objects { get; }
+
+    public Skills Skills { get; }
 
     public Interactions Interactions { get; }
 
