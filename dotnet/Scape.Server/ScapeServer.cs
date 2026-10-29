@@ -33,6 +33,9 @@ public sealed record ScapeServerOptions
     /// <summary>What shops charge and pay. Required when a creature keeps a shop.</summary>
     public ShopRules? Shops { get; init; }
 
+    /// <summary>The quests and conversations. Required when a creature has a dialogue.</summary>
+    public Story? Story { get; init; }
+
     public required CombatRules Combat { get; init; }
 
     /// <summary>What players can cast. A server without spells casts nothing.</summary>
@@ -94,6 +97,7 @@ public sealed class ScapeServer : IDisposable
         Interactions = features.Interactions;
         Combat = features.Combat;
         Prayers = features.Prayers;
+        Quests = features.Quests;
         Wire = new ClientWire(bridge, Inbox);
         var set = new ReplicationSet(Registry.Replicated);
         var nearby = new GridInterest(set, Registry.Replicated.First(c => c.Name == TilePosition.Name), grid, InterestRing);
@@ -147,11 +151,33 @@ public sealed class ScapeServer : IDisposable
 
     public Prayers? Prayers { get; }
 
+    /// <summary>Every player's quests, or null for a server without a story.</summary>
+    public Quests? Quests { get; }
+
     public ClientWire Wire { get; }
 
     public NetHost Host { get; }
 
     public TickLoop Loop { get; }
+
+    /// <summary>
+    /// Puts <paramref name="objects"/> and <paramref name="npcs"/> in the world. Call it once,
+    /// before players join. A throw leaves the placements before it in the world, and a second
+    /// call adds the creatures again.
+    /// </summary>
+    /// <exception cref="ArgumentException">The world refuses a placement, as <see cref="WorldObjects.Place"/> and <see cref="Npcs.Spawn"/> do.</exception>
+    public void Stock(IEnumerable<ObjectPlacement> objects, IEnumerable<NpcSpawn> npcs)
+    {
+        foreach (var placement in objects)
+        {
+            Objects.Place(placement.ObjectId, placement.Tile, placement.Destination);
+        }
+
+        foreach (var spawn in npcs)
+        {
+            Npcs.Spawn(spawn);
+        }
+    }
 
     public void Dispose()
     {

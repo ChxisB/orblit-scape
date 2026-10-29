@@ -7,11 +7,14 @@ public enum WindowKind
 {
     Shop,
     Bank,
+    Talk,
+    Trade,
 }
 
 /// <summary>
 /// The window a player has open: what it is, which of its kind and where the player has to stand
-/// to keep using it. <see cref="Ref"/> is the creature id of the shopkeeper, and zero for a bank.
+/// to keep using it. <see cref="Ref"/> is the creature id of the shopkeeper or the speaker, and
+/// zero for a bank or a trade.
 /// </summary>
 public sealed record OpenWindow(WindowKind Kind, int Ref, Reach Reach);
 
@@ -56,7 +59,8 @@ public sealed class Windows
     /// </summary>
     public void Open(string player, OpenWindow window) => _open[player] = window;
 
-    private void Close(string player)
+    /// <summary>Closes the window <paramref name="player"/> has open, if any, and tells them.</summary>
+    public void Close(string player)
     {
         if (_open.Remove(player))
         {

@@ -16,14 +16,18 @@ internal sealed record Features(
     Combat Combat,
     Prayers? Prayers)
 {
+    /// <summary>Every player's quests, or null for a server without a story.</summary>
+    public Quests? Quests { get; init; }
+
     /// <summary>
     /// The one place features join the server. Each feature adds its action kinds, systems and
     /// components to <paramref name="registry"/> here. Systems in one phase run in the order their
     /// features register.
     /// </summary>
     /// <exception cref="ArgumentException">
-    /// A creature keeps a shop and the options have no shop rules, or a loot table names an item
-    /// that does not exist.
+    /// A creature keeps a shop and the options have no shop rules, a creature has a dialogue and
+    /// the options have no story, a loot table names an item that does not exist, or the story
+    /// fails a check of <see cref="Quests"/> or <see cref="Talk"/>.
     /// </exception>
     public static Features Register(Registry registry, Services services, ScapeServerOptions options)
     {
@@ -71,8 +75,8 @@ internal sealed record Features(
         var features = new Features(movement, social, bags, ground, npcs, actors, objects, skills, interactions, combat, prayers);
         features.RegisterMaking(registry, services, options);
         features.RegisterSpellsAndLoot(registry, services, options);
-        features.RegisterWindows(registry, services, options);
-        return features;
+        var windows = features.RegisterWindows(registry, services, options);
+        return features with { Quests = features.RegisterStory(registry, services, options, windows) };
     }
 
     private void RegisterMaking(Registry registry, Services services, ScapeServerOptions options)
@@ -131,7 +135,7 @@ internal sealed record Features(
         });
     }
 
-    private void RegisterWindows(Registry registry, Services services, ScapeServerOptions options)
+    private Windows RegisterWindows(Registry registry, Services services, ScapeServerOptions options)
     {
         var windows = Windows.Register(registry, services, Movement);
         Bank.Register(registry, services, new BankOptions { Interactions = Interactions, Bags = Items, Windows = windows });
@@ -151,5 +155,51 @@ internal sealed record Features(
         {
             throw new ArgumentException("A creature keeps a shop, so the server needs shop rules.", nameof(options));
         }
+
+        Trades.Register(registry, services, new TradesOptions
+        {
+            Interactions = Interactions,
+            Movement = Movement,
+            Social = Social,
+            Bags = Items,
+            Items = options.Items,
+            Windows = windows,
+            Log = options.Log,
+        });
+        return windows;
+    }
+
+    private Quests? RegisterStory(Registry registry, Services services, ScapeServerOptions options, Windows windows)
+    {
+        if (options.Story is not { } story)
+        {
+            if (options.Npcs.Npcs.Any(npc => npc.Dialogue is not null))
+            {
+                throw new ArgumentException("A creature has a dialogue, so the server needs a story.", nameof(options));
+            }
+
+            return null;
+        }
+
+        var quests = Quests.Register(registry, services, new QuestsOptions
+        {
+            Story = story,
+            SkillSet = options.Skills,
+            Items = options.Items,
+            Skills = Skills,
+            Combat = Combat,
+            Bags = Items,
+            Ground = Ground,
+            Movement = Movement,
+        });
+        Talk.Register(registry, services, new TalkOptions
+        {
+            Story = story,
+            Npcs = options.Npcs,
+            Interactions = Interactions,
+            Quests = quests,
+            Windows = windows,
+        });
+        return quests;
     }
 }

@@ -33,6 +33,7 @@ public sealed class Interactions
     private readonly Dictionary<(int Item, int Object), Action<string, int, PlacedObject>> _useOnObject = [];
     private readonly Dictionary<(int, int), Action<string, int, int>> _useOnItem = [];
     private readonly Dictionary<int, (Action<string, PlacedNpc> Action, Func<string, PlacedNpc, Reach>? Reach)> _npcActions = [];
+    private Action<string, string>? _playerAction;
 
     private Interactions(Registry registry, Services services, InteractionsOptions options)
     {
@@ -116,6 +117,21 @@ public sealed class Interactions
         }
     }
 
+    /// <summary>
+    /// Runs <paramref name="action"/> with the player and the other player when a player has
+    /// walked up to another player and clicked them. One feature owns the click.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The click already has an action.</exception>
+    public void SetPlayerAction(Action<string, string> action)
+    {
+        if (_playerAction is not null)
+        {
+            throw new InvalidOperationException("A click on a player already has an action.");
+        }
+
+        _playerAction = action;
+    }
+
     private static (int, int) Pair(int a, int b) => a < b ? (a, b) : (b, a);
 
     private static string PickUpNotice(Outcome outcome) => outcome switch
@@ -150,6 +166,9 @@ public sealed class Interactions
             case InteractKind.Npc:
                 ClickNpc(player, click);
                 break;
+            case InteractKind.Player:
+                ClickPlayer(player, click);
+                break;
         }
     }
 
@@ -162,6 +181,19 @@ public sealed class Interactions
 
         var reach = option.Reach?.Invoke(player, npc) ?? new Beside(Footprint.OfTile(npc.Tile));
         Start(player, reach, () => option.Action(player, npc));
+    }
+
+    private void ClickPlayer(string player, Interact click)
+    {
+        if (_options.Movement.PlayerWith((ulong)click.Id) is not { } other
+            || other == player
+            || _options.Movement.TileOf(other) is not { } tile
+            || _playerAction is not { } action)
+        {
+            return;
+        }
+
+        Start(player, new Beside(Footprint.OfTile(tile)), () => action(player, other));
     }
 
     private void ClickObject(string player, Interact click)
