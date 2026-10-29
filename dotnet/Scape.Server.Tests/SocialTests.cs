@@ -330,6 +330,8 @@ public sealed class SocialTests : IAsyncDisposable
 
             told.Add(message);
         }
+
+        public Task Kick(string player) => Task.CompletedTask;
     }
 }
 

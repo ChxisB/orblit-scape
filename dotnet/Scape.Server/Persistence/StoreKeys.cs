@@ -4,6 +4,12 @@ namespace Scape.Server;
 public static class StoreKeys
 {
     /// <summary>
+    /// The store key of the mutes and bans. One record holds them all, and the <c>l-</c> prefix
+    /// keeps it from a save, an account or a trade journal.
+    /// </summary>
+    public const string Ledger = "l-sanctions";
+
+    /// <summary>
     /// The store key of a player's save. Names hold letters, digits, spaces, underscores and
     /// hyphens, and a store key may not hold a space, so a space becomes a dot. A name has no dot,
     /// so two names never share a key.

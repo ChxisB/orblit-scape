@@ -37,6 +37,44 @@ public sealed class SavesParityTests
     public void ReadJournalsMatchTheFixture() => Golden.Check("journalRead", c => Dump.Attempt(() =>
         Dump.Arr(TradeJournal.Decode(Bytes(c.GetProperty("bytes"))), state => new JsonArray(state.Key, Hex(state.Value)))));
 
+    // The sanction ledger.
+
+    [Fact]
+    public void WrittenLedgersMatchTheFixture() => Golden.Check("ledgerWrite", c =>
+    {
+        var now = Start;
+        var queue = SaveQueue.Inline(new MemorySaveStore(), () => now, (_, _) => { });
+        var ledger = new Ledger(queue, () => now);
+        ledger.LoadAsync().GetAwaiter().GetResult();
+        var records = new JsonArray();
+        foreach (var step in c.GetProperty("steps").EnumerateArray())
+        {
+            now = DateTimeOffset.FromUnixTimeMilliseconds(step.GetProperty("at").GetInt64());
+            Apply(ledger, step);
+            records.Add(Encoding.UTF8.GetString(Wait(queue.ReadAsync(StoreKeys.Ledger))!.Bytes.Span));
+        }
+
+        return records;
+    });
+
+    /// <summary>What the ledger in the case's bytes holds on each of its players, mutes first.</summary>
+    [Fact]
+    public void ReadLedgersMatchTheFixture() => Golden.Check("ledgerRead", c =>
+    {
+        var now = DateTimeOffset.FromUnixTimeMilliseconds(c.GetProperty("now").GetInt64());
+        var queue = SaveQueue.Inline(new MemorySaveStore(), () => now, (_, _) => { });
+        queue.Save(StoreKeys.Ledger, Bytes(c.GetProperty("bytes")), new Custom("sanction"));
+        var ledger = new Ledger(queue, () => now);
+        var players = c.GetProperty("players").EnumerateArray().Select(p => p.GetString()!).ToList();
+        return Dump.Attempt(() =>
+        {
+            ledger.LoadAsync().GetAwaiter().GetResult();
+            return Dump.Arr(
+                Enum.GetValues<SanctionKind>().SelectMany(kind => players.Select(player => ledger.Active(kind, player))),
+                s => s is null ? null : new JsonArray(s.By, s.Reason, s.Until));
+        });
+    });
+
     // Accounts.
 
     [Fact]
@@ -44,6 +82,24 @@ public sealed class SavesParityTests
 
     [Fact]
     public void CheckedLoginsMatchTheFixture() => Golden.Check("verify", Verified);
+
+    private static void Apply(Ledger ledger, JsonElement step)
+    {
+        var player = step.GetProperty("player").GetString()!;
+        if (step.TryGetProperty("lift", out var lift))
+        {
+            ledger.Lift(KindOf(lift), player);
+            return;
+        }
+
+        var lasting = step.GetProperty("lasting");
+        ledger.Add(KindOf(step.GetProperty("add")), player, new SanctionOrder(
+            step.GetProperty("by").GetString()!,
+            step.GetProperty("reason").GetString()!,
+            lasting.ValueKind == JsonValueKind.Null ? null : TimeSpan.FromMilliseconds(lasting.GetInt64())));
+    }
+
+    private static SanctionKind KindOf(JsonElement kind) => Enum.Parse<SanctionKind>(kind.GetString()!, ignoreCase: true);
 
     private static byte[] Bytes(JsonElement hex) => Convert.FromHexString(hex.GetString()!);
 

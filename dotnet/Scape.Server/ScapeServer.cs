@@ -50,6 +50,12 @@ public sealed record ScapeServerOptions
 
     /// <summary>Where players are kept between visits. A server without it forgets them when they leave.</summary>
     public Storage? Storage { get; init; }
+
+    /// <summary>
+    /// The moderators and admins, by name. Anyone else is a player. Roles need accounts in
+    /// <see cref="Storage"/>, since a name proves nothing without a password.
+    /// </summary>
+    public IReadOnlyDictionary<string, Role> Roles { get; init; } = new Dictionary<string, Role>();
 }
 
 /// <summary>The world, the host and the loop, wired together.</summary>
@@ -84,12 +90,18 @@ public sealed class ScapeServer : IAsyncDisposable
 
     public ScapeServer(ScapeServerOptions options)
     {
+        if (options.Roles.Count > 0 && options.Storage?.Hasher is null)
+        {
+            throw new ArgumentException("Roles need accounts, since a name proves nothing without a password.", nameof(options));
+        }
+
         var networkId = World.RegisterComponent("NetworkId", ComponentKind.Int64);
         var bridge = new HostBridge();
         var grid = new Grid(CellTiles);
         Active = new ActiveCells(grid, ActiveRadius, GameTick.Period * ActiveHoldTicks, () => GameTick.Period * Registry.Actions.Tick);
         Registry.AddSystem(Phase.Inbound, DeliverIntents);
-        var features = Features.Register(Registry, new Services(World, options.Map, bridge, Active), options, (a, b) => Saves?.SaveTogether(a, b));
+        var services = new Services(World, options.Map, bridge, Active);
+        var features = Features.Register(Registry, services, options, (a, b) => Saves?.SaveTogether(a, b));
         Movement = features.Movement;
         Social = features.Social;
         Items = features.Items;
@@ -105,8 +117,24 @@ public sealed class ScapeServer : IAsyncDisposable
         Func<string, Login, Task<LoginRefusal?>>? gate = null;
         if (options.Storage is { } storage)
         {
+            var ledger = new Ledger(storage.Queue, storage.Now);
+            Admin.Register(Registry, services, new AdminOptions
+            {
+                Roles = options.Roles.ToDictionary(r => Scape.Core.Wire.NameKey(r.Key), r => r.Value),
+                Ledger = ledger,
+                Social = features.Social,
+                Movement = features.Movement,
+                Skills = features.Skills,
+                SkillSet = options.Skills,
+                Bags = features.Items,
+                Items = options.Items,
+                Rollback = RollbackOf(storage, ledger, bridge),
+                // The loop is built at the end of the constructor, before any tick can run a countdown.
+                Stop = () => Loop!.Stop(),
+                Log = options.Log,
+            });
             Saves = RegisterSaves(storage, features, options);
-            gate = new Entrance(Saves, AccountsOf(storage)).CheckAsync;
+            gate = new Entrance(Saves.PrepareAsync, AccountsOf(storage), ledger).CheckAsync;
         }
 
         Wire = new ClientWire(bridge, Inbox, options.Log, gate);
@@ -206,6 +234,20 @@ public sealed class ScapeServer : IAsyncDisposable
         World.Dispose();
     }
 
+    /// <summary>The rollback an admin command runs, or null when the store keeps no history to roll back to.</summary>
+    private static Func<string, int, Task<string>>? RollbackOf(Storage storage, Ledger ledger, HostBridge bridge) =>
+        storage.History is { } history
+            ? new Rollback(new RollbackOptions
+            {
+                History = history,
+                Queue = storage.Queue,
+                Ledger = ledger,
+                LogOut = bridge.Kick,
+                IsOnline = key => bridge.Host.SessionStateOf(key) is not null,
+                Now = storage.Now,
+            }).RunAsync
+            : null;
+
     private static Accounts? AccountsOf(Storage storage) =>
         storage.Hasher is { } hasher ? new Accounts(storage.Queue, hasher, storage.Salt) : null;
 
@@ -274,5 +316,9 @@ public sealed class ScapeServer : IAsyncDisposable
         public void Despawn(ulong entity) => Host.Despawn(entity);
 
         public void Tell(string player, ServerMessage message) => Send(player, MessageCodec.Encode(message));
+
+        // The host's lock is held through a tick, so the removal waits for the tick to end rather
+        // than pull a player out from under the features in the middle of one.
+        public Task Kick(string player) => Task.Run(() => Host.RemoveClient(player));
     }
 }

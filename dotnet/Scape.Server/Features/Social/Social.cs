@@ -21,6 +21,7 @@ public sealed class Social
     private readonly HashSet<string> _online = [];
     private readonly HashSet<string> _muted = [];
     private readonly Dictionary<string, Lists> _lists = [];
+    private string? _reserved;
 
     private Social(IHosting hosting, Func<string, (ulong NetworkId, TileCoord Tile)?> standing)
     {
@@ -41,6 +42,9 @@ public sealed class Social
         registry.AddIntentHandler(social.OnIntent);
         return social;
     }
+
+    /// <summary>Chat lines that start with <paramref name="marker"/> are not said, so a feature can read them as commands.</summary>
+    public void Reserve(string marker) => _reserved = marker;
 
     public void Mute(string player) => _muted.Add(Wire.NameKey(player));
 
@@ -85,7 +89,7 @@ public sealed class Social
 
         switch (intent)
         {
-            case Chat chat:
+            case Chat chat when !IsReserved(chat.Text):
                 Say(player, chat.Text);
                 break;
             case Whisper whisper:
@@ -96,6 +100,8 @@ public sealed class Social
                 break;
         }
     }
+
+    private bool IsReserved(string text) => _reserved is { } marker && text.StartsWith(marker, StringComparison.Ordinal);
 
     private void Say(string player, string text)
     {

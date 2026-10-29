@@ -16,6 +16,9 @@ public interface IHosting
     void Despawn(ulong entity);
 
     void Tell(string player, ServerMessage message);
+
+    /// <summary>Ends the session of <paramref name="player"/>. It completes once the leave has run, after the tick that holds the host.</summary>
+    Task Kick(string player);
 }
 
 /// <summary>The parts of the server a feature may use while it registers.</summary>

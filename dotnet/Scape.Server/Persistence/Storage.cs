@@ -14,6 +14,18 @@ public sealed record Storage
 
     public IPasswordHasher? Hasher { get; init; }
 
+    /// <summary>
+    /// The store the queue writes through, when it keeps a history. A rollback reads old saves
+    /// from it. Without one there is no rollback.
+    /// </summary>
+    public HistoryStore? History { get; init; }
+
+    /// <summary>
+    /// The wall clock, for when a mute or ban ends. Give the queue the same clock, so a save and a
+    /// rollback agree on the time.
+    /// </summary>
+    public Func<DateTimeOffset> Now { get; init; } = () => DateTimeOffset.UtcNow;
+
     /// <summary>Makes that many random bytes for an account's salt. A test passes fixed ones.</summary>
     public Func<int, byte[]> Salt { get; init; } = RandomNumberGenerator.GetBytes;
 
