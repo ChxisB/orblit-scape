@@ -21,6 +21,7 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 
 | Dart test file | C# class | Dart declared | Dart run | C# ported | Added in C# | Status |
 | --- | --- | --- | --- | --- | --- | --- |
+| `scape_core/test/scape_core_test.dart` | none | 1 | 1 | 0 | 0 | not ported. The C# keeps the version once, as `<Version>` in `Scape.Core.csproj`, so there is no constant to drift from it |
 | `scape_core/test/tile_map_test.dart` | `TileMapTests` | 17 | 17 | 17 | 0 | done |
 | `scape_core/test/tile_position_test.dart` | `TilePositionTests` | 3 | 3 | 3 | 1: a point that is not a number has no nearest tile | done |
 | `scape_core/test/region_file_test.dart` | `RegionFileTests` | 5 | 5 | 5 | 0 | done |
@@ -49,6 +50,7 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_core/test/social_messages_test.dart` | `SocialMessagesTests` | 12 | 12 | 12 | 1: a list edit cannot be built for a list outside the enum | done |
 | `scape_core/test/trade_messages_test.dart` | `TradeMessagesTests` | 13 | 13 | 13 | 0 | done |
 | none, the fixture `scape_core/wire.json` | `WireParityTests` | 0 | 0 | 0 | 5: 67 built, 458 bytes, 24 encodeSlots, 120 readSlots and 95 state cases | added. Every message is built at its edges and read by both decoders. The bytes cases add damaged, random, odd UTF-8 and loose flag bytes. The state cases cover JSON edges such as duplicate keys, `-0` and a lone surrogate |
+| `scape_content/test/scape_content_test.dart` | none | 1 | 1 | 0 | 0 | not ported. The C# keeps the version once, as `<Version>` in `Scape.Content.csproj`, so there is no constant to drift from it |
 | `scape_content/test/skills_test.dart` | `SkillsTests` | 2 | 2 | 2 | 0 | done |
 | `scape_content/test/items_test.dart` | `ItemsTests` | 4 | 4 | 4 | 0 | done |
 | `scape_content/test/magic_prayer_test.dart` | `MagicPrayerTests` | 3 | 3 | 3 | 0 | done |

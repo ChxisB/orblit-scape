@@ -26,6 +26,7 @@ public static class ContentCheck
 {
     private static readonly (int Dx, int Dy)[] Straight = [(0, -1), (-1, 0), (1, 0), (0, 1)];
     private static readonly (int Dx, int Dy)[] Diagonal = [(-1, -1), (1, -1), (-1, 1), (1, 1)];
+    private static readonly (int Dx, int Dy)[] Around = [.. Straight, .. Diagonal];
 
     /// <summary>
     /// Every way the data files disagree with one another, one line each. Empty
@@ -423,7 +424,7 @@ public static class ContentCheck
                 queue.Enqueue(climb);
             }
 
-            foreach (var to in Step(tile, [.. Straight, .. Diagonal]))
+            foreach (var to in Step(tile, Around))
             {
                 if (!shut.Contains(to) && world.Map.CanStep(tile, to) && seen.Add(to))
                 {
