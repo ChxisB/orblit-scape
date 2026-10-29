@@ -27,3 +27,15 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_core/test/path_test.dart` | `PathTests` | 21 | 21 | 21 | 0 | done. The random maps use `System.Random`, so they differ from the Dart's. The fixture carries the Dart's maps |
 | `scape_core/test/objects_test.dart` | `ObjectsTests` | 11 | 11 | 11 | 0 | done |
 | none, the fixture `scape_core/world.json` | `WorldParityTests` | 0 | 0 | 0 | 7: 120 path, 30 sight, 2 encode, 10 decode, 3 position, 3 read and 7 nearest cases | added. The path steps pin the order the search tries its neighbours in, and the decode refusals compare the reader's messages |
+| `scape_core/test/skills_test.dart` | `SkillsTests` | 9 | 9 | 9 | 0 | done |
+| `scape_core/test/combat_test.dart` | `CombatTests` | 16 | 16 | 13 | 1: a style outside the enum beats nothing | partial. The Hit group's 3 tests read messages, so they move to 1d with the wire |
+| `scape_core/test/items_test.dart` | `ItemsTests` | 8 | 8 | 8 | 0 | done. An int cannot hold a count above `ItemStack.MaxCount`, so that half of one test has no twin |
+| `scape_core/test/actor_test.dart` | `ActorTests` | 12 | 12 | 12 | 0 | done. The test of bad Anim bytes is a theory of 6 rows |
+| `scape_core/test/loot_test.dart` | `LootTests` | 15 | 15 | 15 | 0 | done |
+| `scape_core/test/shops_test.dart` | `ShopsTests` | 8 | 8 | 8 | 0 | done |
+| `scape_core/test/npcs_test.dart` | `NpcsTests` | 9 | 9 | 9 | 0 | done |
+| `scape_core/test/nodes_test.dart` | `NodesTests` | 7 | 7 | 7 | 0 | done |
+| `scape_core/test/recipes_test.dart` | `RecipesTests` | 17 | 17 | 17 | 0 | done |
+| `scape_core/test/story_test.dart` | `StoryTests` | 4 | 4 | 4 | 0 | done |
+| `scape_core/test/ranged_magic_prayer_test.dart` | `RangedMagicPrayerTests` | 17 | 17 | 12 | 0 | partial. The save test and the messages group, 5 tests, move to 1d with the wire |
+| none, the fixture `scape_core/rules.json` | `RulesParityTests` | 0 | 0 | 0 | 8: 12 curve, 40 hit, 60 swing, 30 loot, 18 anim, 40 animRead, 12 look and 30 lookRead cases | added. The dice travel in the fixture and each draw names its bound, so a port that draws differently fails at that draw |

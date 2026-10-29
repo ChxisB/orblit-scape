@@ -48,3 +48,25 @@ internal static class WorldSupport
         return map;
     }
 }
+
+internal static class ItemSupport
+{
+    public const int Coins = 1;
+    public const int Logs = 2;
+    public const int Sword = 3;
+    public const int Helmet = 4;
+    public const int Arrows = 5;
+
+    /// <summary>One skill, fighting, capped at 50.</summary>
+    public static readonly SkillSet Skills = new(new XpCurve(30, 4), [new SkillDef("fighting", "Fighting", 50)]);
+
+    public static ItemSet Items() => new(
+        [
+            new ItemDef(Coins, "Coins", stackable: true, value: 1),
+            new ItemDef(Logs, "Logs", value: 4),
+            new ItemDef(Sword, "Sword", equipSlot: "weapon", needs: new Needs("fighting", 5)),
+            new ItemDef(Helmet, "Helmet", equipSlot: "head"),
+            new ItemDef(Arrows, "Arrows", stackable: true, equipSlot: "weapon"),
+        ],
+        Skills);
+}
