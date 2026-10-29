@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Orblit.Dialogue" />
+    <PackageReference Include="Orblit.Json" />
     <PackageReference Include="Orblit.Progress" />
     <PackageReference Include="Orblit.Quest" />
   </ItemGroup>

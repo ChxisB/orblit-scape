@@ -1,3 +1,5 @@
+using static Scape.Core.Tests.WireSupport;
+
 namespace Scape.Core.Tests;
 
 public class RangedMagicPrayerTests
@@ -96,6 +98,14 @@ public class RangedMagicPrayerTests
         Assert.Equal(CombatStyle.Melee, new NpcFight(3).Style);
     }
 
+    [Fact]
+    public void ASaveFromBeforeTheAmmoSlotStillReads()
+    {
+        var state = PlayerState.Decode("""{"version":2,"tile":[1,1,0],"containers":{"equipment":[[3,9,1]]}}"""u8);
+
+        Assert.Equal(11, state.Containers[ContainerId.Equipment].Count);
+    }
+
     // Spells.
 
     [Fact]
@@ -134,5 +144,58 @@ public class RangedMagicPrayerTests
         Assert.ThrowsAny<ArgumentException>(() => new PrayerSet("magic", [Prayer(1, level: 11)], MagicSkills()));
         Assert.ThrowsAny<ArgumentException>(() => Prayer(1, drain: 0));
         Assert.ThrowsAny<ArgumentException>(() => new PrayerSet("x", [], MagicSkills()));
+    }
+
+    // Messages.
+
+    [Fact]
+    public void ACastNamesASpellAndATarget()
+    {
+        var cast = RoundTrip(new Cast(513, 70000));
+
+        Assert.Equal((513, 70000L), (cast.Spell, cast.Target));
+        Assert.ThrowsAny<ArgumentException>(() => new Cast(0x10000, 0));
+        Assert.Equal(BadMessage.Malformed, WhyClient([16, 1, 0]));
+    }
+
+    [Fact]
+    public void APrayerToggleNamesAPrayer()
+    {
+        Assert.Equal(7, RoundTrip(new TogglePrayer(7)).Prayer);
+        Assert.ThrowsAny<ArgumentException>(() => new TogglePrayer(0));
+        Assert.Equal(BadMessage.Malformed, WhyClient([17, 0]));
+        Assert.Equal(BadMessage.Malformed, WhyClient([17]));
+    }
+
+    [Fact]
+    public void AProjectileKeepsItsEndsItsFlightAndItsStyle()
+    {
+        var heard = Heard(new Projectile(9, 70000, 3, CombatStyle.Magic));
+
+        Assert.Equal((9L, 70000L, 3), (heard.From, heard.To, heard.Ticks));
+        Assert.Equal(CombatStyle.Magic, heard.Style);
+        Assert.ThrowsAny<ArgumentException>(() => new Projectile(1, 2, 0, CombatStyle.Ranged));
+        Assert.Equal(BadMessage.Malformed, WhyServer([15, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3]));
+    }
+
+    // C# only: a cast can make a style that Dart's enum cannot hold.
+    [Fact]
+    public void AProjectileCannotBeBuiltWithAStyleOutsideTheEnum()
+    {
+        Assert.ThrowsAny<ArgumentException>(() => new Projectile(1, 2, 1, (CombatStyle)9));
+    }
+
+    [Fact]
+    public void APrayerViewKeepsThePointsAndThePrayersThatAreOn()
+    {
+        var heard = Heard(new PrayerView(12, 30, [2, 5]));
+
+        Assert.Equal((12, 30), (heard.Points, heard.Max));
+        Assert.Equal([2, 5], heard.Active);
+        Assert.ThrowsAny<ArgumentException>(() => new PrayerView(31, 30, []));
+        Assert.ThrowsAny<ArgumentException>(() => new PrayerView(1, 30, [1, 2, 3, 4]));
+        Assert.ThrowsAny<ArgumentException>(() => new PrayerView(1, 30, [2, 2]));
+        Assert.Equal(BadMessage.Malformed, WhyServer([16, 1, 0, 30, 0, 2, 4]));
+        Assert.Equal(BadMessage.Malformed, WhyServer([16, 31, 0, 30, 0, 0]));
     }
 }

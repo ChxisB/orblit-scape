@@ -1,3 +1,5 @@
+using static Scape.Core.Tests.WireSupport;
+
 namespace Scape.Core.Tests;
 
 public class CombatTests
@@ -152,5 +154,35 @@ public class CombatTests
         Assert.ThrowsAny<ArgumentException>(() => new ItemDef(1, "Cap", equipSlot: "head", combat: new CombatBonus(speed: 4)));
         Assert.Equal(2, new ItemDef(1, "Cap", equipSlot: "head", combat: new CombatBonus(defence: 2)).Combat!.Defence);
         Assert.Equal(4, new ItemDef(1, "Sword", equipSlot: "weapon", combat: new CombatBonus(attack: 2, speed: 4)).Combat!.Speed);
+    }
+
+    // Hit.
+
+    [Fact]
+    public void AHitSurvivesTheWireWithTheLargestValuesItCanHold()
+    {
+        var back = Heard(new Hit(0xFFFFFFFF, 0xFFFF));
+
+        Assert.Equal(0xFFFFFFFFL, back.Target);
+        Assert.Equal(0xFFFF, back.Damage);
+        Assert.Equal(0, Heard(new Hit(5, 0)).Damage);
+    }
+
+    [Fact]
+    public void AHitRejectsATargetOrADamageThatDoesNotFit()
+    {
+        Assert.ThrowsAny<ArgumentException>(() => new Hit(-1, 0));
+        Assert.ThrowsAny<ArgumentException>(() => new Hit(0x100000000, 0));
+        Assert.ThrowsAny<ArgumentException>(() => new Hit(0, -1));
+        Assert.ThrowsAny<ArgumentException>(() => new Hit(0, 0x10000));
+    }
+
+    [Fact]
+    public void AHitOfTheWrongLengthIsMalformed()
+    {
+        var bytes = MessageCodec.Encode(new Hit(1, 1));
+
+        Assert.Equal(BadMessage.Malformed, WhyServer(bytes[..6]));
+        Assert.Equal(BadMessage.TooLarge, WhyServer([.. bytes, 0]));
     }
 }

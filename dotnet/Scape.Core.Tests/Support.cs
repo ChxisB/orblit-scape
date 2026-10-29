@@ -70,3 +70,22 @@ internal static class ItemSupport
         ],
         Skills);
 }
+
+internal static class WireSupport
+{
+    /// <summary>Sends <paramref name="message"/> through the codec and returns what came out, as the same kind.</summary>
+    public static T RoundTrip<T>(T message)
+        where T : ClientMessage =>
+        Assert.IsType<T>(Assert.IsType<Understood<ClientMessage>>(MessageCodec.DecodeClient(MessageCodec.Encode(message))).Message);
+
+    public static T Heard<T>(T message)
+        where T : ServerMessage =>
+        Assert.IsType<T>(Assert.IsType<Understood<ServerMessage>>(MessageCodec.DecodeServer(MessageCodec.Encode(message))).Message);
+
+    /// <summary>Why the codec refused <paramref name="bytes"/>, or null when it read them.</summary>
+    public static BadMessage? WhyClient(byte[] bytes) =>
+        MessageCodec.DecodeClient(bytes) is Unreadable<ClientMessage> bad ? bad.Why : null;
+
+    public static BadMessage? WhyServer(byte[] bytes) =>
+        MessageCodec.DecodeServer(bytes) is Unreadable<ServerMessage> bad ? bad.Why : null;
+}

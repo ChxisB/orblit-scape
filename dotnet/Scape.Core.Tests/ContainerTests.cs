@@ -1,3 +1,4 @@
+using System.Buffers.Binary;
 using static Scape.Core.Tests.ItemSupport;
 
 namespace Scape.Core.Tests;
@@ -666,6 +667,93 @@ public class ContainerTests
         {
             pool[stack.Item] += stack.Count;
         }
+    }
+
+    // Slot deltas.
+
+    [Fact]
+    public void SlotDeltasWriteAndReadBackTheSlotsTheyName()
+    {
+        var c = Inventory();
+        c.Add(Coins, 12);
+        c.Add(Sword, 1);
+
+        var delta = Assert.Single(ContainerCodec.EncodeSlots(ContainerId.Inventory, c, [0, 1, 2]));
+        var decoded = ContainerCodec.TryDecodeSlots(delta, Items())!.Value;
+
+        Assert.Equal(ContainerId.Inventory, decoded.Container);
+        Assert.Equal([new SlotChange(0, new ItemStack(Coins, 12)), new SlotChange(1, new ItemStack(Sword, 1)), new SlotChange(2, null)], decoded.Changes);
+    }
+
+    [Fact]
+    public void SlotDeltasSplitAWholeBankAcrossDeltasThatEachFit()
+    {
+        var c = Bag(ContainerId.Bank);
+        for (var i = 0; i < c.Size; i++)
+        {
+            c.Add(Logs, 1);
+        }
+
+        var deltas = ContainerCodec.EncodeSlots(ContainerId.Bank, c, Enumerable.Range(0, c.Size));
+        var copy = Bag(ContainerId.Bank);
+        foreach (var delta in deltas)
+        {
+            Assert.True(delta.Length <= Wire.MaxDeltaBytes);
+            copy.Mirror(ContainerCodec.TryDecodeSlots(delta, Items())!.Value.Changes);
+        }
+
+        Assert.True(deltas.Count > 1);
+        Assert.Equal(Enumerable.Range(0, c.Size).Select(c.At), Enumerable.Range(0, c.Size).Select(copy.At));
+    }
+
+    [Fact]
+    public void SlotDeltasWriteNothingForNoSlots()
+    {
+        Assert.Empty(ContainerCodec.EncodeSlots(ContainerId.Bank, Inventory(), []));
+    }
+
+    [Fact]
+    public void SlotDeltasAreRefusedWhenTheyAreNotWholeKnownOrPossible()
+    {
+        var items = Items();
+
+        Assert.NotNull(ContainerCodec.TryDecodeSlots(Entry(0, Coins, 5), items));
+        Assert.NotNull(ContainerCodec.TryDecodeSlots(Entry(0, 0, 0), items));
+        Assert.Null(ContainerCodec.TryDecodeSlots([], items));
+        Assert.Null(ContainerCodec.TryDecodeSlots([ItemSet.DeltaTag], items));
+        Assert.Null(ContainerCodec.TryDecodeSlots([9, 0], items));
+        Assert.Null(ContainerCodec.TryDecodeSlots([ItemSet.DeltaTag, 0, 1], items));
+        Assert.Null(ContainerCodec.TryDecodeSlots(Entry(0, Coins, 5, container: 3), items));
+        Assert.Null(ContainerCodec.TryDecodeSlots(Entry(0, 99, 1), items));
+        Assert.Null(ContainerCodec.TryDecodeSlots(Entry(0, Coins, 0), items));
+        Assert.Null(ContainerCodec.TryDecodeSlots(Entry(0, Coins, (uint)MaxStack + 1), items));
+        Assert.Null(ContainerCodec.TryDecodeSlots(Entry(0, Logs, 2), items));
+        Assert.Null(ContainerCodec.TryDecodeSlots(Entry(0, 0, 1), items));
+    }
+
+    [Fact]
+    public void SlotDeltasApplyNothingWhenOneEntryIsBad()
+    {
+        var bytes = new byte[18];
+        bytes[0] = ItemSet.DeltaTag;
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(4), Coins);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(6), 3);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(10), 1);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(12), 99);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(14), 3);
+
+        Assert.Null(ContainerCodec.TryDecodeSlots(bytes, Items()));
+    }
+
+    private static byte[] Entry(int slot, int item, uint count, byte container = 0)
+    {
+        var bytes = new byte[10];
+        bytes[0] = ItemSet.DeltaTag;
+        bytes[1] = container;
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(2), (ushort)slot);
+        BinaryPrimitives.WriteUInt16LittleEndian(bytes.AsSpan(4), (ushort)item);
+        BinaryPrimitives.WriteUInt32LittleEndian(bytes.AsSpan(6), count);
+        return bytes;
     }
 
     // TryExchange.
