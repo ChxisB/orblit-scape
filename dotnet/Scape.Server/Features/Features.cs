@@ -12,14 +12,19 @@ internal sealed record Features(
     Actors Actors,
     WorldObjects Objects,
     Skills Skills,
-    Interactions Interactions)
+    Interactions Interactions,
+    Combat Combat,
+    Prayers? Prayers)
 {
     /// <summary>
     /// The one place features join the server. Each feature adds its action kinds, systems and
     /// components to <paramref name="registry"/> here. Systems in one phase run in the order their
     /// features register.
     /// </summary>
-    /// <exception cref="ArgumentException">A creature keeps a shop and the options have no shop rules.</exception>
+    /// <exception cref="ArgumentException">
+    /// A creature keeps a shop and the options have no shop rules, or a loot table names an item
+    /// that does not exist.
+    /// </exception>
     public static Features Register(Registry registry, Services services, ScapeServerOptions options)
     {
         var movement = Movement.Register(registry, services, options.Spawn);
@@ -48,8 +53,24 @@ internal sealed record Features(
             Items = bags,
             Npcs = npcs,
         });
-        var features = new Features(movement, social, bags, ground, npcs, actors, objects, skills, interactions);
+        var prayers = options.Prayers is { } set ? Prayers.Register(registry, services, set, skills) : null;
+        var combat = Combat.Register(registry, services, new CombatOptions
+        {
+            Interactions = interactions,
+            Rules = options.Combat,
+            Skills = skills,
+            Items = options.Items,
+            Bags = bags,
+            Movement = movement,
+            Npcs = npcs,
+            Actors = actors,
+            Random = options.Random,
+            Spawn = options.Spawn,
+            Boost = (player, stat) => prayers?.PercentOf(player, stat) ?? 0,
+        });
+        var features = new Features(movement, social, bags, ground, npcs, actors, objects, skills, interactions, combat, prayers);
         features.RegisterMaking(registry, services, options);
+        features.RegisterSpellsAndLoot(registry, services, options);
         features.RegisterWindows(registry, services, options);
         return features;
     }
@@ -83,6 +104,31 @@ internal sealed record Features(
                 Random = options.Random,
             });
         }
+    }
+
+    private void RegisterSpellsAndLoot(Registry registry, Services services, ScapeServerOptions options)
+    {
+        if (options.Spells is { } spells)
+        {
+            Magic.Register(registry, services, new MagicOptions
+            {
+                Spells = spells,
+                Skills = Skills,
+                Bags = Items,
+                Combat = Combat,
+                Movement = Movement,
+                Npcs = Npcs,
+            });
+        }
+
+        Loot.Register(new LootOptions
+        {
+            Combat = Combat,
+            Ground = Ground,
+            Items = options.Items,
+            Npcs = options.Npcs,
+            Random = options.Random,
+        });
     }
 
     private void RegisterWindows(Registry registry, Services services, ScapeServerOptions options)

@@ -32,7 +32,7 @@ public sealed class Interactions
     private readonly Dictionary<string, Action<string, PlacedObject>> _objectActions = [];
     private readonly Dictionary<(int Item, int Object), Action<string, int, PlacedObject>> _useOnObject = [];
     private readonly Dictionary<(int, int), Action<string, int, int>> _useOnItem = [];
-    private readonly Dictionary<int, Action<string, PlacedNpc>> _npcActions = [];
+    private readonly Dictionary<int, (Action<string, PlacedNpc> Action, Func<string, PlacedNpc, Reach>? Reach)> _npcActions = [];
 
     private Interactions(Registry registry, Services services, InteractionsOptions options)
     {
@@ -103,13 +103,14 @@ public sealed class Interactions
 
     /// <summary>
     /// Runs <paramref name="action"/> with the player and the creature when a player picks
-    /// <paramref name="option"/> on a creature, once they stand beside it. The option is one of
-    /// <see cref="NpcOption"/>, and one feature owns each.
+    /// <paramref name="option"/> on a creature, once they stand where they can reach it. The
+    /// option is one of <see cref="NpcOption"/>, and one feature owns each. The player walks up
+    /// beside the creature unless <paramref name="reach"/> says where else to stand.
     /// </summary>
     /// <exception cref="InvalidOperationException">The option already has an action.</exception>
-    public void AddNpcAction(int option, Action<string, PlacedNpc> action)
+    public void AddNpcAction(int option, Action<string, PlacedNpc> action, Func<string, PlacedNpc, Reach>? reach = null)
     {
-        if (!_npcActions.TryAdd(option, action))
+        if (!_npcActions.TryAdd(option, (action, reach)))
         {
             throw new InvalidOperationException("That creature option already has an action.");
         }
@@ -154,12 +155,13 @@ public sealed class Interactions
 
     private void ClickNpc(string player, Interact click)
     {
-        if (_options.Npcs.Find((ulong)click.Id) is not { } npc || !_npcActions.TryGetValue(click.Option, out var action))
+        if (_options.Npcs.Find((ulong)click.Id) is not { } npc || !_npcActions.TryGetValue(click.Option, out var option))
         {
             return;
         }
 
-        Start(player, new Beside(Footprint.OfTile(npc.Tile)), () => action(player, npc));
+        var reach = option.Reach?.Invoke(player, npc) ?? new Beside(Footprint.OfTile(npc.Tile));
+        Start(player, reach, () => option.Action(player, npc));
     }
 
     private void ClickObject(string player, Interact click)

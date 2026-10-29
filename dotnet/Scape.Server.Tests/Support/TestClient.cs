@@ -15,6 +15,7 @@ internal sealed class TestClient : IAsyncDisposable
     private readonly ComponentType _ground;
     private readonly ComponentType _object;
     private readonly ComponentType _npc;
+    private readonly ComponentType _health;
     private readonly ComponentType _look;
     private readonly ComponentType _anim;
 
@@ -25,12 +26,13 @@ internal sealed class TestClient : IAsyncDisposable
         _ground = World.RegisterComponent(GroundItem.Name, ComponentKind.Int32, GroundItem.Ints);
         _object = World.RegisterComponent(WorldObject.Name, ComponentKind.Int32, WorldObject.Ints);
         _npc = World.RegisterComponent(Npc.Name, ComponentKind.Int32, Npc.Ints);
+        _health = World.RegisterComponent(Health.Name, ComponentKind.Int32, Health.Ints);
         _look = World.RegisterComponent(Look.Name, ComponentKind.Int32, Look.Ints);
         _anim = World.RegisterComponent(Anim.Name, ComponentKind.Int32, Anim.Ints);
         Client = new NetClient(new NetClientOptions
         {
             World = World,
-            Set = new ReplicationSet([Position, _ground, _object, _npc, _look, _anim]),
+            Set = new ReplicationSet([Position, _ground, _object, _npc, _health, _look, _anim]),
             NetworkId = networkId,
             Transport = Link.Client,
             OnMessage = body => _received.Enqueue(MessageCodec.DecodeServer(body)),
@@ -56,6 +58,9 @@ internal sealed class TestClient : IAsyncDisposable
     /// <summary>The text of each notice, oldest first.</summary>
     public IReadOnlyList<string> Notices => [.. Messages.OfType<Notice>().Select(notice => notice.Text)];
 
+    /// <summary>Every hit this client has been shown, oldest first.</summary>
+    public IReadOnlyList<Hit> Hits => [.. Messages.OfType<Hit>()];
+
     /// <summary>The network id of this client's own avatar.</summary>
     public long Avatar => Messages.OfType<Avatar>().Single().NetworkId;
 
@@ -75,6 +80,9 @@ internal sealed class TestClient : IAsyncDisposable
     public TileCoord? TileOf(long networkId) =>
         BytesOf(networkId, Position) is { } bytes ? TilePosition.Nearest(TilePosition.Read(bytes)) : null;
 
+    /// <summary>The hit points of the entity with <paramref name="networkId"/> as this client sees them, or null when it has none.</summary>
+    public (int Now, int Max)? HealthOf(long networkId) => BytesOf(networkId, _health) is { } bytes ? Pair(bytes) : null;
+
     /// <summary>How the entity with <paramref name="networkId"/> looks as this client sees it, or null.</summary>
     public Look? LookOf(long networkId) => BytesOf(networkId, _look) is { } bytes ? Look.TryRead(bytes) : null;
 
@@ -91,6 +99,9 @@ internal sealed class TestClient : IAsyncDisposable
 
     /// <summary>Sends a click of <paramref name="kind"/> on <paramref name="id"/>, as <see cref="InteractKind"/> says.</summary>
     public Task ClickAsync(int kind, long id, int option = 0) => SendAsync(new Interact(kind, id, option));
+
+    /// <summary>Sends a click to attack the creature <paramref name="networkId"/>.</summary>
+    public Task AttackAsync(long networkId) => ClickAsync(InteractKind.Npc, networkId, NpcOption.Attack);
 
     public Task SendBytesAsync(byte[] bytes)
     {

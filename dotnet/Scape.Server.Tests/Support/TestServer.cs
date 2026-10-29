@@ -34,6 +34,7 @@ internal sealed class TestServer : IAsyncDisposable
         Skills = DefaultSkills.All,
         Nodes = DefaultNodes.All,
         Shops = DefaultShops.Rules,
+        Combat = DefaultCombat.Rules,
         Random = new Random(7),
     };
 

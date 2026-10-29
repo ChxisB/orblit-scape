@@ -138,6 +138,18 @@ public sealed class ActorsTests : IAsyncDisposable
 
     // Acts.
 
+    private static NpcSet Rats(int health, int speed = 4) =>
+        new([new NpcDef(1, "Rat", fight: new NpcFight(health, defence: 1, speed: speed, respawnTicks: 20))]);
+
+    /// <summary>Starts the server again with <paramref name="rats"/> and dice whose every hit roll answers <paramref name="hit"/>.</summary>
+    private async Task StartAsync(NpcSet rats, double hit = 0, int damage = 1)
+    {
+        await _test.DisposeAsync();
+        _test = new TestServer(options => options with { Npcs = rats, Random = new FightDice(hit, damage) });
+    }
+
+    private PlacedNpc PlaceRat() => Server.Npcs.Spawn(new NpcSpawn(1, new TileCoord(33, 32, 0)));
+
     /// <summary>What <paramref name="viewer"/> sees <paramref name="networkId"/> doing after each of the next <paramref name="ticks"/> ticks.</summary>
     private async Task<List<Anim>> WatchAsync(TestClient viewer, long networkId, int ticks)
     {
@@ -152,6 +164,50 @@ public sealed class ActorsTests : IAsyncDisposable
         }
 
         return seen;
+    }
+
+    [Fact]
+    public async Task AnAttackPlaysAttackForTheOtherPlayer()
+    {
+        await StartAsync(Rats(50, speed: 1000));
+        var ana = await _test.JoinAsync("Ana");
+        var bo = await _test.JoinAsync("Bo");
+        var rat = PlaceRat();
+        await _test.TickAsync(2);
+
+        await ana.AttackAsync((long)rat.NetworkId);
+
+        var seen = await WatchAsync(bo, ana.Avatar, 6);
+        Assert.Contains(ActorState.Attack, seen.Select(anim => anim.Act));
+    }
+
+    [Fact]
+    public async Task EachSwingIsANewCountOfTheSameAct()
+    {
+        await StartAsync(Rats(50, speed: 1000));
+        var ana = await _test.JoinAsync("Ana");
+        var rat = PlaceRat();
+        await _test.TickAsync(2);
+
+        await ana.AttackAsync((long)rat.NetworkId);
+
+        var seen = await WatchAsync(ana, ana.Avatar, 10);
+        var swings = seen.Where(anim => anim.Act == ActorState.Attack).Select(anim => anim.Seq).Distinct();
+        Assert.True(swings.Count() > 1);
+    }
+
+    [Fact]
+    public async Task AHitMakesTheCreatureHurt()
+    {
+        await StartAsync(Rats(50, speed: 1000));
+        var ana = await _test.JoinAsync("Ana");
+        var rat = PlaceRat();
+        await _test.TickAsync(2);
+
+        await ana.AttackAsync((long)rat.NetworkId);
+
+        var seen = await WatchAsync(ana, (long)rat.NetworkId, 10);
+        Assert.Contains(ActorState.Hurt, seen.Select(anim => anim.Act));
     }
 
     [Fact]
@@ -192,5 +248,65 @@ public sealed class ActorsTests : IAsyncDisposable
 
         var seen = await WatchAsync(ana, ana.Avatar, Gathering.Ticks + 2);
         Assert.All(seen, anim => Assert.Null(anim.Act));
+    }
+
+    [Fact]
+    public async Task AMissDoesNotMakeTheCreatureHurt()
+    {
+        // The rat swings back once only, so its attack cannot hide a hurt that a later miss plays.
+        await StartAsync(Rats(50, speed: 1000), hit: 0.99);
+        var ana = await _test.JoinAsync("Ana");
+        var rat = PlaceRat();
+        await _test.TickAsync(2);
+
+        await ana.AttackAsync((long)rat.NetworkId);
+
+        var seen = await WatchAsync(ana, (long)rat.NetworkId, 10);
+        Assert.NotEmpty(seen);
+        Assert.DoesNotContain(ActorState.Hurt, seen.Select(anim => anim.Act));
+    }
+
+    [Fact]
+    public async Task ACreatureThatDiesPlaysDeathLingersThenGoes()
+    {
+        await StartAsync(Rats(1), damage: 99);
+        var ana = await _test.JoinAsync("Ana");
+        var rat = (long)PlaceRat().NetworkId;
+        await _test.TickAsync(2);
+
+        await ana.AttackAsync(rat);
+        await _test.TickAsync();
+        Assert.Equal(ActorState.Death, ana.AnimOf(rat)?.Act);
+
+        await _test.TickAsync(Npcs.DeathTicks - 1);
+        Assert.Equal(ActorState.Death, ana.AnimOf(rat)?.Act);
+
+        await _test.TickAsync(2);
+        Assert.Null(ana.AnimOf(rat));
+    }
+
+    [Fact]
+    public async Task ADyingCreatureCannotBeAttackedAgain()
+    {
+        await StartAsync(Rats(1), damage: 99);
+        var ana = await _test.JoinAsync("Ana");
+        var rat = (long)PlaceRat().NetworkId;
+        await _test.TickAsync(2);
+        await ana.AttackAsync(rat);
+        await _test.TickAsync();
+        var swings = ana.Hits.Count;
+
+        await ana.AttackAsync(rat);
+        await _test.TickAsync(2);
+
+        Assert.Equal(swings, ana.Hits.Count);
+    }
+
+    /// <summary>Dice for a fight. Every hit roll answers the first. The damage answers the second, held under the most the roll allows.</summary>
+    private sealed class FightDice(double hit, int damage) : Random
+    {
+        public override double NextDouble() => hit;
+
+        public override int Next(int maxValue) => Math.Min(damage, maxValue - 1);
     }
 }

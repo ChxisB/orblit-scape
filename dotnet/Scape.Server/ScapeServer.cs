@@ -33,6 +33,14 @@ public sealed record ScapeServerOptions
     /// <summary>What shops charge and pay. Required when a creature keeps a shop.</summary>
     public ShopRules? Shops { get; init; }
 
+    public required CombatRules Combat { get; init; }
+
+    /// <summary>What players can cast. A server without spells casts nothing.</summary>
+    public SpellSet? Spells { get; init; }
+
+    /// <summary>What players can pray for. A server without prayers has none.</summary>
+    public PrayerSet? Prayers { get; init; }
+
     /// <summary>Where creatures, drops, gathering and making get their chance. A test passes a seeded one.</summary>
     public Random Random { get; init; } = new();
 }
@@ -48,6 +56,12 @@ public sealed class ScapeServer : IDisposable
 
     /// <summary>Ticks a dropped player's avatar stays in the world, 6 seconds.</summary>
     private const int PlayerLingerTicks = 10;
+
+    /// <summary>
+    /// Ticks a dropped player who is in a fight stays, 60 seconds, so pulling the plug is not a
+    /// way out of one.
+    /// </summary>
+    private const int FightingLingerTicks = 100;
 
     /// <summary>Interest and active cells share one grid of 16 tiles a side.</summary>
     private const int CellTiles = 16;
@@ -78,6 +92,8 @@ public sealed class ScapeServer : IDisposable
         Objects = features.Objects;
         Skills = features.Skills;
         Interactions = features.Interactions;
+        Combat = features.Combat;
+        Prayers = features.Prayers;
         Wire = new ClientWire(bridge, Inbox);
         var set = new ReplicationSet(Registry.Replicated);
         var nearby = new GridInterest(set, Registry.Replicated.First(c => c.Name == TilePosition.Name), grid, InterestRing);
@@ -127,6 +143,10 @@ public sealed class ScapeServer : IDisposable
 
     public Interactions Interactions { get; }
 
+    public Combat Combat { get; }
+
+    public Prayers? Prayers { get; }
+
     public ClientWire Wire { get; }
 
     public NetHost Host { get; }
@@ -154,6 +174,7 @@ public sealed class ScapeServer : IDisposable
         },
         JoinTicks = LoginTicks,
         LingerTicks = PlayerLingerTicks,
+        LingerFor = key => Combat.IsFighting(key) ? FightingLingerTicks : PlayerLingerTicks,
     };
 
     private void DeliverIntents()

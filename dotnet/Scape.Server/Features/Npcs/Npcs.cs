@@ -41,11 +41,19 @@ public sealed class PlacedNpc
     /// <summary>The tile it stands on.</summary>
     public TileCoord Tile => Mover.Position;
 
+    /// <summary>Whether it is dead and waiting to stand again.</summary>
+    public bool IsDead => RespawnAt is not null;
+
+    /// <summary>Whether it is in a fight, which keeps it where it stands.</summary>
+    public bool IsEngaged { get; internal set; }
+
     internal Mover Mover { get; }
 
     internal bool Asleep { get; set; }
 
     internal bool Hunting { get; set; }
+
+    internal long? RespawnAt { get; set; }
 }
 
 /// <summary>What creatures ask of the rest of the server.</summary>
@@ -72,16 +80,22 @@ public sealed class Npcs
     /// <summary>The chance each tick that a creature with nothing to do sets off.</summary>
     public const double WanderChance = 0.1;
 
+    /// <summary>Ticks a creature that died stays in view, so its death can be shown.</summary>
+    public const int DeathTicks = 3;
+
+    private readonly ActionQueue _actions;
     private readonly Services _services;
     private readonly NpcsOptions _options;
     private readonly ComponentType _position;
     private readonly ComponentType _npc;
     private readonly List<PlacedNpc> _all = [];
     private readonly OrderedDictionary<ulong, PlacedNpc> _standing = [];
+    private readonly List<(ulong Entity, long Until)> _dying = [];
     private readonly List<Action<PlacedNpc>> _standHandlers = [];
 
-    private Npcs(Services services, NpcsOptions options)
+    private Npcs(ActionQueue actions, Services services, NpcsOptions options)
     {
+        _actions = actions;
         _services = services;
         _options = options;
         _position = services.World.RegisterComponent(TilePosition.Name, ComponentKind.Float32, TilePosition.Floats);
@@ -94,13 +108,13 @@ public sealed class Npcs
     /// </summary>
     public static Npcs Register(Registry registry, Services services, NpcsOptions options)
     {
-        var feature = new Npcs(services, options);
+        var feature = new Npcs(registry.Actions, services, options);
         registry.Replicate(feature._npc);
         registry.AddSystem(Phase.Npcs, feature.Step);
         return feature;
     }
 
-    /// <summary>How many creatures are placed.</summary>
+    /// <summary>How many creatures are placed, dead ones included.</summary>
     public int Count => _all.Count;
 
     /// <summary>The creatures standing in the world now.</summary>
@@ -109,8 +123,33 @@ public sealed class Npcs
     /// <summary>The creature standing with <paramref name="networkId"/>, or null.</summary>
     public PlacedNpc? Find(ulong networkId) => _standing.GetValueOrDefault(networkId);
 
-    /// <summary>Calls <paramref name="handler"/> each time a creature enters the world.</summary>
+    /// <summary>
+    /// Calls <paramref name="handler"/> each time a creature enters the world, at its spawn and
+    /// when it returns from the dead.
+    /// </summary>
     public void AddStandHandler(Action<PlacedNpc> handler) => _standHandlers.Add(handler);
+
+    /// <summary>
+    /// Takes <paramref name="npc"/> out of the world until its respawn time has passed and a
+    /// player is near. It stays in view for <see cref="DeathTicks"/>, or until it would stand
+    /// again if that is sooner, and nothing can act on it meanwhile. Does nothing for a creature
+    /// already dead.
+    /// </summary>
+    public void Kill(PlacedNpc npc)
+    {
+        if (npc.IsDead)
+        {
+            return;
+        }
+
+        _standing.Remove(npc.NetworkId);
+        var tick = _actions.Tick;
+        var respawnAt = tick + (npc.Def.Fight?.RespawnTicks ?? 1);
+        _dying.Add((npc.Entity, Math.Min(tick + DeathTicks, respawnAt)));
+        npc.RespawnAt = respawnAt;
+        npc.IsEngaged = false;
+        npc.Hunting = false;
+    }
 
     /// <summary>Puts a creature in the world.</summary>
     /// <returns>The creature, which is how a caller finds what it just placed.</returns>
@@ -170,6 +209,7 @@ public sealed class Npcs
 
         npc.Entity = entity;
         npc.NetworkId = _services.Hosting.Spawn(entity);
+        npc.RespawnAt = null;
         _standing[npc.NetworkId] = npc;
         Write(npc);
         foreach (var handler in _standHandlers)
@@ -180,11 +220,16 @@ public sealed class Npcs
 
     private void Step()
     {
+        ClearDead();
         var players = _options.PlayerTiles();
         foreach (var npc in _all)
         {
             npc.StepsLastTick = 0;
-            if (!_services.Active.IsActiveAt(npc.Home.X, npc.Home.Y))
+            if (npc.IsDead)
+            {
+                MaybeReturn(npc);
+            }
+            else if (!IsActive(npc))
             {
                 npc.Asleep = true;
             }
@@ -197,6 +242,31 @@ public sealed class Npcs
                 Move(npc, players);
             }
         }
+    }
+
+    private void ClearDead()
+    {
+        var tick = _actions.Tick;
+        foreach (var (entity, _) in _dying.Where(dying => dying.Until <= tick))
+        {
+            _services.Hosting.Despawn(entity);
+        }
+
+        _dying.RemoveAll(dying => dying.Until <= tick);
+    }
+
+    private bool IsActive(PlacedNpc npc) => _services.Active.IsActiveAt(npc.Home.X, npc.Home.Y);
+
+    private void MaybeReturn(PlacedNpc npc)
+    {
+        if (npc.RespawnAt > _actions.Tick || !IsActive(npc))
+        {
+            return;
+        }
+
+        npc.Mover.ClearPath();
+        npc.Mover.Position = npc.Home;
+        Stand(npc);
     }
 
     private void Wake(PlacedNpc npc)
@@ -223,6 +293,10 @@ public sealed class Npcs
         if (PreyOf(npc, players) is { } prey)
         {
             Chase(npc, prey);
+        }
+        else if (npc.IsEngaged)
+        {
+            npc.Mover.ClearPath();
         }
         else if (npc.Hunting)
         {
