@@ -29,7 +29,7 @@ internal sealed record Features(
     /// the options have no story, a loot table names an item that does not exist, or the story
     /// fails a check of <see cref="Quests"/> or <see cref="Talk"/>.
     /// </exception>
-    public static Features Register(Registry registry, Services services, ScapeServerOptions options)
+    public static Features Register(Registry registry, Services services, ScapeServerOptions options, Action<string, string> settled)
     {
         var movement = Movement.Register(registry, services, options.Spawn);
         var social = Social.Register(registry, services, movement.Standing);
@@ -75,7 +75,7 @@ internal sealed record Features(
         var features = new Features(movement, social, bags, ground, npcs, actors, objects, skills, interactions, combat, prayers);
         features.RegisterMaking(registry, services, options);
         features.RegisterSpellsAndLoot(registry, services, options);
-        var windows = features.RegisterWindows(registry, services, options);
+        var windows = features.RegisterWindows(registry, services, options, settled);
         return features with { Quests = features.RegisterStory(registry, services, options, windows) };
     }
 
@@ -135,7 +135,7 @@ internal sealed record Features(
         });
     }
 
-    private Windows RegisterWindows(Registry registry, Services services, ScapeServerOptions options)
+    private Windows RegisterWindows(Registry registry, Services services, ScapeServerOptions options, Action<string, string> settled)
     {
         var windows = Windows.Register(registry, services, Movement);
         Bank.Register(registry, services, new BankOptions { Interactions = Interactions, Bags = Items, Windows = windows });
@@ -165,6 +165,7 @@ internal sealed record Features(
             Items = options.Items,
             Windows = windows,
             Log = options.Log,
+            Settled = settled,
         });
         return windows;
     }

@@ -11,6 +11,7 @@ public sealed record ScapeServerOptions
 
     public required IPacer Pacer { get; init; }
 
+    /// <summary>Takes a line for the operator. A login that fails or a save that is not written logs from another thread.</summary>
     public required Action<string> Log { get; init; }
 
     public required TileMap Map { get; init; }
@@ -46,10 +47,13 @@ public sealed record ScapeServerOptions
 
     /// <summary>Where creatures, drops, gathering and making get their chance. A test passes a seeded one.</summary>
     public Random Random { get; init; } = new();
+
+    /// <summary>Where players are kept between visits. A server without it forgets them when they leave.</summary>
+    public Storage? Storage { get; init; }
 }
 
 /// <summary>The world, the host and the loop, wired together.</summary>
-public sealed class ScapeServer : IDisposable
+public sealed class ScapeServer : IAsyncDisposable
 {
     /// <summary>The bytes the net layer adds round a message before the host counts it.</summary>
     private const int WrapperBytes = 4;
@@ -85,7 +89,7 @@ public sealed class ScapeServer : IDisposable
         var grid = new Grid(CellTiles);
         Active = new ActiveCells(grid, ActiveRadius, GameTick.Period * ActiveHoldTicks, () => GameTick.Period * Registry.Actions.Tick);
         Registry.AddSystem(Phase.Inbound, DeliverIntents);
-        var features = Features.Register(Registry, new Services(World, options.Map, bridge, Active), options);
+        var features = Features.Register(Registry, new Services(World, options.Map, bridge, Active), options, (a, b) => Saves?.SaveTogether(a, b));
         Movement = features.Movement;
         Social = features.Social;
         Items = features.Items;
@@ -98,7 +102,14 @@ public sealed class ScapeServer : IDisposable
         Combat = features.Combat;
         Prayers = features.Prayers;
         Quests = features.Quests;
-        Wire = new ClientWire(bridge, Inbox);
+        Func<string, Login, Task<LoginRefusal?>>? gate = null;
+        if (options.Storage is { } storage)
+        {
+            Saves = RegisterSaves(storage, features, options);
+            gate = new Entrance(Saves, AccountsOf(storage)).CheckAsync;
+        }
+
+        Wire = new ClientWire(bridge, Inbox, options.Log, gate);
         var set = new ReplicationSet(Registry.Replicated);
         var nearby = new GridInterest(set, Registry.Replicated.First(c => c.Name == TilePosition.Name), grid, InterestRing);
         Registry.AddSystem(Phase.Inbound, () => Active.Update(nearby.FocusCells));
@@ -160,6 +171,9 @@ public sealed class ScapeServer : IDisposable
 
     public TickLoop Loop { get; }
 
+    /// <summary>Every player's save, or null for a server without storage.</summary>
+    internal Saves? Saves { get; }
+
     /// <summary>
     /// Puts <paramref name="objects"/> and <paramref name="npcs"/> in the world. Call it once,
     /// before players join. A throw leaves the placements before it in the world, and a second
@@ -179,11 +193,21 @@ public sealed class ScapeServer : IDisposable
         }
     }
 
-    public void Dispose()
+    /// <summary>Stops the host, saves every player in the world and waits for the store. Call it after the loop stops.</summary>
+    public async ValueTask DisposeAsync()
     {
+        // The host goes first, so no join or leave changes the world while it is saved.
         Host.Dispose();
+        if (Saves is { } saves)
+        {
+            await saves.ShutdownAsync();
+        }
+
         World.Dispose();
     }
+
+    private static Accounts? AccountsOf(Storage storage) =>
+        storage.Hasher is { } hasher ? new Accounts(storage.Queue, hasher, storage.Salt) : null;
 
     private SessionPolicy Sessions() => new()
     {
@@ -192,9 +216,11 @@ public sealed class ScapeServer : IDisposable
         {
             Wire.OnJoin(key);
             Registry.PlayerJoined(key);
+            Saves?.Arrived(key);
         },
-        OnGone = (key, _) =>
+        OnGone = (key, reason) =>
         {
+            Saves?.Left(key, reason);
             Wire.OnGone(key);
             Registry.PlayerGone(key);
         },
@@ -202,6 +228,25 @@ public sealed class ScapeServer : IDisposable
         LingerTicks = PlayerLingerTicks,
         LingerFor = key => Combat.IsFighting(key) ? FightingLingerTicks : PlayerLingerTicks,
     };
+
+    /// <summary>Builds the saves kept in <paramref name="storage"/> and saves on the tick.</summary>
+    private Saves RegisterSaves(Storage storage, Features features, ScapeServerOptions options)
+    {
+        var saves = new Saves(new SavesOptions
+        {
+            Queue = storage.Queue,
+            States = new PlayerStates(features, options.Map),
+            AutoSaver = storage.AutoSaver,
+            SessionOf = key => Host.SessionStateOf(key),
+            Log = options.Log,
+        });
+        Registry.AddSystem(Phase.Outbound, () =>
+        {
+            saves.Autosave(Registry.Actions.Tick);
+            saves.Sweep();
+        });
+        return saves;
+    }
 
     private void DeliverIntents()
     {

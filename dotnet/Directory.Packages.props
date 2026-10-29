@@ -15,5 +15,6 @@
     <PackageVersion Include="Orblit.Parity" Version="0.1.0" />
     <PackageVersion Include="Orblit.Progress" Version="0.1.0" />
     <PackageVersion Include="Orblit.Quest" Version="0.1.0" />
+    <PackageVersion Include="Orblit.Save" Version="0.2.1" />
   </ItemGroup>
 </Project>

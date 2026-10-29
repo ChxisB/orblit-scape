@@ -22,6 +22,12 @@ public sealed record TradesOptions
 
     /// <summary>Takes a line for each trade made, so an operator can follow items between players.</summary>
     public required Action<string> Log { get; init; }
+
+    /// <summary>
+    /// Tells whoever keeps players that the inventories of the two players changed together and
+    /// must be saved together.
+    /// </summary>
+    public required Action<string, string> Settled { get; init; }
 }
 
 /// <summary>
@@ -215,6 +221,7 @@ public sealed class Trades
 
         bagA.Exchange(givesA, givesB);
         bagB.Exchange(givesB, givesA);
+        _options.Settled(session.A, session.B);
         _options.Log($"Trade: {session.A} gave {Describe(givesA)}, {session.B} gave {Describe(givesB)}");
         End(session, "The trade is complete.");
     }

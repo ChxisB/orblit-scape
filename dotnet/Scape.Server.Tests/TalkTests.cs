@@ -1,5 +1,7 @@
+using System.Diagnostics.CodeAnalysis;
 using Orblit.Dialogue;
 using Orblit.Quest;
+using Orblit.Save;
 using Scape.Content;
 using Scape.Core;
 
@@ -9,18 +11,13 @@ public sealed class TalkTests : IAsyncDisposable
 {
     private static readonly QuestDefinition Drill = new("drill", "Drill", [new Stage("a", "a"), new Stage("b", "b")]);
 
-    private readonly PlacedNpc _brindle;
-    private readonly PlacedNpc _guard;
-    private readonly PlacedNpc _keeper;
-    private TestServer _test = new();
+    private readonly MemorySaveStore _store = new();
+    private TestServer _test;
+    private PlacedNpc _brindle;
+    private PlacedNpc _guard;
+    private PlacedNpc _keeper;
 
-    /// <summary>Puts the three speakers beside the spawn.</summary>
-    public TalkTests()
-    {
-        _brindle = Server.Npcs.Spawn(new NpcSpawn(NpcId.Lamplighter, At(31, 32)));
-        _guard = Server.Npcs.Spawn(new NpcSpawn(NpcId.Guard, At(33, 32)));
-        _keeper = Server.Npcs.Spawn(new NpcSpawn(NpcId.Shopkeeper, At(32, 34)));
-    }
+    public TalkTests() => Place(new TestServer());
 
     private ScapeServer Server => _test.Server;
 
@@ -32,6 +29,34 @@ public sealed class TalkTests : IAsyncDisposable
     private static TileCoord At(int x, int y) => new(x, y, 0);
 
     private static Dictionary<string, long> Lantern(long stage) => new() { ["lantern"] = stage };
+
+    /// <summary>Makes <paramref name="test"/> the server and puts the three speakers beside its spawn.</summary>
+    [MemberNotNull(nameof(_test), nameof(_brindle), nameof(_guard), nameof(_keeper))]
+    private void Place(TestServer test)
+    {
+        _test = test;
+        _brindle = Server.Npcs.Spawn(new NpcSpawn(NpcId.Lamplighter, At(31, 32)));
+        _guard = Server.Npcs.Spawn(new NpcSpawn(NpcId.Guard, At(33, 32)));
+        _keeper = Server.Npcs.Spawn(new NpcSpawn(NpcId.Shopkeeper, At(32, 34)));
+    }
+
+    /// <summary>Stops the server, which saves, and starts another on the test's store with the speakers.</summary>
+    private async Task RestartAsync()
+    {
+        await _test.DisposeAsync();
+        Place(new TestServer(options => options with { Storage = Stores.On(_store) }));
+    }
+
+    /// <summary>Starts the lantern quest for Ana on a server that saves, then stops it.</summary>
+    private async Task StartLanternAndStopAsync()
+    {
+        await RestartAsync();
+        var ana = await JoinAsync("Ana");
+        await SayAsync(ana, _brindle);
+        await PressAsync(ana, new Continue());
+        await PressAsync(ana, new Choose(0));
+        await _test.DisposeAsync();
+    }
 
     private async Task<TestClient> JoinAsync(string name)
     {
@@ -99,6 +124,41 @@ public sealed class TalkTests : IAsyncDisposable
 
         Assert.Equal(80, Server.Skills.XpOf("ana", "firemaking"));
         Assert.Equal(["Quest complete: The Dark Lantern"], ana.Notices.Where(notice => notice.StartsWith("Quest complete", StringComparison.Ordinal)));
+    }
+
+    [Fact]
+    public async Task AQuestAdvancesAcrossARestartAndCompletesWithItsReward()
+    {
+        await StartLanternAndStopAsync();
+
+        await RestartAsync();
+        var ana = await JoinAsync("Ana");
+        await _test.TickAsync(2);
+        Assert.Equal(Lantern(1), Quests.StagesOf("ana"));
+        await SayAsync(ana, _guard);
+        await PressAsync(ana, new Continue());
+        await SayAsync(ana, _brindle);
+
+        Assert.Equal(Lantern(3), Quests.StagesOf("ana"));
+        Assert.Equal(80, Server.Skills.XpOf("ana", "firemaking"));
+    }
+
+    [Fact]
+    public async Task AQuestIsRefusedByAServerWithNoStoryLeavingTheSave()
+    {
+        await StartLanternAndStopAsync();
+        _test = new TestServer(options => options with
+        {
+            Storage = Stores.On(_store),
+            Npcs = new NpcSet([DefaultNpcs.All.Require(NpcId.Chicken)]),
+            Story = null,
+        });
+
+        var ana = await JoinAsync("Ana");
+
+        Assert.Equal([LoginRefusal.Unavailable.ToWire()], ana.Goodbyes);
+        var saved = PlayerState.Decode((await _store.ReadAsync(StoreKeys.SaveOf("ana")))!.Bytes.Span);
+        Assert.Equal(Lantern(1), saved.Quests);
     }
 
     [Fact]

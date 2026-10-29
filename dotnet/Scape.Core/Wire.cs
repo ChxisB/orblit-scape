@@ -58,7 +58,7 @@ public static partial class Wire
     /// The text in <paramref name="bytes"/>. Throws <see cref="ArgumentException"/> when they are
     /// not UTF-8. A leading byte order mark is not part of the text, so one is dropped.
     /// </summary>
-    internal static string DecodeText(ReadOnlySpan<byte> bytes) =>
+    public static string DecodeText(ReadOnlySpan<byte> bytes) =>
         Strict.GetString(bytes.StartsWith(ByteOrderMark) ? bytes[ByteOrderMark.Length..] : bytes);
 
     /// <summary>Throws unless <paramref name="value"/> is 0 to <paramref name="max"/>.</summary>

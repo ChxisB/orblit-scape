@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Orblit.Net;
 using Scape.Content;
 using Scape.Core;
@@ -8,6 +9,7 @@ namespace Scape.Server.Tests;
 internal sealed class TestServer : IAsyncDisposable
 {
     private readonly List<TestClient> _clients = [];
+    private bool _disposed;
 
     /// <param name="change">Changes the default <see cref="Options"/>, such as to other creatures or dice.</param>
     public TestServer(Func<ScapeServerOptions, ScapeServerOptions>? change = null)
@@ -53,13 +55,30 @@ internal sealed class TestServer : IAsyncDisposable
         return client;
     }
 
-    /// <summary>Connects a client, logs it in as <paramref name="name"/> and runs a tick so it is placed.</summary>
-    public async Task<TestClient> JoinAsync(string name)
+    /// <summary>
+    /// Connects a client, logs it in as <paramref name="name"/>, waits for the server to decide and
+    /// runs a tick so it is placed. A server with storage decides off the tick.
+    /// </summary>
+    public async Task<TestClient> JoinAsync(string name, string password = "", bool create = false)
     {
         var client = Connect();
-        await client.LoginAsync(name);
+        await client.LoginAsync(name, password, create);
+        var key = Wire.NameKey(name);
+        await UntilAsync(() => client.Admitted || client.Goodbyes.Count > 0 || Server.Host.SessionStateOf(key) == SessionState.Live);
         await TickAsync();
         return client;
+    }
+
+    /// <summary>Lets the links deliver until <paramref name="done"/> holds. Fails after five seconds.</summary>
+    public async Task UntilAsync(Func<bool> done)
+    {
+        var waited = Stopwatch.StartNew();
+        while (!done())
+        {
+            Assert.True(waited.Elapsed < TimeSpan.FromSeconds(5), "Timed out");
+            await Task.Delay(1);
+            await PumpAsync();
+        }
     }
 
     /// <summary>Closes a client's link and stops pumping it, as when a player quits.</summary>
@@ -94,13 +113,20 @@ internal sealed class TestServer : IAsyncDisposable
         }
     }
 
+    /// <summary>Closes every client, then stops the server, which saves. A second call does nothing.</summary>
     public async ValueTask DisposeAsync()
     {
+        if (_disposed)
+        {
+            return;
+        }
+
+        _disposed = true;
         foreach (var client in _clients)
         {
             await client.DisposeAsync();
         }
 
-        Server.Dispose();
+        await Server.DisposeAsync();
     }
 }

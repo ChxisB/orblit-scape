@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using Orblit.Save;
 using Scape.Content;
 using Scape.Core;
 
@@ -5,16 +7,26 @@ namespace Scape.Server.Tests;
 
 public sealed class TradesTests : IAsyncDisposable
 {
-    private readonly List<string> _logged = [];
+    // Storage logs off the tick.
+    private readonly ConcurrentQueue<string> _logged = [];
     private TestServer _test;
 
-    public TradesTests() => _test = new TestServer(options => options with { Log = _logged.Add });
+    public TradesTests() => _test = new TestServer(options => options with { Log = _logged.Enqueue });
 
     private ScapeServer Server => _test.Server;
 
     public ValueTask DisposeAsync() => _test.DisposeAsync();
 
     private static TileCoord At(int x, int y) => new(x, y, 0);
+
+    private static DateTimeOffset Year(int year) => new(year, 1, 1, 0, 0, 0, TimeSpan.Zero);
+
+    private static async Task<byte[]> SaveOfAsync(MemorySaveStore store, string player) =>
+        (await store.ReadAsync(StoreKeys.SaveOf(player)))!.Bytes.ToArray();
+
+    /// <summary>Writes the journal of a trade between Ana and <paramref name="other"/>, stamped at the start of <paramref name="year"/>.</summary>
+    private static Task JournalAsync(MemorySaveStore store, string other, Dictionary<string, byte[]> states, int year) =>
+        store.WriteAsync(StoreKeys.TradeOf("ana", other), new SaveRecord(TradeJournal.Encode(states), new Custom("trade"), Year(year)));
 
     private Container Bag(string player) => Server.Items.ContainerOf(player, ContainerId.Inventory)!;
 
@@ -68,6 +80,64 @@ public sealed class TradesTests : IAsyncDisposable
             await bo.SendAsync(new TradeAccept());
             await _test.TickAsync();
         }
+    }
+
+    /// <summary>Stops the server, which saves, and starts another on <paramref name="store"/>, as a restart does.</summary>
+    private async Task StartAsync(ISaveStore store, Func<DateTimeOffset>? clock = null)
+    {
+        await _test.DisposeAsync();
+        _test = new TestServer(options => options with { Log = _logged.Enqueue, Storage = Stores.On(store, clock) });
+    }
+
+    /// <summary>
+    /// Ana holds 3 logs and Bo 2 feathers, both saved. They trade, and <paramref name="store"/>
+    /// keeps only <paramref name="kept"/> of the writes that follow the last accept. A new server
+    /// then reads both players.
+    /// </summary>
+    private async Task CrashAsync(int kept, CrashingStore store, Func<DateTimeOffset> clock)
+    {
+        await StartAsync(store, clock);
+        await JoinAsync("Ana");
+        await JoinAsync("Bo");
+        Bag("ana").Add(ItemId.Logs, 3);
+        Bag("bo").Add(ItemId.Feathers, 2);
+        await StartAsync(store, clock);
+        var (ana, bo) = await TradingAsync();
+        await OfferAsync(ana, ItemId.Logs, 3);
+        await OfferAsync(bo, ItemId.Feathers, 2);
+        await ana.SendAsync(new TradeAccept());
+        await bo.SendAsync(new TradeAccept());
+        await _test.TickAsync();
+        await ana.SendAsync(new TradeAccept());
+        store.Budget = kept;
+        await bo.SendAsync(new TradeAccept());
+        await _test.TickAsync();
+        await _test.DisposeAsync();
+        store.Budget = null;
+        await StartAsync(store, clock);
+        await JoinAsync("Ana");
+        await JoinAsync("Bo");
+    }
+
+    /// <summary>A store holding a save for Ana and Bo, with Ana's mining at <paramref name="xp"/>.</summary>
+    private async Task<(MemorySaveStore Store, byte[] Ana, byte[] Bo)> SavedAsync(long xp)
+    {
+        var store = new MemorySaveStore();
+        await StartAsync(store);
+        await JoinAsync("Ana");
+        await JoinAsync("Bo");
+        Server.Skills.Grant("ana", "mining", xp);
+        await _test.DisposeAsync();
+        return (store, await SaveOfAsync(store, "ana"), await SaveOfAsync(store, "bo"));
+    }
+
+    /// <summary>Gives Ana 800 more mining in a later visit, so her save is newer than the one <see cref="SavedAsync"/> made.</summary>
+    private async Task GrowAsync(ISaveStore store)
+    {
+        await StartAsync(store);
+        await JoinAsync("Ana");
+        Server.Skills.Grant("ana", "mining", 800);
+        await _test.DisposeAsync();
     }
 
     // A request.
@@ -339,17 +409,36 @@ public sealed class TradesTests : IAsyncDisposable
         Assert.True(ana.Views[^1].Step.TheyAccepted);
     }
 
-    // The Dart test also checks that no trade journal was written. The journal comes with saves in 3f.
     [Fact]
-    public async Task ATradeEndsWhenNothingWasOffered()
+    public async Task ATradeEndsWithNothingSavedWhenNothingWasOffered()
     {
+        var store = new SpyStore(new MemorySaveStore());
+        await StartAsync(store);
         var (ana, bo) = await TradingAsync();
 
         await AcceptTwiceAsync(ana, bo);
+        await _test.DisposeAsync();
 
         Assert.Contains("Nothing was traded.", ana.Notices);
         Assert.Equal(1, ana.Closes);
         Assert.Empty(_logged);
+        Assert.DoesNotContain(store.Writes, write => write.Key.StartsWith("t-", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task ATradeLeavesItsJournalEmptyOnceItIsSaved()
+    {
+        var store = new MemorySaveStore();
+        await StartAsync(store);
+        var (ana, bo) = await PairAsync();
+        Bag("ana").Add(ItemId.Logs, 1);
+        await OpenAsync(ana, bo);
+        await OfferAsync(ana, ItemId.Logs, 1);
+
+        await AcceptTwiceAsync(ana, bo);
+        await _test.DisposeAsync();
+
+        Assert.True((await store.ReadAsync(StoreKeys.TradeOf("ana", "bo")))!.Bytes.IsEmpty);
     }
 
     /// <summary>Opens a trade in which Ana offers one each of a bag of different items, 1000 and up.</summary>
@@ -513,6 +602,153 @@ public sealed class TradesTests : IAsyncDisposable
 
         Assert.Contains("bo left the trade.", ana.Notices);
         Assert.Equal(1, ana.Closes);
+    }
+
+    // A crash in a trade.
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(4)]
+    public async Task ACrashInATradeAfterAnyOfItsFourWritesLeavesTheItemsWhole(int kept)
+    {
+        await CrashAsync(kept, new CrashingStore(new MemorySaveStore()), Stores.Stepping());
+
+        var traded = kept > 0;
+        Assert.Equal(traded ? 0 : 3, Bag("ana").CountOf(ItemId.Logs));
+        Assert.Equal(traded ? 3 : 0, Bag("bo").CountOf(ItemId.Logs));
+        Assert.Equal(traded ? 2 : 0, Bag("ana").CountOf(ItemId.Feathers));
+        Assert.Equal(traded ? 0 : 2, Bag("bo").CountOf(ItemId.Feathers));
+    }
+
+    [Fact]
+    public async Task ACrashInATradeIsFinishedOnceAndNotAgainOnTheNextStart()
+    {
+        var store = new CrashingStore(new MemorySaveStore());
+        var clock = Stores.Stepping();
+        await CrashAsync(1, store, clock);
+        await _test.DisposeAsync();
+        Assert.True((await store.ReadAsync(StoreKeys.TradeOf("ana", "bo")))!.Bytes.IsEmpty);
+        Assert.Equal(2, _logged.Count(line => line.Contains("cut short", StringComparison.Ordinal)));
+        _logged.Clear();
+
+        await StartAsync(store, clock);
+        await JoinAsync("Ana");
+
+        Assert.Empty(_logged);
+    }
+
+    // A trade journal.
+
+    [Fact]
+    public async Task ATradeJournalBringsASaveOlderThanItUpToIt()
+    {
+        var (store, older, bo) = await SavedAsync(100);
+        await GrowAsync(store);
+        await JournalAsync(store, "bo", new() { ["ana"] = older, ["bo"] = bo }, 2100);
+
+        await StartAsync(store);
+        await JoinAsync("Ana");
+
+        Assert.Equal(100, Server.Skills.XpOf("ana", "mining"));
+    }
+
+    [Fact]
+    public async Task ATradeJournalLeavesASaveNewerThanItAlone()
+    {
+        var (store, older, bo) = await SavedAsync(100);
+        await GrowAsync(store);
+        await JournalAsync(store, "bo", new() { ["ana"] = older, ["bo"] = bo }, 2020);
+
+        await StartAsync(store);
+        await JoinAsync("Ana");
+
+        Assert.Equal(900, Server.Skills.XpOf("ana", "mining"));
+    }
+
+    [Fact]
+    public async Task ADamagedTradeJournalIsLoggedAndDoesNotStopALogin()
+    {
+        var store = new MemorySaveStore();
+        await store.WriteAsync(StoreKeys.TradeOf("ana", "bo"), new SaveRecord([1, 2, 3], new Custom("trade"), Year(2026)));
+        await StartAsync(store);
+
+        var ana = await JoinAsync("Ana");
+
+        Assert.True(ana.Admitted);
+        Assert.Contains("is damaged and was left", Assert.Single(_logged), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ATradeJournalReplayTakesEachPlayerFromTheNewestJournalThatNamesThem()
+    {
+        var (store, older, bo) = await SavedAsync(100);
+        await GrowAsync(store);
+        var newest = await SaveOfAsync(store, "ana");
+
+        // The newer journal is stored first, so a replay in the order the store lists them would
+        // let the older one win.
+        await JournalAsync(store, "cy", new() { ["ana"] = newest, ["cy"] = bo }, 2101);
+        await JournalAsync(store, "bo", new() { ["ana"] = older, ["bo"] = bo }, 2100);
+
+        await StartAsync(store);
+        await JoinAsync("Ana");
+
+        Assert.Equal(900, Server.Skills.XpOf("ana", "mining"));
+    }
+
+    [Fact]
+    public async Task ATradeJournalWithAStateThatIsNotASaveIsLeftAlone()
+    {
+        var (store, _, bo) = await SavedAsync(100);
+        await JournalAsync(store, "bo", new() { ["ana"] = [1, 2, 3], ["bo"] = bo }, 2100);
+
+        await StartAsync(store);
+        var ana = await JoinAsync("Ana");
+
+        Assert.True(ana.Admitted);
+        Assert.Equal(100, Server.Skills.XpOf("ana", "mining"));
+        Assert.Contains("is damaged and was left", Assert.Single(_logged), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ATradeJournalStaysWhenASaveItCoversCouldNotBeWritten()
+    {
+        var store = new SpyStore(new MemorySaveStore());
+        await StartAsync(store);
+        var (ana, bo) = await PairAsync();
+        Bag("ana").Add(ItemId.Logs, 1);
+        await OpenAsync(ana, bo);
+        await OfferAsync(ana, ItemId.Logs, 1);
+        store.Failing.Add(StoreKeys.SaveOf("bo"));
+
+        await AcceptTwiceAsync(ana, bo);
+        await _test.TickAsync(2);
+        await _test.DisposeAsync();
+
+        Assert.False((await store.ReadAsync(StoreKeys.TradeOf("ana", "bo")))!.Bytes.IsEmpty);
+    }
+
+    [Fact]
+    public void ATradeJournalNamesTwoPlayersAndNobodyElse()
+    {
+        Assert.Throws<FormatException>(() => TradeJournal.Decode("{\"ana\":\"AA==\"}"u8));
+        Assert.Throws<FormatException>(() => TradeJournal.Decode("{\"ana\":\"AA==\",\"../x\":\"AA==\"}"u8));
+
+        var states = TradeJournal.Decode(TradeJournal.Encode(new Dictionary<string, byte[]> { ["ana"] = new byte[1], ["bo"] = new byte[2] }));
+
+        Assert.Equal(["ana", "bo"], states.Keys);
+        Assert.Equal(new byte[1], states["ana"]);
+        Assert.Equal(new byte[2], states["bo"]);
+    }
+
+    [Fact]
+    public void ATradeJournalHasOneKeyForAPairWhicheverWayRound()
+    {
+        Assert.Equal(StoreKeys.TradeOf("ana", "bo"), StoreKeys.TradeOf("bo", "ana"));
+        Assert.NotEqual(StoreKeys.TradeOf("ab", "c"), StoreKeys.TradeOf("a", "bc"));
     }
 }
 

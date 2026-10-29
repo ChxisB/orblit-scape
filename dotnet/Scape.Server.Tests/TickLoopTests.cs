@@ -3,7 +3,7 @@ using Scape.Content;
 
 namespace Scape.Server.Tests;
 
-public sealed class TickLoopTests : IDisposable
+public sealed class TickLoopTests : IAsyncDisposable
 {
     private static readonly TimeSpan Period = TimeSpan.FromMilliseconds(600);
 
@@ -11,7 +11,7 @@ public sealed class TickLoopTests : IDisposable
     private readonly List<string> _lines = [];
     private ScapeServer? _server;
 
-    public void Dispose() => _server?.Dispose();
+    public ValueTask DisposeAsync() => _server?.DisposeAsync() ?? ValueTask.CompletedTask;
 
     private ScapeServer Build(int ticks)
     {

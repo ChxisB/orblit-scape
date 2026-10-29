@@ -7,5 +7,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Scape.Content\Scape.Content.csproj" />
     <ProjectReference Include="..\Scape.Server\Scape.Server.csproj" />
+    <PackageReference Include="Orblit.Parity" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\fixtures\scape_server\*.json" Link="fixtures\scape_server\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

@@ -89,9 +89,9 @@ internal sealed class TestClient : IAsyncDisposable
     /// <summary>What the entity with <paramref name="networkId"/> is doing as this client sees it, or null.</summary>
     public Anim? AnimOf(long networkId) => BytesOf(networkId, _anim) is { } bytes ? Anim.TryRead(bytes) : null;
 
-    public Task LoginAsync(string name)
+    public Task LoginAsync(string name, string password = "", bool create = false)
     {
-        Client.Join(MessageCodec.Encode(new Login(name)));
+        Client.Join(MessageCodec.Encode(new Login(name, password, create)));
         return Link.IdleAsync();
     }
 
