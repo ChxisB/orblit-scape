@@ -152,6 +152,8 @@ public sealed class PersistenceTests : IAsyncDisposable
         var first = await test.JoinAsync("Ana");
         test.Server.Skills.Grant("ana", "mining", 400);
         await first.Link.CloseAsync();
+        // Until the host hears of the close, Ana is live and the next login is told the name is taken.
+        await first.Link.IdleAsync();
 
         var gate = store.ReadGate = Stores.Gate();
         var second = test.Connect();
@@ -334,13 +336,15 @@ public sealed class PersistenceTests : IAsyncDisposable
     public async Task ARemovedPlayerIsSavedAsALeaveAndADroppedOneAsADisconnect()
     {
         var store = new MemorySaveStore();
-        var test = Start(store);
+        var storage = Stores.On(store);
+        var test = Start(storage);
         await test.JoinAsync("Ana");
         var bo = await test.JoinAsync("Bo");
 
         test.Server.Host.RemoveClient("ana");
         await bo.Link.CloseAsync();
         await test.TickAsync(12);
+        await storage.Queue.FlushAsync();
 
         Assert.IsType<Leave>((await store.ReadAsync(StoreKeys.SaveOf("ana")))!.Reason);
         Assert.IsType<Disconnect>((await store.ReadAsync(StoreKeys.SaveOf("bo")))!.Reason);

@@ -83,10 +83,12 @@ public sealed class TradesTests : IAsyncDisposable
     }
 
     /// <summary>Stops the server, which saves, and starts another on <paramref name="store"/>, as a restart does.</summary>
-    private async Task StartAsync(ISaveStore store, Func<DateTimeOffset>? clock = null)
+    private Task StartAsync(ISaveStore store, Func<DateTimeOffset>? clock = null) => StartAsync(Stores.On(store, clock));
+
+    private async Task StartAsync(Storage storage)
     {
         await _test.DisposeAsync();
-        _test = new TestServer(options => options with { Log = _logged.Enqueue, Storage = Stores.On(store, clock) });
+        _test = new TestServer(options => options with { Log = _logged.Enqueue, Storage = storage });
     }
 
     /// <summary>
@@ -101,7 +103,8 @@ public sealed class TradesTests : IAsyncDisposable
         await JoinAsync("Bo");
         Bag("ana").Add(ItemId.Logs, 3);
         Bag("bo").Add(ItemId.Feathers, 2);
-        await StartAsync(store, clock);
+        var storage = Stores.On(store, clock);
+        await StartAsync(storage);
         var (ana, bo) = await TradingAsync();
         await OfferAsync(ana, ItemId.Logs, 3);
         await OfferAsync(bo, ItemId.Feathers, 2);
@@ -109,6 +112,9 @@ public sealed class TradesTests : IAsyncDisposable
         await bo.SendAsync(new TradeAccept());
         await _test.TickAsync();
         await ana.SendAsync(new TradeAccept());
+
+        // A save queued before the trade lands off the tick, and must not use up the budget.
+        await storage.Queue.FlushAsync();
         store.Budget = kept;
         await bo.SendAsync(new TradeAccept());
         await _test.TickAsync();
