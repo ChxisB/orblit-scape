@@ -58,3 +58,6 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_content/test/npcs_test.dart` | `NpcsTests` | 5 | 5 | 5 | 0 | done |
 | `scape_content/test/story_test.dart` | `StoryTests` | 3 | 3 | 3 | 0 | done |
 | none, the fixture `scape_content/data.json` | `DataParityTests` | 0 | 0 | 0 | 9: 1 sets, 22 item, 10 object, 3 node, 5 recipe, 5 npc, 3 spell, 3 prayer and 1 story cases | added. Every definition is compared field by field. The quests and dialogues are compared as JSON trees |
+| `scape_content/test/poses_test.dart` | `PosesTests` | 9 | 9 | 9 | 0 | done |
+| `scape_content/test/models_test.dart` | `ModelsTests` | 12 | 12 | 12 | 0 | done |
+| none, the fixture `scape_content/look.json` | `LookParityTests` | 0 | 0 | 0 | 5: 8 act, 372 pose, 1 npcIds, 7 npc and 89 player cases | added. Each state is posed on a time grid from -0.1 to 2 seconds, at the points its tests look at and at 1000.37 seconds. The players cover each slot with six items, the colour edges and 20 random looks |
