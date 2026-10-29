@@ -19,8 +19,9 @@ if [ -z "$ENGINE" ] || [ -z "$NET" ]; then
   exit 1
 fi
 
-for package in scape_core scape_content; do
-  cat > "packages/$package/pubspec_overrides.yaml" <<YAML
+# The parity exporters read scape_core, so they take its overrides.
+for dir in packages/scape_core packages/scape_content tool/parity; do
+  cat > "$dir/pubspec_overrides.yaml" <<YAML
 # Written by tool/link_local.sh. Not committed.
 dependency_overrides:
   orblit_dialogue:

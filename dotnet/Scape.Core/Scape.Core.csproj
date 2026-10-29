@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <IsPackable>false</IsPackable>
+    <Description>The rules of the scape world that the server and the client share: tiles, paths, items, combat and the messages between them.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Scape.Core.Tests" />
+  </ItemGroup>
+</Project>

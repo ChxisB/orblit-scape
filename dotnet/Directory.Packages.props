@@ -1,0 +1,14 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageVersion Include="xunit.v3" Version="4.0.2" />
+  </ItemGroup>
+
+  <!-- The Orblit packages are the versions the engine had on 2026-10-29. -->
+  <ItemGroup>
+    <PackageVersion Include="Orblit.Parity" Version="0.1.0" />
+  </ItemGroup>
+</Project>
