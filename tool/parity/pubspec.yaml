@@ -8,6 +8,8 @@ environment:
   sdk: ^3.10.0
 
 dependencies:
+  scape_content:
+    path: ../../packages/scape_content
   scape_core:
     path: ../../packages/scape_core
 

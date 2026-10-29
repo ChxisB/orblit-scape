@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <IsPackable>false</IsPackable>
+    <Description>The content of the first scape game: its items, creatures, skills, quests, models and the starter island, with the check that they fit together.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scape.Core\Scape.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Scape.Content.Tests" />
+  </ItemGroup>
+</Project>

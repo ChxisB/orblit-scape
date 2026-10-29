@@ -49,3 +49,12 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_core/test/social_messages_test.dart` | `SocialMessagesTests` | 12 | 12 | 12 | 1: a list edit cannot be built for a list outside the enum | done |
 | `scape_core/test/trade_messages_test.dart` | `TradeMessagesTests` | 13 | 13 | 13 | 0 | done |
 | none, the fixture `scape_core/wire.json` | `WireParityTests` | 0 | 0 | 0 | 5: 67 built, 458 bytes, 24 encodeSlots, 120 readSlots and 95 state cases | added. Every message is built at its edges and read by both decoders. The bytes cases add damaged, random, odd UTF-8 and loose flag bytes. The state cases cover JSON edges such as duplicate keys, `-0` and a lone surrogate |
+| `scape_content/test/skills_test.dart` | `SkillsTests` | 2 | 2 | 2 | 0 | done |
+| `scape_content/test/items_test.dart` | `ItemsTests` | 4 | 4 | 4 | 0 | done |
+| `scape_content/test/magic_prayer_test.dart` | `MagicPrayerTests` | 3 | 3 | 3 | 0 | done |
+| `scape_content/test/objects_test.dart` | `ObjectsTests` | 4 | 4 | 4 | 0 | done |
+| `scape_content/test/nodes_test.dart` | `NodesTests` | 3 | 3 | 3 | 0 | done |
+| `scape_content/test/recipes_test.dart` | `RecipesTests` | 4 | 4 | 4 | 0 | done |
+| `scape_content/test/npcs_test.dart` | `NpcsTests` | 5 | 5 | 5 | 0 | done |
+| `scape_content/test/story_test.dart` | `StoryTests` | 3 | 3 | 3 | 0 | done |
+| none, the fixture `scape_content/data.json` | `DataParityTests` | 0 | 0 | 0 | 9: 1 sets, 22 item, 10 object, 3 node, 5 recipe, 5 npc, 3 spell, 3 prayer and 1 story cases | added. Every definition is compared field by field. The quests and dialogues are compared as JSON trees |
