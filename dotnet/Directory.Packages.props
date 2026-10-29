@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageVersion Include="Orblit.Dialogue" Version="0.1.0" />
     <PackageVersion Include="Orblit.Json" Version="0.4.0" />
+    <PackageVersion Include="Orblit.Net" Version="0.10.0" />
     <PackageVersion Include="Orblit.Parity" Version="0.1.0" />
     <PackageVersion Include="Orblit.Progress" Version="0.1.0" />
     <PackageVersion Include="Orblit.Quest" Version="0.1.0" />

@@ -373,16 +373,19 @@ public enum LoginRefusal
 
 public static class LoginRefusals
 {
-    extension(LoginRefusal)
+    extension(LoginRefusal refusal)
     {
+        /// <summary>The reason a goodbye gives for this refusal.</summary>
+        public string ToWire() => JsonNamingPolicy.CamelCase.ConvertName(refusal.ToString());
+
         /// <summary>The refusal a goodbye names, or null when it names none.</summary>
         public static LoginRefusal? FromWire(string reason)
         {
-            foreach (var refusal in Enum.GetValues<LoginRefusal>())
+            foreach (var each in Enum.GetValues<LoginRefusal>())
             {
-                if (JsonNamingPolicy.CamelCase.ConvertName(refusal.ToString()) == reason)
+                if (each.ToWire() == reason)
                 {
-                    return refusal;
+                    return each;
                 }
             }
 
