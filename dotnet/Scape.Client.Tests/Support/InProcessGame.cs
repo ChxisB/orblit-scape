@@ -21,6 +21,8 @@ internal sealed class InProcessGame : IAsyncDisposable
 
     private readonly List<LoopbackLink> _links = [];
     private readonly List<GameSession> _sessions = [];
+    private SocketServer? _sockets;
+    private IDisposable? _accepting;
 
     public InProcessGame()
     {
@@ -59,15 +61,30 @@ internal sealed class InProcessGame : IAsyncDisposable
         var link = new LoopbackLink();
         _links.Add(link);
         Server.Host.Accept(link.Host);
-        var session = new GameSession(link.Client, new GameSessionOptions
-        {
-            Skills = DefaultSkills.All,
-            Items = DefaultItems.All,
-            Story = DefaultStory.Story,
-            Clock = () => TimeSpan.FromSeconds(Seconds),
-        });
+        var session = new GameSession(link.Client, Options(() => TimeSpan.FromSeconds(Seconds)));
         _sessions.Add(session);
         return session;
+    }
+
+    /// <summary>A session on a real WebSocket on this machine, read by the real clock.</summary>
+    public async Task<GameSession> ConnectSocketAsync()
+    {
+        if (_sockets is null)
+        {
+            _sockets = SocketServer.Bind();
+            _accepting = _sockets.Listen(Server.Host.Accept);
+        }
+
+        var session = await GameSession.ConnectAsync(_sockets.Url, Options(null));
+        _sessions.Add(session);
+        return session;
+    }
+
+    /// <summary>Ends <paramref name="session"/> the way a player closing the window does.</summary>
+    public async Task DropAsync(GameSession session)
+    {
+        _sessions.Remove(session);
+        await session.DisposeAsync();
     }
 
     /// <summary>Connects and logs in as <paramref name="name"/>, then runs a tick so the player is placed.</summary>
@@ -146,8 +163,22 @@ internal sealed class InProcessGame : IAsyncDisposable
             await link.IdleAsync();
         }
 
+        _accepting?.Dispose();
+        if (_sockets is not null)
+        {
+            await _sockets.DisposeAsync();
+        }
+
         await Server.DisposeAsync();
     }
+
+    private static GameSessionOptions Options(Func<TimeSpan>? clock) => new()
+    {
+        Skills = DefaultSkills.All,
+        Items = DefaultItems.All,
+        Story = DefaultStory.Story,
+        Clock = clock,
+    };
 
     private static TileMap OpenWorld()
     {

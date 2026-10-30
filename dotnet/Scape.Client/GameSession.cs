@@ -102,6 +102,11 @@ public sealed class GameSession : IAsyncDisposable
         });
     }
 
+    /// <summary>Opens a connection to the server at <paramref name="url"/>. The session closes it on <see cref="DisposeAsync"/>.</summary>
+    /// <exception cref="TimeoutException">Nothing answered in time.</exception>
+    public static async Task<GameSession> ConnectAsync(Uri url, GameSessionOptions options) =>
+        new(await SocketTransport.ConnectAsync(url), options);
+
     /// <summary>The name the server knows the player by, once logged in.</summary>
     public string? Name { get; private set; }
 
