@@ -75,10 +75,19 @@ internal sealed class InProcessGame : IAsyncDisposable
     {
         var session = Connect();
         session.Login(name);
-        await PumpAsync();
-        Seconds += TickSeconds;
-        await TickAsync();
+        await SettleAsync();
         return session;
+    }
+
+    /// <summary>Delivers what is queued, lets a tick of time pass, then runs the tick. Does it <paramref name="times"/> times.</summary>
+    public async Task SettleAsync(int times = 1)
+    {
+        for (var i = 0; i < times; i++)
+        {
+            await PumpAsync();
+            Seconds += TickSeconds;
+            await TickAsync();
+        }
     }
 
     /// <summary>
