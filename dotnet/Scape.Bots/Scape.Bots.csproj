@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <Version>0.1.0</Version>
+    <IsPackable>false</IsPackable>
+    <Description>Bots that log in to a scape server over the wire, and the tools an agent uses to look at one.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Scape.Bots.Tests" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scape.Client\Scape.Client.csproj" />
+    <ProjectReference Include="..\Scape.Server\Scape.Server.csproj" />
+  </ItemGroup>
+</Project>
