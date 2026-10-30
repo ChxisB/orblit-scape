@@ -6,5 +6,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Scape.Client\Scape.Client.csproj" />
+    <ProjectReference Include="..\Scape.Server\Scape.Server.csproj" />
   </ItemGroup>
 </Project>
