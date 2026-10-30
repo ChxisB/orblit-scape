@@ -101,3 +101,16 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_client/test/tile_pick_test.dart` | `TilePickTests` | 5 | 5 | 5 | 3: a point near a tile's edge picks that tile, ground past the far edge of the world picks nothing, and an actor off the ground stands at height zero | done |
 | `scape_client/test/animator_test.dart` | `ActorAnimatorTests` | 14 | 14 | 14 | 2: an act that is over stays over after first sight, and an actor that left view dead is not still fallen when it returns | done |
 | none, the demo's pose | `ModelPoseTests` | 0 | 0 | 0 | 8: a still pose leaves every box where the model put it, a limb swung a quarter turn points forward from its pivot for 4 limbs, leaning tips the upper body and leaves the legs, a raised arm on a body bent flat points at the ground, and an actor fallen flat has its head behind its feet | added. The Dart never applies a pose to the boxes. 19 mutants were tried and all were killed |
+| `scape_client/test/session_test.dart` | `SessionTests` | 5 | 5 | 5 | 0 | done. A message queues on the link thread and the session applies it in `Advance`, so the harness pump advances every session. Mutants: 60 of 62 killed on `GameSession`, `Menus` and `Minimap`. One left is equivalent, since the server refuses a trade while any window is open, so a `TradeView` never lands on another window. The other is the `Retain` call that drops the animator's tracks, a leak guard that the session shows nothing of. `ActorAnimatorTests` pins `Retain` itself |
+| `scape_client/test/actors_session_test.dart` | `ActorsSessionTests` | 4 | 4 | 4 | 0 | done |
+| `scape_client/test/combat_session_test.dart` | `CombatSessionTests` | 3 | 3 | 3 | 1: a wounded fighter shows what is left of their hit points | done |
+| `scape_client/test/conversation_session_test.dart` | `ConversationSessionTests` | 2 | 2 | 2 | 0 | done |
+| `scape_client/test/npcs_session_test.dart` | `NpcsSessionTests` | 1 | 1 | 1 | 0 | done |
+| `scape_client/test/items_session_test.dart` | `ItemsSessionTests` | 9 | 9 | 9 | 0 | done |
+| `scape_client/test/objects_session_test.dart` | `ObjectsSessionTests` | 5 | 5 | 5 | 0 | done |
+| `scape_client/test/skills_session_test.dart` | `SkillsSessionTests` | 5 | 5 | 5 | 0 | done |
+| `scape_client/test/interface_session_test.dart` | `InterfaceSessionTests` | 11 | 11 | 11 | 8: the minimap keeps a tile exactly on the radius and drops one past it, another player is a player dot, an attack entry hits the creature, a trade entry opens the shop and a talk entry starts a conversation, an object entry names its option by its place in the list, a player entry asks for a trade, a finished quest is done in the journal, and the game tab shows the notices | done |
+| `scape_client/test/social_session_test.dart` | `SocialSessionTests` | 9 | 9 | 9 | 0 | done |
+| `scape_client/test/trade_session_test.dart` | `TradeSessionTests` | 6 | 6 | 6 | 2: starting a conversation closes the bank on the client, and opening the bank closes a conversation | done |
+| `scape_client/test/player_trade_session_test.dart` | `PlayerTradeSessionTests` | 3 | 3 | 3 | 0 | done |
+| `scape_client/test/ranged_session_test.dart` | `RangedSessionTests` | 2 | 2 | 2 | 0 | done |
