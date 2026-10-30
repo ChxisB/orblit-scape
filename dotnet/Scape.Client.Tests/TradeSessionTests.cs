@@ -118,4 +118,44 @@ public sealed class TradeSessionTests : IAsyncDisposable
         Assert.NotNull(ana.Shop);
         Assert.False(ana.IsBankOpen);
     }
+
+    [Fact]
+    public async Task StartingAConversationClosesTheBankOnTheClient()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        var booth = _game.Server.Objects.Place(ObjectId.BankBooth, new TileCoord(33, 32, 0));
+        var keeper = (long)_game.Server.Npcs.Spawn(new NpcSpawn(NpcId.Shopkeeper, new TileCoord(31, 32, 0))).NetworkId;
+        await _game.TickAndDrawAsync(ana, 2);
+        ana.UseObject((long)booth.NetworkId, 0);
+        await _game.PumpAsync();
+        await _game.TickAndDrawAsync(ana, 6);
+        Assert.True(ana.IsBankOpen);
+
+        ana.Talk(keeper);
+        await _game.PumpAsync();
+        await _game.TickAndDrawAsync(ana, 8);
+
+        Assert.NotNull(ana.Line);
+        Assert.False(ana.IsBankOpen);
+    }
+
+    [Fact]
+    public async Task OpeningTheBankClosesAConversationOnTheClient()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        var booth = _game.Server.Objects.Place(ObjectId.BankBooth, new TileCoord(33, 32, 0));
+        var keeper = (long)_game.Server.Npcs.Spawn(new NpcSpawn(NpcId.Shopkeeper, new TileCoord(31, 32, 0))).NetworkId;
+        await _game.TickAndDrawAsync(ana, 2);
+        ana.Talk(keeper);
+        await _game.PumpAsync();
+        await _game.TickAndDrawAsync(ana, 6);
+        Assert.NotNull(ana.Line);
+
+        ana.UseObject((long)booth.NetworkId, 0);
+        await _game.PumpAsync();
+        await _game.TickAndDrawAsync(ana, 8);
+
+        Assert.True(ana.IsBankOpen);
+        Assert.Null(ana.Line);
+    }
 }

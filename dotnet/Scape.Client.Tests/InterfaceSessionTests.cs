@@ -1,3 +1,4 @@
+using Orblit.Quest;
 using Scape.Content;
 using Scape.Core;
 
@@ -180,5 +181,133 @@ public sealed class InterfaceSessionTests : IAsyncDisposable
     public void TheMinimapIsEmptyBeforeThePlayerIsInTheWorld()
     {
         Assert.Empty(Minimap.Dots(_game.Connect()));
+    }
+
+    [Fact]
+    public async Task TheMinimapKeepsWhatIsExactlyOnTheRadiusAndDropsWhatIsPastIt()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        foreach (var (x, y) in new[] { (34, 32), (35, 32), (32, 34), (32, 35) })
+        {
+            Spawn(NpcId.Guard, new TileCoord(x, y, 0));
+        }
+
+        await _game.TickAndDrawAsync(ana, 2);
+
+        var dots = Minimap.Dots(ana, radius: 2).Select(dot => (dot.Dx, dot.Dy)).Order();
+
+        Assert.Equal([(0.0, 2.0), (2.0, 0.0)], dots);
+    }
+
+    [Fact]
+    public async Task TheMinimapShowsAnotherPlayerAsAPlayerDot()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        var bo = await _game.JoinAsync("Bo");
+        bo.WalkTo(new TileCoord(34, 32, 0));
+        await _game.PumpAsync();
+
+        await _game.TickAndDrawAsync(ana, 6);
+
+        Assert.Equal([new Dot(2, 0, DotKind.Player)], Minimap.Dots(ana));
+    }
+
+    [Fact]
+    public async Task AnAttackEntrySendsAnAttack()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        Spawn(NpcId.Goblin, new TileCoord(33, 32, 0));
+        await _game.TickAndDrawAsync(ana, 2);
+
+        var goblin = Assert.Single(ana.Npcs).NetworkId;
+        MenusOf(ana).OnNpc(Assert.Single(ana.Npcs))[0].Run();
+        await _game.PumpAsync();
+        await _game.TickAndDrawAsync(ana, 6);
+
+        Assert.Contains(ana.Splats, splat => splat.Target == goblin);
+    }
+
+    [Fact]
+    public async Task ATradeEntryOpensTheShopAndATalkEntryStartsAConversation()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        Spawn(NpcId.Shopkeeper, new TileCoord(33, 32, 0));
+        await _game.TickAndDrawAsync(ana, 2);
+        var entries = MenusOf(ana).OnNpc(Assert.Single(ana.Npcs));
+
+        entries[1].Run();
+        await _game.PumpAsync();
+        await _game.TickAndDrawAsync(ana, 6);
+        Assert.NotNull(ana.Line);
+        Assert.Null(ana.Shop);
+
+        entries[0].Run();
+        await _game.PumpAsync();
+        await _game.TickAndDrawAsync(ana, 6);
+        Assert.NotNull(ana.Shop);
+        Assert.Null(ana.Line);
+    }
+
+    [Fact]
+    public async Task AnObjectEntryNamesTheOptionByItsPlaceInTheList()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        var door = _game.Server.Objects.Place(ObjectId.Door, new TileCoord(34, 32, 0));
+        _game.Server.Objects.SetState(door, 1);
+        await _game.TickAndDrawAsync(ana, 2);
+        var close = Assert.Single(MenusOf(ana).OnObject(Assert.Single(ana.Objects)));
+
+        close.Run();
+        await _game.PumpAsync();
+        await _game.TickAndDrawAsync(ana, 6);
+
+        Assert.Equal("Close Door", close.Label);
+        Assert.Equal(0, door.State);
+    }
+
+    [Fact]
+    public async Task APlayerEntryAsksForATrade()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        var bo = await _game.JoinAsync("Bo");
+        bo.WalkTo(new TileCoord(33, 32, 0));
+        await _game.SettleAsync(3);
+        var boActor = Assert.Single(ana.Actors, actor => !actor.Mine);
+        var anaActor = Assert.Single(bo.Actors, actor => !actor.Mine);
+
+        MenusOf(ana).OnPlayer(boActor)[0].Run();
+        await _game.SettleAsync(3);
+        MenusOf(bo).OnPlayer(anaActor)[0].Run();
+        await _game.SettleAsync(3);
+
+        Assert.Equal("bo", ana.PlayerTrade?.Partner);
+        Assert.Equal("ana", bo.PlayerTrade?.Partner);
+    }
+
+    [Fact]
+    public async Task AFinishedQuestIsDoneInTheJournal()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        var quests = _game.Server.Quests!;
+        var table = quests.TableOf("ana")!;
+        var last = DefaultStory.Story.Book.Quest("lantern").Last;
+
+        Assert.True(quests.Commit("ana", table, table.Set(QuestNames.StageName("lantern"), last).Table));
+        await _game.SettleAsync();
+
+        var entry = Assert.Single(ana.Journal);
+        Assert.Equal("The Dark Lantern", entry.Title);
+        Assert.True(entry.Done);
+    }
+
+    [Fact]
+    public async Task TheGameTabShowsTheNotices()
+    {
+        var ana = await _game.JoinAsync("Ana");
+
+        ana.Whisper("Nobody", "hi");
+        await _game.SettleAsync();
+
+        Assert.Equal(["That player is not online."], ana.ChatOf(ChatTab.Game));
     }
 }

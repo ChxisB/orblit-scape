@@ -49,4 +49,18 @@ public sealed class CombatSessionTests : IAsyncDisposable
         Assert.Equal(chicken, ana.Splats[0].Target);
         Assert.InRange(ana.Splats[0].Damage, 0, 2);
     }
+
+    [Fact]
+    public async Task AWoundedFighterShowsWhatIsLeftOfTheirHitPoints()
+    {
+        var ana = await _game.JoinAsync("Ana");
+        var avatar = InProcessGame.AvatarOf(ana);
+        Spawn(NpcId.Goblin);
+
+        await _game.TickAndDrawAsync(ana, 8);
+
+        var taken = ana.Splats.Where(splat => splat.Target == avatar).Sum(splat => splat.Damage);
+        Assert.True(taken > 0);
+        Assert.Equal(new HitPoints(10 - taken, 10), ana.HealthOf(avatar));
+    }
 }
