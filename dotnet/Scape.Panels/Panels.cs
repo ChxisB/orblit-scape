@@ -159,6 +159,7 @@ internal sealed class Panels(PanelController controller, ItemSet items, SkillSet
         return grid;
     }
 
+    // shortcut: a name wider than its cell is cut off. Put it in a wrapping TextBlock when the names need it.
     private Button Cell(ContainerId container, int slot)
     {
         var here = new Slot(container, slot);
@@ -166,6 +167,7 @@ internal sealed class Panels(PanelController controller, ItemSet items, SkillSet
         cell.Height = 40;
         cell.FontSize = Small;
         cell.Margin = new Thickness(2);
+        cell.Padding = new Thickness(2, 4);
         cell.Background = State.Picked == here ? Amber600 : Slate700;
         cell.Tag = here;
         return cell;
@@ -399,6 +401,7 @@ internal sealed class Panels(PanelController controller, ItemSet items, SkillSet
             CornerRadius = new CornerRadius(4),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             HorizontalContentAlignment = content,
+            VerticalContentAlignment = VerticalAlignment.Center,
         };
         button.Click += (_, _) => act();
         return button;

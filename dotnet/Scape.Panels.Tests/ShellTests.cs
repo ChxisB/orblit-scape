@@ -542,6 +542,26 @@ public sealed class ShellTests
     }
 
     [Fact]
+    public async Task AStackIsNamedInTheMiddleOfItsCell()
+    {
+        await using var game = await PanelGame.StartAsync();
+        game.Bag.Add(ItemId.Logs, 1);
+
+        await game.ShowAsync(window =>
+        {
+            var cell = PanelGame.CellOf(window, ContainerId.Inventory, 0);
+            var name = cell.GetVisualDescendants().OfType<TextBlock>().Single();
+
+            // A label stretched to the cell draws its text from the top of it.
+            Assert.Equal(name.DesiredSize.Height, name.Bounds.Height);
+            var above = PanelGame.TopLeft(window, name).Y - PanelGame.TopLeft(window, cell).Y;
+            var below = cell.Bounds.Height - above - name.Bounds.Height;
+            Assert.Equal(above, below, 1);
+            return Task.CompletedTask;
+        });
+    }
+
+    [Fact]
     public async Task TheOpenTabsAreLighterThanTheRest()
     {
         await using var game = await PanelGame.StartAsync();
