@@ -7,14 +7,22 @@
     <PackageVersion Include="xunit.v3" Version="4.0.2" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageVersion Include="Avalonia" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Desktop" Version="12.1.4" />
+    <PackageVersion Include="Avalonia.Themes.Fluent" Version="12.1.4" />
+  </ItemGroup>
+
   <!-- The Orblit packages are the versions the engine had on 2026-10-29. -->
   <ItemGroup>
     <PackageVersion Include="Orblit.Dialogue" Version="0.1.0" />
+    <PackageVersion Include="Orblit.Filament.Avalonia" Version="0.1.0" />
     <PackageVersion Include="Orblit.Json" Version="0.4.0" />
     <PackageVersion Include="Orblit.Net" Version="0.10.0" />
     <PackageVersion Include="Orblit.Parity" Version="0.1.0" />
     <PackageVersion Include="Orblit.Progress" Version="0.1.0" />
     <PackageVersion Include="Orblit.Quest" Version="0.1.0" />
     <PackageVersion Include="Orblit.Save" Version="0.2.1" />
+    <PackageVersion Include="Orblit.Terrain" Version="0.5.0" />
   </ItemGroup>
 </Project>
