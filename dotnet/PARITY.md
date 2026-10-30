@@ -114,3 +114,5 @@ after `tool/link_local.sh` points them at local engine and net checkouts.
 | `scape_client/test/trade_session_test.dart` | `TradeSessionTests` | 6 | 6 | 6 | 2: starting a conversation closes the bank on the client, and opening the bank closes a conversation | done |
 | `scape_client/test/player_trade_session_test.dart` | `PlayerTradeSessionTests` | 3 | 3 | 3 | 0 | done |
 | `scape_client/test/ranged_session_test.dart` | `RangedSessionTests` | 2 | 2 | 2 | 0 | done |
+| `scape_client/test/socket_game_test.dart` | `SocketGameTests` | 2 | 2 | 2 | 0 | done. The two clients meet over a real WebSocket on this machine, opened by `InProcessGame.ConnectSocketAsync`, since `ScapeServer` has no listen of its own. A wait polls and gives up after 5 s, so no assertion hangs on a fixed sleep. Mutants: 8 of 8 killed on the tests and the harness |
+| `scape_client/test/scape_client_test.dart` | none | 1 | 1 | 0 | 0 | not ported. The C# keeps the version once, as `<Version>` in `Scape.Client.csproj`, so there is no constant to drift from it |
