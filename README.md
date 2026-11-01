@@ -6,25 +6,31 @@ server, many players, a world of tiles with skills, items and combat.
 The world, the names, the items and the art are original. Content is data,
 so a new place or a new monster is a file and not a code change.
 
-## Packages
+## Projects
 
-| Package | Holds |
+| Project | Holds |
 | --- | --- |
-| `scape_core` | Tile coordinates, flags, paths and the rules both sides share. Pure Dart |
-| `scape_server` | The headless tick, sessions, actions and saves. Built on `orblit_core` and `orblit_net` |
-| `scape_client` | What a player sees and sends: the session, menus and minimap data. Pure Dart |
-| `scape_panels` | The interface as `orblit_ui` trees, and the widget that draws them. Flutter |
-| `scape_content` | Data files and the art built in code |
-| `scape_bots` | Bots that play over loopback, a probe that reads the server, and the `bots` load command |
+| `Scape.Core` | Tile coordinates, flags, paths, items, combat and the messages the server and client share |
+| `Scape.Content` | The items, creatures, skills, quests and models of the first game, the starter island, and the check that they fit together |
+| `Scape.Server` | The tick loop, the client wire, sessions, actions and saves. A library |
+| `Scape.Client` | What a player sees and sends: the camera, the pick under the pointer, actor poses and the session with its menus |
+| `Scape.Panels` | The side panels, minimap and right-click menu as Avalonia controls |
+| `Scape.Bots` | Bots that log in over the wire, and the tools an agent uses to look at a server |
+| `Scape.Demo` | The starter island in 3D in a window, with the rules run in the app and no server |
 
 ```sh
 git clone https://github.com/ChxisB/orblit.git       # beside this one
 git clone https://github.com/ChxisB/orblit-net.git   # beside this one
-./tool/link_local.sh
-./tool/check.sh
+../orblit/tool/build_native.sh                         # the engine's native core
+../orblit/tool/pack_local.sh                           # packs the engine into ~/.orblit/feed
+dotnet pack ../orblit-net/dotnet/Orblit.Net -c Release -o ~/.orblit/feed
+./tool/check_dotnet.sh
 ```
 
-To run the server on a machine, see [deploy/README.md](deploy/README.md).
+It needs the .NET 10 SDK and CMake.
+
+Nothing starts `Scape.Server` as a program yet. See
+[deploy/README.md](deploy/README.md).
 
 ## Licence
 

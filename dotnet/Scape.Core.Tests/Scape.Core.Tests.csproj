@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scape.Core\Scape.Core.csproj" />
+    <PackageReference Include="Orblit.Parity" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="..\fixtures\scape_core\*.json" Link="fixtures\scape_core\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

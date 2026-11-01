@@ -1,45 +1,29 @@
 # Deploying the server
 
-The server ships as a bundle: the `scape_server` executable and the native
-library it loads. A machine with the bundle needs no Dart.
+There is nothing to deploy yet. `Scape.Server` is a library and no program
+starts it. The Dart server that this folder was written for is deleted. The
+tag `dart-final` has it.
 
-## Build
+Two parts are missing. The host is a program that reads the settings below,
+wires the world and the saves, and stops on SIGTERM. The Argon2id hasher is
+the password hash that the host hands to the accounts. Until both are built,
+the files here describe what the host has to do.
 
-```sh
-cd packages/scape_server
-dart build cli -t bin/scape_server.dart -o build
-```
+| File | Holds |
+| --- | --- |
+| `scape-server.service` | A systemd unit. It runs `/opt/scape/bundle/bin/scape_server` and does not restart on exit code 64 or 78 |
+| `server.env.example` | The settings, to copy to `/etc/scape/server.env` |
+| `smoke.sh` | Runs a built folder with a bare environment and checks how it starts and stops |
+| `backup.sh` | Archives a save folder and keeps the newest few |
 
-The bundle is `build/bundle`. `dart compile exe` is refused, because the
-`orblit_core` build hook has to ship beside the executable. Build on the
-operating system you deploy to. CI builds the Linux bundle and keeps it as
-the `scape-server-linux` artifact, a tarball: unpack it with
-`tar -xzf scape-server-linux.tar.gz` to keep the executable bit.
+## Settings
 
-Check a build with `deploy/smoke.sh build/bundle`. It copies the bundle to a
-fresh folder and runs it with a bare environment. It checks that an argument,
-a bad port, a save folder it cannot write and a port in use each stop the
-server, waits for the alive port, sends SIGTERM and expects exit code 0
-within 10 seconds. It never logs a player in.
-
-## Install on Linux
-
-```sh
-sudo useradd --system --home /opt/scape scape
-sudo mkdir -p /opt/scape /etc/scape /var/lib/scape
-sudo cp -r build/bundle /opt/scape/bundle
-sudo cp deploy/server.env.example /etc/scape/server.env
-sudo cp deploy/scape-server.service /etc/systemd/system/
-sudo chown -R scape:scape /var/lib/scape
-sudo systemctl enable --now scape-server
-```
-
-Edit `/etc/scape/server.env` first. Every line is optional. A value that
-does not parse, a port that cannot be bound, a save folder that cannot be
-written and game data that disagrees with itself stop the server with exit
-code 78 and a line on stderr. An argument
-stops it with 64. The unit does not restart on either, and gives up after
-five failed starts in two minutes.
+`ServerConfig` reads these from the environment. Every line is optional. A
+value that does not parse stops the host before it listens. The host stops
+with exit code 78 and a line on stderr for a value that does not parse, a
+port that cannot be bound, a save folder that cannot be written and game data
+that disagrees with itself. It stops with 64 for an argument. The unit does
+not restart on either, and gives up after five failed starts in two minutes.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
@@ -51,8 +35,8 @@ five failed starts in two minutes.
 | `SCAPE_LOG_LEVEL` | info | `warn` logs faults. `info` adds a health line each minute |
 | `SCAPE_ADMINS` | none | `ana=admin,bo=moderator`. Names are valid player names, and each appears once. Needs accounts |
 
-The server saves players on SIGTERM, so `systemctl stop` and `restart` keep
-what players did. The unit gives it 30 seconds.
+The host has to save players on SIGTERM, so `systemctl stop` and `restart`
+keep what players did. The unit gives it 30 seconds.
 
 ## Watch it
 
@@ -62,8 +46,8 @@ journalctl -u scape-server -f
 ```
 
 The health line reads players, regions, and the tick average and maximum
-over the last 100 ticks. A tick has 600 ms. The alive port runs on the
-server's own isolate, so a stalled tick stalls the answer.
+over the last 100 ticks. A tick has 600 ms. `AlivePort` waits for the gate a
+tick holds, so a stalled tick stalls the answer.
 
 ## Back up
 
@@ -82,9 +66,6 @@ keeps other users out.
 
 ## What has not run
 
-The Linux bundle, the unit file and the Linux smoke run have not run. The
-macOS bundle ran and passed the smoke script. Restarts that keep saves were
-tested through the save library, not under systemd. Nothing runs a player
-through the bundle, so a save written by the compiled server is unchecked.
-A tick that throws saves every player before the process ends, and no test
-makes a tick throw in the bundle.
+Nothing here has run against a C# server, because there is none. The smoke
+script passed against the Dart bundle on macOS and never ran on Linux. The
+unit file has not run. The backup script does not depend on the server.

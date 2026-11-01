@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <IsPackable>false</IsPackable>
+    <Description>The scape game server: the tick loop, the client wire and each feature that runs the shared world.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scape.Core\Scape.Core.csproj" />
+    <PackageReference Include="Orblit.Net" />
+    <PackageReference Include="Orblit.Save" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Scape.Server.Tests" />
+  </ItemGroup>
+</Project>

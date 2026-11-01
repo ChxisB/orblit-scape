@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <IsPackable>false</IsPackable>
+    <Description>What the scape client draws: the camera, the tile under the pointer, the pose of each actor and the session with its menus.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scape.Content\Scape.Content.csproj" />
+    <PackageReference Include="Orblit.Net" />
+    <PackageReference Include="Orblit.Progress" />
+    <PackageReference Include="Orblit.Terrain" />
+  </ItemGroup>
+</Project>

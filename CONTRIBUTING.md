@@ -12,9 +12,16 @@ the longer version of this.
 ## Checking your work
 
 ```sh
-./tool/link_local.sh   # point at local orblit and orblit-net checkouts
-./tool/check.sh
+git clone https://github.com/ChxisB/orblit.git       # beside this one
+git clone https://github.com/ChxisB/orblit-net.git   # beside this one
+../orblit/tool/build_native.sh                         # the engine's native core
+../orblit/tool/pack_local.sh                           # packs the engine into ~/.orblit/feed
+dotnet pack ../orblit-net/dotnet/Orblit.Net -c Release -o ~/.orblit/feed
+./tool/check_dotnet.sh
 ```
+
+`check_dotnet.sh` builds, tests and checks the format. It needs the .NET 10
+SDK and CMake.
 
 ## Licence
 

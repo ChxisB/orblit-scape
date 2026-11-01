@@ -6,91 +6,91 @@ on:
   pull_request:
 
 jobs:
-  check:
-    runs-on: ubuntu-latest
+  # The packages come from two other repositories, which CI packs into a
+  # local feed. A branch with this branch's name in one of them is its pair,
+  # so a change here and the change it needs build together. Without one the
+  # repository's default branch is used.
+  dotnet:
+    name: .NET (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
     steps:
       - uses: actions/checkout@v4
         with:
           path: orblit-scape
 
-      # The engine and networking are separate repositories, so CI checks
-      # them out and points the server at them rather than resolving git
-      # dependencies. Both are public, so the default token reads them.
+      - id: pair
+        shell: bash
+        env:
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          for repo in orblit orblit-net; do
+            key=${repo//-/_}
+            if git ls-remote --exit-code --heads \
+                "https://github.com/ChxisB/$repo.git" "$BRANCH" > /dev/null; then
+              echo "Building against ChxisB/$repo@$BRANCH"
+              echo "$key=$BRANCH" >> "$GITHUB_OUTPUT"
+            else
+              echo "No matching $repo branch; using its default"
+              echo "$key=" >> "$GITHUB_OUTPUT"
+            fi
+          done
+
+      # No token: both repositories are public, so the default GITHUB_TOKEN
+      # reads them.
       - uses: actions/checkout@v4
         with:
           repository: ChxisB/orblit
+          ref: ${{ steps.pair.outputs.orblit }}
           path: orblit
-
       - uses: actions/checkout@v4
         with:
           repository: ChxisB/orblit-net
+          ref: ${{ steps.pair.outputs.orblit_net }}
           path: orblit-net
 
-      # Flutter 3.47.0 carries Dart 3.13.0. Both are pinned: a formatter that
-      # moves under the repository turns an unrelated SDK release into a red
-      # build. scape_panels is a Flutter package, and its goldens are drawn
-      # with the Ahem test font, so one platform draws what another does.
-      - uses: subosito/flutter-action@v2
+      - uses: actions/setup-dotnet@v4
         with:
-          flutter-version: 3.47.0
-          cache: true
+          global-json-file: orblit-scape/dotnet/global.json
 
-      - name: Link the engine and networking
-        working-directory: orblit-scape
-        run: ./tool/link_local.sh ../orblit ../orblit-net
+      # The runner context exists in a step and not in a job's env, so the
+      # feed folder is named on each step that reads it.
+      # The packages carry the native core only if it is built before they are
+      # packed.
+      - name: Build the engine natives
+        shell: bash
+        working-directory: orblit
+        run: tool/build_native.sh
+
+      - name: Pack the engine
+        shell: bash
+        working-directory: orblit
+        env:
+          ORBLIT_FEED: ${{ runner.temp }}/feed
+        run: tool/pack_local.sh
+
+      - name: Pack networking
+        shell: bash
+        working-directory: orblit-net
+        env:
+          ORBLIT_FEED: ${{ runner.temp }}/feed
+        run: dotnet pack dotnet/Orblit.Net -c Release -o "${{ runner.temp }}/feed" --nologo -v q
 
       - name: Check
+        shell: bash
         working-directory: orblit-scape
-        run: ./tool/check.sh
-
-  # Builds the server as a bundle, starts it, and stops it with SIGTERM. The
-  # bundle holds the executable and the native library it loads, so it runs
-  # on a machine with no Dart. It is kept as an artifact for a deploy.
-  bundle:
-    name: Server bundle
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          path: orblit-scape
-      - uses: actions/checkout@v4
-        with:
-          repository: ChxisB/orblit
-          path: orblit
-      - uses: actions/checkout@v4
-        with:
-          repository: ChxisB/orblit-net
-          path: orblit-net
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: 3.47.0
-          cache: true
-
-      - name: Link the engine and networking
-        working-directory: orblit-scape
-        run: ./tool/link_local.sh ../orblit ../orblit-net
-
-      - name: Build
-        working-directory: orblit-scape/packages/scape_server
-        run: dart build cli -t bin/scape_server.dart -o "$RUNNER_TEMP/build"
-
-      - name: Smoke
-        working-directory: orblit-scape
-        run: ./deploy/smoke.sh "$RUNNER_TEMP/build/bundle"
-
-      # The artifact action zips files and drops their permissions, so the
-      # bundle goes up as a tarball that keeps the executable bit.
-      - name: Pack
-        run: tar -czf "$RUNNER_TEMP/scape-server-linux.tar.gz" -C "$RUNNER_TEMP/build" bundle
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: scape-server-linux
-          path: ${{ runner.temp }}/scape-server-linux.tar.gz
+        env:
+          ORBLIT_FEED: ${{ runner.temp }}/feed
+        run: tool/check_dotnet.sh
 
   # Checks each commit on a pull request against commitlint.config.mjs.
-  # Pull requests only, since a push to main has no range to check.
+  # Pull requests only, since a push to main has no range to check. It
+  # checks out the branch head, not the merge commit GitHub makes, so the
+  # range holds the branch's own commits and nothing else.
   commits:
     name: Commits
     runs-on: ubuntu-latest

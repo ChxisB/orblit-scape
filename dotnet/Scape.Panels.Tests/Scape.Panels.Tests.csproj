@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsTestProject>true</IsTestProject>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scape.Panels\Scape.Panels.csproj" />
+    <ProjectReference Include="..\Scape.Server\Scape.Server.csproj" />
+    <PackageReference Include="Avalonia.Headless" />
+    <PackageReference Include="Avalonia.Skia" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+  </ItemGroup>
+  <!-- One harness for the client and the panels, so a change to the server's setup is made once. -->
+  <ItemGroup>
+    <Compile Include="..\Scape.Client.Tests\Support\InProcessGame.cs" Link="Support\InProcessGame.cs" />
+  </ItemGroup>
+</Project>

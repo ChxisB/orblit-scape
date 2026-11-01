@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Version>0.1.0</Version>
+    <IsPackable>false</IsPackable>
+    <Description>The scape side panels, minimap and right-click menu as Avalonia controls over a game session.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Scape.Client\Scape.Client.csproj" />
+    <PackageReference Include="Avalonia" />
+  </ItemGroup>
+</Project>

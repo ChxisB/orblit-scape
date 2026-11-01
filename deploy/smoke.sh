@@ -1,6 +1,6 @@
 #!/bin/bash
 # Copies a built bundle to a fresh folder and runs it with a bare
-# environment, so the Dart SDK and the build folder are out of reach. Checks
+# environment, so the SDK and the build folder are out of reach. Checks
 # how it refuses bad starts, waits for its alive port, stops it with SIGTERM
 # and checks that it exits 0 within 10 seconds.
 #
