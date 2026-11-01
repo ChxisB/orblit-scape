@@ -1,5 +1,10 @@
 # Parity
 
+The Dart is no longer in this repository. The last commit that has it is
+tagged `dart-final`, and the Dart test counts below were taken at that tag.
+The server has no host program and no Argon2id hasher yet, so the 8 hash
+cases of the saves fixture have no test.
+
 One row per Dart test file that has been ported. A row is added when the file
 is built.
 
@@ -14,10 +19,9 @@ them, into `~/.orblit/feed` unless `ORBLIT_FEED` names another.
 `Directory.Packages.props` pins the versions.
 
 A fixture holds what the Dart gave for a set of cases, and a parity test
-compares the C# with it. `tool/regen_parity.sh` runs the exporters in
-`tool/parity` and writes `dotnet/fixtures`. The Dart pubspecs resolve only
-after `tool/link_local.sh` points them at local engine and net checkouts.
-`tool/check_dotnet.sh` builds, tests and checks the format.
+compares the C# with it. The fixtures in `dotnet/fixtures` are frozen. The
+Dart exporters that wrote them went with the Dart, so `tool/parity` is at the
+tag `dart-final`. `tool/check_dotnet.sh` builds, tests and checks the format.
 
 | Dart test file | C# class | Dart declared | Dart run | C# ported | Added in C# | Status |
 | --- | --- | --- | --- | --- | --- | --- |
