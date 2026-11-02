@@ -5,7 +5,7 @@ namespace Scape.Content.Tests;
 
 public class CheckTests
 {
-    /// <summary>The default data on a fresh island. A test swaps one part for a broken one with <c>with</c>.</summary>
+    /// <summary>The default data in the test world. A test swaps one part for a broken one with <c>with</c>.</summary>
     private static ContentSet Defaults() => new()
     {
         Items = DefaultItems.All,
@@ -14,18 +14,18 @@ public class CheckTests
         Npcs = DefaultNpcs.All,
         Recipes = DefaultRecipes.All,
         Story = DefaultStory.Story,
-        World = StarterIsland.Build(),
+        World = TestWorld.Build(),
     };
 
     private static IReadOnlyList<string> Problems(Func<ContentSet, ContentSet> broken) => ContentCheck.Problems(broken(Defaults()));
 
-    /// <summary>A fresh island with some parts replaced. The map is the island's own.</summary>
-    private static WorldPlan Island(
+    /// <summary>A new test world with some parts replaced. The map is that world's own.</summary>
+    private static WorldPlan Changed(
         TileCoord? spawn = null,
         Func<IReadOnlyList<ObjectPlacement>, IEnumerable<ObjectPlacement>>? objects = null,
         Func<IReadOnlyList<NpcSpawn>, IEnumerable<NpcSpawn>>? npcs = null)
     {
-        var plan = StarterIsland.Build();
+        var plan = TestWorld.Build();
         return new WorldPlan(
             plan.Map,
             spawn ?? plan.Spawn,
@@ -33,15 +33,17 @@ public class CheckTests
             [.. npcs?.Invoke(plan.Npcs) ?? plan.Npcs]);
     }
 
-    private static WorldPlan Without(Func<ObjectPlacement, bool> drop) => Island(objects: all => all.Where(p => !drop(p)));
+    private static WorldPlan Without(Func<ObjectPlacement, bool> drop) => Changed(objects: all => all.Where(p => !drop(p)));
 
-    private static WorldPlan WithNpcs(params NpcSpawn[] extra) => Island(npcs: all => [.. all, .. extra]);
+    private static WorldPlan WithNpcs(params NpcSpawn[] extra) => Changed(npcs: all => [.. all, .. extra]);
 
-    private static WorldPlan WithObjects(params ObjectPlacement[] extra) => Island(objects: all => [.. all, .. extra]);
+    private static WorldPlan WithObjects(params ObjectPlacement[] extra) => Changed(objects: all => [.. all, .. extra]);
 
     private static TileCoord At(int x, int y, int plane = 0) => new(x, y, plane);
 
-    private static TileCoord FirstTree() => StarterIsland.Build().Objects.First(p => p.ObjectId == ObjectId.Tree).Tile;
+    private static TileCoord FirstTree() => TestWorld.Build().Objects.First(p => p.ObjectId == ObjectId.Tree).Tile;
+
+    private static TileCoord FirstRock() => TestWorld.Build().Objects.First(p => p.ObjectId == ObjectId.Rock).Tile;
 
     /// <summary>The default story with its dialogues swapped for <paramref name="dialogues"/>.</summary>
     private static Story StoryWith(IReadOnlyList<DialogueDefinition> dialogues)
@@ -75,19 +77,19 @@ public class CheckTests
     }
 
     [Fact]
-    public void TheIslandHasFiveRegionsAndAnOpenSpawnTile()
+    public void TheTestWorldHasTwoRegionsAndAnOpenSpawnTile()
     {
-        var island = StarterIsland.Build();
+        var world = TestWorld.Build();
 
-        Assert.Equal(5, island.Map.RegionCount);
-        Assert.Equal(TileFlags.Open, island.Map.FlagsAt(island.Spawn));
+        Assert.Equal(2, world.Map.RegionCount);
+        Assert.Equal(TileFlags.Open, world.Map.FlagsAt(world.Spawn));
     }
 
     [Fact]
     public void TwoCallsGiveTwoMapsSinceTheServerWritesToItsOwn()
     {
-        var a = StarterIsland.Build();
-        var b = StarterIsland.Build();
+        var a = TestWorld.Build();
+        var b = TestWorld.Build();
         a.Map.SetFlags(a.Spawn, TileFlags.Blocked);
 
         Assert.Equal(TileFlags.Open, b.Map.FlagsAt(b.Spawn));
@@ -96,7 +98,7 @@ public class CheckTests
     [Fact]
     public void TheGuardCountsTheFourGoblinsThatAreThere()
     {
-        var goblins = StarterIsland.Build().Npcs.Where(s => s.Npc == NpcId.Goblin);
+        var goblins = TestWorld.Build().Npcs.Where(s => s.Npc == NpcId.Goblin);
 
         Assert.Equal(4, goblins.Count());
     }
@@ -104,11 +106,11 @@ public class CheckTests
     [Fact]
     public void AFishingSpotStandsBesideWater()
     {
-        var island = StarterIsland.Build();
-        foreach (var p in island.Objects.Where(p => p.ObjectId == ObjectId.FishingSpot))
+        var world = TestWorld.Build();
+        foreach (var p in world.Objects.Where(p => p.ObjectId == ObjectId.FishingSpot))
         {
             (int Dx, int Dy)[] sides = [(1, 0), (-1, 0), (0, 1), (0, -1)];
-            var beside = sides.Select(d => island.Map.FlagsAt(At(p.Tile.X + d.Dx, p.Tile.Y + d.Dy)));
+            var beside = sides.Select(d => world.Map.FlagsAt(At(p.Tile.X + d.Dx, p.Tile.Y + d.Dy)));
 
             Assert.True(beside.Any(f => f.Has(TileFlags.Water)), p.ToString());
         }
@@ -122,7 +124,7 @@ public class CheckTests
         var found = Problems(c => c with
         {
             Npcs = NpcsWith(new NpcDef(6, "Ghost", dialogue: "ghost")),
-            World = WithNpcs(new NpcSpawn(6, At(62, 58))),
+            World = WithNpcs(new NpcSpawn(6, TestWorld.Clear)),
         });
 
         Assert.Contains("Ghost opens dialogue 'ghost', which does not exist.", found);
@@ -176,7 +178,7 @@ public class CheckTests
         var found = Problems(c => c with
         {
             Npcs = NpcsWith(new NpcDef(6, "Crab", loot: new LootTable(always: [new ItemStack(900, 1)]))),
-            World = WithNpcs(new NpcSpawn(6, At(62, 58))),
+            World = WithNpcs(new NpcSpawn(6, TestWorld.Clear)),
         });
 
         Assert.Contains("Crab drops item 900, which does not exist.", found);
@@ -263,7 +265,7 @@ public class CheckTests
         var tree = FirstTree();
         var found = Problems(c => c with
         {
-            World = WithNpcs(new NpcSpawn(NpcId.Goblin, At(1, 1)), new NpcSpawn(NpcId.Goblin, tree)),
+            World = WithNpcs(new NpcSpawn(NpcId.Goblin, TestWorld.Sea), new NpcSpawn(NpcId.Goblin, tree)),
         });
 
         Assert.Contains("Goblin at (1, 1, 0) stands on ground it cannot use.", found);
@@ -273,36 +275,37 @@ public class CheckTests
     [Fact]
     public void ACreatureOnANoCreatureTileAndOneOnStairs()
     {
-        var plan = Island();
-        plan.Map.SetFlags(At(62, 58), TileFlags.NoNpc);
+        var plan = TestWorld.Build();
+        plan.Map.SetFlags(TestWorld.Clear, TileFlags.NoNpc);
         var stairs = plan.Objects.First(p => p.ObjectId == ObjectId.StairsUp);
         var world = new WorldPlan(
             plan.Map,
             plan.Spawn,
             plan.Objects,
-            [.. plan.Npcs, new NpcSpawn(NpcId.Goblin, At(62, 58)), new NpcSpawn(NpcId.Goblin, stairs.Tile)]);
+            [.. plan.Npcs, new NpcSpawn(NpcId.Goblin, TestWorld.Clear), new NpcSpawn(NpcId.Goblin, stairs.Tile)]);
 
-        Assert.Equal(["Goblin at (62, 58, 0) stands on ground it cannot use."], Problems(c => c with { World = world }));
+        Assert.Equal(["Goblin at (34, 16, 0) stands on ground it cannot use."], Problems(c => c with { World = world }));
     }
 
     [Fact]
     public void ACreatureThatHasNoDefinition()
     {
-        var found = Problems(c => c with { World = WithNpcs(new NpcSpawn(99, At(62, 58))) });
+        var found = Problems(c => c with { World = WithNpcs(new NpcSpawn(99, TestWorld.Clear)) });
 
-        Assert.Equal(["Creature 99 at (62, 58, 0) does not exist."], found);
+        Assert.Equal(["Creature 99 at (34, 16, 0) does not exist."], found);
     }
 
     [Fact]
     public void AnObjectOnTheWaterAndTwoOnOneTile()
     {
+        var rock = FirstRock();
         var found = Problems(c => c with
         {
-            World = WithObjects(new ObjectPlacement(ObjectId.Rock, At(1, 1)), new ObjectPlacement(ObjectId.Rock, At(100, 60))),
+            World = WithObjects(new ObjectPlacement(ObjectId.Rock, TestWorld.Sea), new ObjectPlacement(ObjectId.Rock, rock)),
         });
 
         Assert.Contains("Rock at (1, 1, 0) stands on blocked ground.", found);
-        Assert.Contains("Rock at (100, 60, 0) overlaps Rock.", found);
+        Assert.Contains($"Rock at ({rock.X}, {rock.Y}, 0) overlaps Rock.", found);
     }
 
     [Fact]
@@ -322,10 +325,10 @@ public class CheckTests
     [Fact]
     public void StairsWithNoWay()
     {
-        var world = Island(objects: all =>
-            [.. all.Where(p => p.ObjectId != ObjectId.StairsUp), new ObjectPlacement(ObjectId.StairsUp, At(69, 85))]);
+        var world = Changed(objects: all =>
+            [.. all.Where(p => p.ObjectId != ObjectId.StairsUp), new ObjectPlacement(ObjectId.StairsUp, TestWorld.StairsUp)]);
 
-        Assert.Contains("Stairs at (69, 85, 0) leads nowhere.", Problems(c => c with { World = world }));
+        Assert.Contains("Stairs at (33, 43, 0) leads nowhere.", Problems(c => c with { World = world }));
     }
 
     [Fact]
@@ -333,13 +336,13 @@ public class CheckTests
     {
         var tree = FirstTree();
         var world = WithObjects(
-            new ObjectPlacement(ObjectId.StairsDown, At(60, 60), Destination: At(1, 1)),
-            new ObjectPlacement(ObjectId.StairsDown, At(58, 58), Destination: tree));
+            new ObjectPlacement(ObjectId.StairsDown, At(36, 12), Destination: TestWorld.Sea),
+            new ObjectPlacement(ObjectId.StairsDown, At(38, 12), Destination: tree));
 
         Assert.Equal(
             [
-                "Stairs at (60, 60, 0) leads to blocked ground at (1, 1, 0).",
-                $"Stairs at (58, 58, 0) leads into a solid object at ({tree.X}, {tree.Y}, 0).",
+                "Stairs at (36, 12, 0) leads to blocked ground at (1, 1, 0).",
+                $"Stairs at (38, 12, 0) leads into a solid object at ({tree.X}, {tree.Y}, 0).",
             ],
             Problems(c => c with { World = world }));
     }
@@ -349,10 +352,10 @@ public class CheckTests
     {
         var tree = FirstTree();
 
-        Assert.Contains("The spawn tile (1, 1, 0) is blocked.", Problems(c => c with { World = Island(spawn: At(1, 1)) }));
+        Assert.Contains("The spawn tile (1, 1, 0) is blocked.", Problems(c => c with { World = Changed(spawn: TestWorld.Sea) }));
         Assert.Contains(
             $"The spawn tile ({tree.X}, {tree.Y}, 0) is inside a solid object.",
-            Problems(c => c with { World = Island(spawn: tree) }));
+            Problems(c => c with { World = Changed(spawn: tree) }));
     }
 
     // Reach.
@@ -360,35 +363,35 @@ public class CheckTests
     [Fact]
     public void ARoomWithTheDoorWalledUpCannotBeEntered()
     {
-        var plan = Island();
-        plan.Map.SetFlags(At(56, 62), TileFlags.WallSouth | TileFlags.WallEast | TileFlags.WallWest);
+        var plan = TestWorld.Build();
+        plan.Map.SetFlags(TestWorld.ShopDoor, TileFlags.WallSouth | TileFlags.WallEast | TileFlags.WallWest);
 
         Assert.Contains(
-            "A creature at (56, 65, 0) cannot be reached from the spawn tile.",
+            "A creature at (22, 27, 0) cannot be reached from the spawn tile.",
             Problems(c => c with { World = plan }));
     }
 
     [Fact]
     public void ABankBoothBehindAWallIsNotReachedFromOutsideIt()
     {
-        var plan = Island();
-        plan.Map.SetFlags(At(71, 62), TileFlags.WallSouth | TileFlags.WallEast | TileFlags.WallWest);
+        var plan = TestWorld.Build();
+        plan.Map.SetFlags(TestWorld.BankDoor, TileFlags.WallSouth | TileFlags.WallEast | TileFlags.WallWest);
         var found = Problems(c => c with { World = plan });
 
-        Assert.Contains("Bank booth at (70, 66, 0) cannot be reached from the spawn tile.", found);
-        Assert.Contains("Bank booth at (72, 66, 0) cannot be reached from the spawn tile.", found);
+        Assert.Contains("Bank booth at (37, 28, 0) cannot be reached from the spawn tile.", found);
+        Assert.Contains("Bank booth at (39, 28, 0) cannot be reached from the spawn tile.", found);
     }
 
     [Fact]
     public void RocksStandingRoundATileShutItOff()
     {
-        (int X, int Y)[] ring = [(61, 56), (62, 56), (63, 56), (61, 57), (63, 57), (61, 58), (62, 58), (63, 58)];
-        var world = Island(
+        (int X, int Y)[] ring = [(33, 15), (34, 15), (35, 15), (33, 16), (35, 16), (33, 17), (34, 17), (35, 17)];
+        var world = Changed(
             objects: all => [.. all, .. ring.Select(t => new ObjectPlacement(ObjectId.Rock, At(t.X, t.Y)))],
-            npcs: all => [.. all.Where(s => s.Npc != NpcId.Guard), new NpcSpawn(NpcId.Guard, At(62, 57))]);
+            npcs: all => [.. all.Where(s => s.Npc != NpcId.Guard), new NpcSpawn(NpcId.Guard, TestWorld.Clear)]);
 
         Assert.Equal(
-            ["A creature at (62, 57, 0) cannot be reached from the spawn tile."],
+            ["A creature at (34, 16, 0) cannot be reached from the spawn tile."],
             Problems(c => c with { World = world }));
     }
 
@@ -397,6 +400,6 @@ public class CheckTests
     {
         var found = Problems(c => c with { World = Without(p => p.ObjectId == ObjectId.StairsUp) });
 
-        Assert.Contains("Stairs at (69, 85, 1) cannot be reached from the spawn tile.", found);
+        Assert.Contains("Stairs at (33, 43, 1) cannot be reached from the spawn tile.", found);
     }
 }
