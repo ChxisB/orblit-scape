@@ -63,7 +63,7 @@ public class ItemsTests
         Assert.ThrowsAny<ArgumentException>(() => new ItemStack(ItemDef.MaxId + 1, 1));
         Assert.ThrowsAny<ArgumentException>(() => new ItemStack(1, 0));
 
-        // An int cannot hold MaxCount + 1, so the Dart's check above the cap has no twin.
+        // An int cannot hold MaxCount + 1, so there is no check above the cap to test.
         Assert.Equal(ItemStack.MaxCount, new ItemStack(1, ItemStack.MaxCount).Count);
     }
 

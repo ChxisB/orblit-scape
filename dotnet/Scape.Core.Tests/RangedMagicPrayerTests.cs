@@ -178,7 +178,7 @@ public class RangedMagicPrayerTests
         Assert.Equal(BadMessage.Malformed, WhyServer([15, 0, 0, 0, 0, 0, 0, 0, 0, 1, 3]));
     }
 
-    // C# only: a cast can make a style that Dart's enum cannot hold.
+    // A cast can make a style outside the enum.
     [Fact]
     public void AProjectileCannotBeBuiltWithAStyleOutsideTheEnum()
     {
