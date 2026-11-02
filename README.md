@@ -37,7 +37,6 @@ this project imitates.
 | `Scape.Client` | What a player sees and sends: the camera, the pick under the pointer, actor poses and the session with its menus |
 | `Scape.Panels` | The side panels, minimap and right-click menu as Avalonia controls |
 | `Scape.Bots` | Bots that log in over the wire, and the tools an agent uses to look at a server |
-| `Scape.Demo` | The starter island in 3D in a window, with the rules run in the app and no server |
 
 ## Run it
 
@@ -67,17 +66,6 @@ Run these again after you pull a change in `orblit` or `orblit-net`.
 
 This builds `dotnet/`, runs the tests and checks the format. The analyzer
 rules are build errors, so the build is the lint.
-
-### Walk the starter island
-
-```sh
-dotnet run --project dotnet/Scape.Demo
-dotnet run --project dotnet/Scape.Demo -- --walk X Y
-```
-
-`--walk X Y` sends the player to tile X Y as the window opens. A click walks
-and a shift-click runs. A right drag or the arrow keys turn the camera, and
-the wheel zooms. The text in the top left names what is under the pointer.
 
 ### Run a server with bots
 
