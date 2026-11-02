@@ -32,7 +32,7 @@ this project imitates.
 | Project | Holds |
 | --- | --- |
 | `Scape.Core` | Tile coordinates, flags, paths, items, combat and the messages the server and client share |
-| `Scape.Content` | The items, creatures, skills, quests and models of the first game, the starter island, and the check that they fit together |
+| `Scape.Content` | The items, creatures, skills, quests and models of the first game, the shape of a world, and the check that they fit together |
 | `Scape.Server` | The tick loop, the client wire, sessions, actions and saves. A library |
 | `Scape.Client` | What a player sees and sends: the camera, the pick under the pointer, actor poses and the session with its menus |
 | `Scape.Panels` | The side panels, minimap and right-click menu as Avalonia controls |

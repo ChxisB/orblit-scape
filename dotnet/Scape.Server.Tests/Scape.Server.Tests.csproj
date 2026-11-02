@@ -10,6 +10,9 @@
     <PackageReference Include="Orblit.Parity" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\Scape.Content.Tests\TestWorld.cs" Link="TestWorld.cs" />
+  </ItemGroup>
+  <ItemGroup>
     <Content Include="..\fixtures\scape_server\*.json" Link="fixtures\scape_server\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

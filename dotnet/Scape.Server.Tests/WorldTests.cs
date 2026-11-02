@@ -1,14 +1,15 @@
 using Scape.Content;
+using Scape.Content.Tests;
 using Scape.Core;
 
 namespace Scape.Server.Tests;
 
-public sealed class IslandTests : IAsyncDisposable
+public sealed class WorldTests : IAsyncDisposable
 {
-    private readonly WorldPlan _world = StarterIsland.Build();
+    private readonly WorldPlan _world = TestWorld.Build();
     private readonly TestServer _test;
 
-    public IslandTests() =>
+    public WorldTests() =>
         _test = new TestServer(options => options with { Map = _world.Map, Spawn = _world.Spawn, Recipes = DefaultRecipes.All });
 
     private ScapeServer Server => _test.Server;
@@ -20,7 +21,7 @@ public sealed class IslandTests : IAsyncDisposable
     private void Stock() => Server.Stock(_world.Objects, _world.Npcs);
 
     [Fact]
-    public void TheServerTakesInEveryObjectAndCreatureOfTheIsland()
+    public void TheServerTakesInEveryObjectAndCreatureOfTheWorld()
     {
         Stock();
 
@@ -34,7 +35,7 @@ public sealed class IslandTests : IAsyncDisposable
     }
 
     [Fact]
-    public async Task ANewPlayerAppearsOnTheSpawnTileOfTheIsland()
+    public async Task ANewPlayerAppearsOnTheSpawnTileOfTheWorld()
     {
         Stock();
 
@@ -47,29 +48,29 @@ public sealed class IslandTests : IAsyncDisposable
     public async Task APlayerOpensTheShopDoorAndWalksInToTheShopkeeper()
     {
         Stock();
-        var door = Server.Objects.At(At(56, 62))!;
+        var door = Server.Objects.At(TestWorld.ShopDoor)!;
         var ana = await _test.JoinAsync("Ana");
         await _test.TickAsync();
 
         await ana.ClickAsync(InteractKind.PlacedObject, (long)door.NetworkId);
         await _test.TickAsync(40);
-        await ana.SendAsync(new Walk(At(56, 64)));
+        await ana.SendAsync(new Walk(At(22, 26)));
         await _test.TickAsync(12);
 
         Assert.Equal(1, door.State);
-        Assert.Equal(At(56, 64), Server.Movement.TileOf("ana"));
+        Assert.Equal(At(22, 26), Server.Movement.TileOf("ana"));
     }
 
     [Fact]
     public async Task APlayerWalksToTheFurnaceAndSmeltsABar()
     {
         Stock();
-        var furnace = Server.Objects.At(At(50, 60))!;
+        var furnace = Server.Objects.At(TestWorld.Furnace)!;
         var ana = await _test.JoinAsync("Ana");
         var bag = Server.Items.ContainerOf("ana", ContainerId.Inventory)!;
         bag.Add(ItemId.CopperOre, 1);
 
-        await ana.SendAsync(new Walk(At(51, 60)));
+        await ana.SendAsync(new Walk(At(11, 20)));
         await _test.TickAsync(20);
         await ana.ClickAsync(InteractKind.UseOnObject, (long)furnace.NetworkId);
         await _test.TickAsync(6);
@@ -80,5 +81,5 @@ public sealed class IslandTests : IAsyncDisposable
 
     [Fact]
     public void APlacementTheWorldRefusesIsAnError() =>
-        Assert.Throws<ArgumentException>(() => Server.Stock([new ObjectPlacement(ObjectId.Rock, At(1, 1))], []));
+        Assert.Throws<ArgumentException>(() => Server.Stock([new ObjectPlacement(ObjectId.Rock, TestWorld.Sea)], []));
 }
