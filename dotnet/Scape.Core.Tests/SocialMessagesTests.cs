@@ -38,7 +38,7 @@ public class SocialMessagesTests
         Assert.ThrowsAny<ArgumentException>(() => new EditList(ListKind.Friends, true, " "));
     }
 
-    // C# only: a cast can make a list that Dart's enum cannot hold.
+    // A cast can make a list outside the enum.
     [Fact]
     public void AListEditCannotBeBuiltForAListOutsideTheEnum()
     {

@@ -26,7 +26,7 @@ public class MoveItemMessagesTests
         Assert.Equal(BadMessage.Malformed, WhyClient([18, 0, 1, 0, 0]));
     }
 
-    // C# only: a cast can make a container id that Dart's enum cannot hold.
+    // A cast can make a container id outside the enum.
     [Fact]
     public void AMoveCannotBeBuiltWithAContainerOutsideTheEnum()
     {

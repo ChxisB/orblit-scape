@@ -179,7 +179,7 @@ public class MessagesTests
         Assert.True(MessageCodec.Encode(new Chat(new string('x', 240))).Length <= MessageCodec.ClientMessageLimit);
     }
 
-    // C# only: UTF-8 in .NET keeps a leading byte order mark, and the Dart reader drops one.
+    // UTF-8 in .NET keeps a leading byte order mark, so the reader drops one.
     [Fact]
     public void OneLeadingByteOrderMarkIsDroppedFromText()
     {

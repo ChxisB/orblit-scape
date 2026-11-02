@@ -437,7 +437,7 @@ public sealed class AdminTests : IAsyncDisposable
         await test.Server.Loop.RunAsync();
         await test.PumpAsync();
 
-        // Two ticks, 1.2 s, so the count says 2 seconds after 1 second, as the Dart does. Decision 80 item 105.
+        // Two ticks, 1.2 s, so the count says 2 seconds after 1 second. Decision 80 item 105.
         Assert.Equal(19, _pacer.Allowed);
         Assert.Equal(
             [

@@ -187,7 +187,7 @@ public class RulesParityTests
         public override double NextDouble()
         {
             var draw = _draws[_at++];
-            Assert.False(draw.TryGetProperty("below", out _), "the Dart drew an int here");
+            Assert.False(draw.TryGetProperty("below", out _), "the fixture drew an int here");
             return Fixture.Number(draw.GetProperty("gave"));
         }
 
