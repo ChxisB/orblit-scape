@@ -150,7 +150,7 @@ public class PlayerStateTests
             containers: new Dictionary<ContainerId, IReadOnlyList<ItemStack?>> { [ContainerId.Inventory] = new ItemStack?[27] }));
     }
 
-    // C# only: a cast can make a container id that Dart's enum cannot hold.
+    // A cast can make a container id outside the enum.
     [Fact]
     public void BuildingRefusesAContainerOutsideTheEnum()
     {
@@ -280,7 +280,7 @@ public class PlayerStateTests
         Assert.Empty(back.Quests);
     }
 
-    // C# only: UTF-8 in .NET keeps a leading byte order mark, and the Dart reader drops one.
+    // UTF-8 in .NET keeps a leading byte order mark, so the reader drops one.
     [Fact]
     public void ReadingDropsALeadingByteOrderMark()
     {

@@ -58,7 +58,7 @@ public class ContainerTests
         Assert.Equal(MaxStack + 7L, c.CountOf(Coins));
     }
 
-    // Not in the Dart suite, which no mutant of the full-stack skip failed.
+    // Added because no mutant of the full-stack skip failed the earlier tests.
     [Fact]
     public void AddLeavesAFullStackItSkipsClean()
     {
